@@ -6,22 +6,22 @@ use Nidavellir\Trading\Models\Exchange;
 
 class ExchangeObserver
 {
-    public function saving(Exchange $exchange)
-    {
-        $exchange->validate();
-    }
-
-    public function updated(Exchange $exchange)
+    public function saving(Exchange $model)
     {
         //
     }
 
-    public function deleted(Exchange $exchange)
+    public function updated(Exchange $model)
     {
         //
     }
 
-    public function created(Exchange $exchange)
+    public function deleted(Exchange $model)
+    {
+        //
+    }
+
+    public function created(Exchange $model)
     {
         //
     }

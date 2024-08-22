@@ -64,4 +64,56 @@ class BinanceMapper extends AbstractMapper
 
         return $sanitizedData;
     }
+
+    /**
+     * Returns the Futures account balance, only for the
+     * ones that are not zero.
+     *
+     * Return:
+     * ['ETH' => 6.24,
+     *  'USDT' => 330.11]
+     */
+    public function queryAccountBalance()
+    {
+        $futures = new Futures($this->credentialsForFutures());
+        $portfolio = $futures->queryAccountBalance();
+
+        // Remove zero balances, and keep only the others.
+        $filteredPortfolio = array_filter($portfolio, function ($item) {
+            return (float) $item['availableBalance'] !== 0.0;
+        });
+
+        // Map the result.
+        $result = [];
+        foreach ($filteredPortfolio as $item) {
+            $result[$item['asset']] = (float) $item['availableBalance'];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Places an order on the system, via REST api call.
+     * string $symbol, string $side, string $type, array $options = []
+     * ['symbol-currency'=> '', (SOL-USDT)
+     *  'side' => '', BUY/SELL
+     *  'type' => '' MARKET/LIMIT,
+     *  'quantity' => 500 (USDT),
+     *  'price' => 45.56 (USDT)
+     */
+    public function newOrder(array $options)
+    {
+        $connection = new Futures($this->credentialsForFutures());
+
+        if (! array_key_exists('timeInForce', $options)) {
+            $options['timeinforce'] = 'GTC';
+        }
+
+        return $connection->newOrder(
+            symbol: $options['symbol'],
+            side: $options['side'],
+            type: $options['type'],
+            options: $options
+        );
+    }
 }

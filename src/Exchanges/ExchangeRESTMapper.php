@@ -29,4 +29,23 @@ class ExchangeRESTMapper
     {
         return $this->mapper->getExchangeInformation($options);
     }
+
+    /**
+     * Returns the futures portfolio balance, only for the
+     * positive ones (availableBalance > 0).
+     *
+     * @return array:
+     *
+     * ['ETH' => 0.55, 'USDT' => 553.11]
+     */
+    public function queryAccountBalance()
+    {
+        return $this->mapper->queryAccountBalance();
+    }
+
+    // TODO / Testing.
+    public function placeSingleOrder(array $options)
+    {
+        return $this->mapper->newOrder($options);
+    }
 }

@@ -3,14 +3,14 @@
 namespace Nidavellir\Trading\Jobs\System;
 
 use Illuminate\Bus\Queueable;
-use Nidavellir\Trading\Models\Symbol;
-use Illuminate\Queue\SerializesModels;
-use Nidavellir\Trading\Models\Exchange;
-use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
 use Nidavellir\Trading\Abstracts\AbstractMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTMapper;
+use Nidavellir\Trading\Models\Exchange;
+use Nidavellir\Trading\Models\Symbol;
 
 class UpsertExchangeAvailableTokens implements ShouldQueue
 {
@@ -49,7 +49,7 @@ class UpsertExchangeAvailableTokens implements ShouldQueue
         // Step 1: Mark existing entries for the given exchange as not synced
         $exchange = Exchange::find($exchangeId);
 
-        if (!$exchange) {
+        if (! $exchange) {
             return; // Handle case where exchange does not exist
         }
 

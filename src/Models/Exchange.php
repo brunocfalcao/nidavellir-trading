@@ -10,4 +10,10 @@ class Exchange extends AbstractModel
     {
         return $this->belongsToMany(Symbol::class);
     }
+
+    // Returns the specific exchange-symbol with more symbol data.
+    public function exchangeSymbols()
+    {
+        return $this->hasMany(ExchangeSymbol::class);
+    }
 }

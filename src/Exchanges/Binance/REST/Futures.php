@@ -6,6 +6,7 @@ use Binance\APIClient;
 
 class Futures extends APIClient
 {
+    use Account;
     use Market;
     use Trade;
 
