@@ -73,10 +73,10 @@ class BinanceMapper extends AbstractMapper
      * ['ETH' => 6.24,
      *  'USDT' => 330.11]
      */
-    public function queryAccountBalance()
+    public function getAccountBalance()
     {
         $futures = new Futures($this->credentialsForFutures());
-        $portfolio = $futures->queryAccountBalance();
+        $portfolio = $futures->getAccountBalance();
 
         // Remove zero balances, and keep only the others.
         $filteredPortfolio = array_filter($portfolio, function ($item) {

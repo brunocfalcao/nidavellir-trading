@@ -5,8 +5,8 @@ namespace Nidavellir\Trading\Listeners\Positions;
 use Illuminate\Support\Facades\Bus;
 use Nidavellir\Trading\Abstracts\AbstractListener;
 use Nidavellir\Trading\Events\Positions\PositionCreatedEvent;
-use Nidavellir\Trading\Jobs\Traders\UpdateCurrentPortfolioBalanceJob;
 use Nidavellir\Trading\Models\ExchangeSymbol;
+use Nidavellir\Trading\Models\Trader;
 use Nidavellir\Trading\Nidavellir;
 
 class PositionCreatedListener extends AbstractListener
@@ -50,19 +50,13 @@ class PositionCreatedListener extends AbstractListener
          * With this trading configuration, and the exchange
          * symbol selected we can start the order creation
          * process.
-         *
-         * First step is to obtain the current remaining
-         * portfolio amount, for the trade.
-         *
-         * With the remaining portfolio, we then need to
-         * compute the trade percentage amount. The amount
-         * will be splitted by all the orders, accordingly
-         * to the amount scale logic.
          */
-        Bus::chain([
 
-            // Update current trader portfolio.
-            new UpdateCurrentPortfolioBalanceJob($trader),
+        // Get trader available balance. Runs synchronously.
+
+        $availableBalance = $trader->getAvailableBalance();
+
+        Bus::chain([
 
         ])->dispatch();
     }

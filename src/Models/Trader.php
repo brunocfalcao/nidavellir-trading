@@ -7,10 +7,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Nidavellir\Trading\Concerns\Models\HasTraderFeatures;
 
 class Trader extends Authenticatable
 {
-    use HasFactory, Notifiable, SoftDeletes;
+    use HasFactory,
+        HasTraderFeatures,
+        Notifiable,
+        SoftDeletes;
 
     protected $guarded = [];
 

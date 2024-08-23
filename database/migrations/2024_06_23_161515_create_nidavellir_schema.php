@@ -12,17 +12,6 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('available_balances', function (Blueprint $table) {
-            $table->id();
-
-            $table->foreignId('trader_id');
-            $table->foreignId('exchange_symbol_id');
-            $table->decimal('balance,20,8')
-                ->comment('We just store the positive available balance');
-
-            $table->timestamps();
-        });
-
         Schema::create('system', function (Blueprint $table) {
             $table->id();
 
@@ -104,6 +93,8 @@ return new class extends Migration
                 ->default(true);
 
             $table->timestamp('last_synced_at')->nullable();
+
+            $table->timestamps();
         });
 
         Schema::table('users', function (Blueprint $table) {
@@ -161,6 +152,12 @@ return new class extends Migration
 
             $table->uuid()
                 ->comment('Auto generated UUID, for query reasons');
+
+            $table->decimal('system_total_trade_amount', 20, 8)
+                ->comment('The total amount (all market and limit orders) for this trade');
+
+            $table->decimal('system_take_profit_percentage', 6, 3)
+                ->comment('The take profit percentage for this position, reflected on this limit-sell order');
 
             $table->foreignId('exchange_symbol_id')
                 ->comment('Related exchange symbol id');
@@ -243,17 +240,15 @@ return new class extends Migration
 
             $table->foreignId('trader_id');
 
-            $table->decimal('average_price', 15, 8)
-                ->nullable()
-                ->comment('The calculated current average price, for the filled orders with size ratios in account');
+            $table->foreignId('exchange_symbol_id');
 
-            $table->decimal('current_take_profit_price', 15, 8)
+            $table->decimal('take_profit_percentage', 6, 3)
                 ->nullable()
-                ->comment('The current take profit price, given in account the current average price');
+                ->comment('Take profit percentage, given from the trade configuration');
 
             $table->string('status')
                 ->default('new')
-                ->comment('Current status canonical: ACTIVE, CLOSED');
+                ->comment('Current status canonical: NEW, ACTIVE, CLOSED');
 
             $table->timestamps();
         });

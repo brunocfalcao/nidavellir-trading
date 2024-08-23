@@ -26,7 +26,7 @@ class TestCommand extends Command
             new BinanceMapper(Trader::find(1)),
         );
 
-        dd($exchangeRESTMapper->queryAccountBalance());
+        dd($exchangeRESTMapper->getAccountBalance());
         */
 
         DB::table('positions')->truncate();

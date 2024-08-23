@@ -38,9 +38,9 @@ class ExchangeRESTMapper
      *
      * ['ETH' => 0.55, 'USDT' => 553.11]
      */
-    public function queryAccountBalance()
+    public function getAccountBalance()
     {
-        return $this->mapper->queryAccountBalance();
+        return $this->mapper->getAccountBalance();
     }
 
     // TODO / Testing.
