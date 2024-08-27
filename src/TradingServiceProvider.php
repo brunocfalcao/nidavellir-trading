@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Nidavellir\Trading\Commands\System\CycleCommand;
 use Nidavellir\Trading\Commands\System\TestCommand;
+use Nidavellir\Trading\Commands\System\UpsertBinanceMarkPricesCommand;
 use Nidavellir\Trading\Events\Positions\PositionCreatedEvent;
 use Nidavellir\Trading\Listeners\Positions\PositionCreatedListener;
 use Nidavellir\Trading\Listeners\Traders\LoggedInListener;
@@ -52,6 +53,7 @@ class TradingServiceProvider extends ServiceProvider
         $this->commands([
             TestCommand::class,
             CycleCommand::class,
+            UpsertBinanceMarkPricesCommand::class,
         ]);
     }
 }

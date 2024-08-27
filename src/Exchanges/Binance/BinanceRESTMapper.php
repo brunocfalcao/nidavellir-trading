@@ -11,7 +11,7 @@ use Nidavellir\Trading\Models\Exchange;
  * way, due to the fact that the exchange api methods can
  * have different name and parameter signatures.
  */
-class BinanceMapper extends AbstractMapper
+class BinanceRESTMapper extends AbstractMapper
 {
     /**
      * Returns the exchange model instance by canonical.
@@ -24,12 +24,12 @@ class BinanceMapper extends AbstractMapper
     /**
      * Returns FUTURES credentials.
      */
-    public function credentialsForFutures(): array
+    public function credentials(): array
     {
         return [
-            'url' => $this->exchange()->futures_url_prefix,
-            'secret' => $this->trader->binance_secret_key,
-            'key' => $this->trader->binance_api_key,
+            'url' => $this->exchange()->futures_url_rest_prefix,
+            'secret' => $this->credentials['secret_key'],
+            'key' => $this->credentials['api_key'],
         ];
     }
 
@@ -46,7 +46,7 @@ class BinanceMapper extends AbstractMapper
      */
     public function getExchangeInformation(array $options = []): array
     {
-        $futures = new Futures($this->credentialsForFutures());
+        $futures = new Futures($this->credentials());
         $data = $futures->exchangeInfo($options)['symbols'];
 
         $sanitizedData = [];
@@ -75,7 +75,7 @@ class BinanceMapper extends AbstractMapper
      */
     public function getAccountBalance()
     {
-        $futures = new Futures($this->credentialsForFutures());
+        $futures = new Futures($this->credentials());
         $portfolio = $futures->getAccountBalance();
 
         // Remove zero balances, and keep only the others.
@@ -103,7 +103,7 @@ class BinanceMapper extends AbstractMapper
      */
     public function newOrder(array $options)
     {
-        $connection = new Futures($this->credentialsForFutures());
+        $connection = new Futures($this->credentials());
 
         if (! array_key_exists('timeInForce', $options)) {
             $options['timeinforce'] = 'GTC';

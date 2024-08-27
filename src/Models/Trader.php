@@ -38,6 +38,11 @@ class Trader extends Authenticatable
         return $this->hasMany(Position::class);
     }
 
+    public function exchange()
+    {
+        return $this->belongsTo(Exchange::class);
+    }
+
     public function canBeDeleted()
     {
         return true;

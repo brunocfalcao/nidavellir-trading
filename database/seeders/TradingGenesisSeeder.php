@@ -4,7 +4,7 @@ namespace Nidavellir\Trading\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Bus;
-use Nidavellir\Trading\Exchanges\Binance\BinanceMapper;
+use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Jobs\Symbols\UpsertEligibleSymbolsJob;
 use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolMetadata;
 use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolRankings;
@@ -22,7 +22,10 @@ class TradingGenesisSeeder extends Seeder
         $exchange = new Exchange;
         $exchange->name = 'Binance';
         $exchange->canonical = 'binance';
-        $exchange->futures_url_prefix = 'https://fapi.binance.com';
+        $exchange->full_qualified_class_name_rest = "Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper";
+        $exchange->full_qualified_class_name_websocket = "Nidavellir\Trading\Exchanges\Binance\BinanceWebsocketMapper";
+        $exchange->futures_url_rest_prefix = 'https://fapi.binance.com';
+        $exchange->futures_url_websockets_prefix = 'wss://fstream.binance.com';
         $exchange->save();
 
         // Admin/standard trader person.
@@ -46,7 +49,7 @@ class TradingGenesisSeeder extends Seeder
             new UpsertSymbolRankings,
 
             // Exchange-based jobs.
-            new UpsertExchangeAvailableTokens(new BinanceMapper($trader)),
+            new UpsertExchangeAvailableTokens(new BinanceRESTMapper($trader)),
 
             // Disable non-elligible & non-ranked symbols.
             new UpsertEligibleSymbolsJob,

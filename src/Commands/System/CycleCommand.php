@@ -3,7 +3,7 @@
 namespace Nidavellir\Trading\Commands\System;
 
 use Illuminate\Console\Command;
-use Nidavellir\Trading\Exchanges\Binance\BinanceMapper;
+use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTMapper;
 use Nidavellir\Trading\Models\Trader;
 
@@ -29,7 +29,7 @@ class CycleCommand extends Command
          * that is active on the system.
          */
         $exchangeRESTMapper = new ExchangeRESTMapper(
-            new BinanceMapper(Trader::find(1)),
+            new BinanceRESTMapper(Trader::find(1)),
         );
 
         $exchangeRESTMapper->placeSingleOrder(

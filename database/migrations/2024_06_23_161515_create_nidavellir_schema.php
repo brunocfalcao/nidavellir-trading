@@ -39,7 +39,16 @@ return new class extends Migration
                 ->nullable()
                 ->comment('Unique natural identifier');
 
-            $table->string('futures_url_prefix')
+            $table->string('full_qualified_class_name_rest')
+                ->comment('E.g: Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper');
+
+            $table->string('full_qualified_class_name_websocket')
+                ->comment('E.g: Nidavellir\Trading\Exchanges\Binance\BinanceWebsocketMapper');
+
+            $table->string('futures_url_rest_prefix')
+                ->nullable();
+
+            $table->string('futures_url_websockets_prefix')
                 ->nullable();
 
             $table->string('spot_url_prefix')
@@ -86,13 +95,14 @@ return new class extends Migration
             $table->unsignedInteger('precision_quantity');
             $table->unsignedInteger('precision_quote');
 
-            $table->boolean('was_synced')
-                ->default(false);
-
             $table->boolean('is_active')
                 ->default(true);
 
-            $table->timestamp('last_synced_at')->nullable();
+            $table->decimal('last_mark_price', 20, 8)
+                ->nullable()
+                ->comment('Last mark price fetched from the exchange');
+
+            $table->timestamp('price_last_synced_at')->nullable();
 
             $table->timestamps();
         });
@@ -147,26 +157,10 @@ return new class extends Migration
 
         Schema::rename('users', 'traders');
 
-        Schema::create('orders', function (Blueprint $table) {
+        Schema::create('orders_log_binance', function (Blueprint $table) {
             $table->id();
 
-            $table->uuid()
-                ->comment('Auto generated UUID, for query reasons');
-
-            $table->decimal('system_total_trade_amount', 20, 8)
-                ->comment('The total amount (all market and limit orders) for this trade');
-
-            $table->decimal('system_take_profit_percentage', 6, 3)
-                ->comment('The take profit percentage for this position, reflected on this limit-sell order');
-
-            $table->foreignId('exchange_symbol_id')
-                ->comment('Related exchange symbol id');
-
-            $table->foreignId('position_id')
-                ->nullable()
-                ->comment('Before an order is created, a nidavellir position is opened (that will aggregate several parameters from different orders)');
-
-            $table->unsignedBigInteger('order_id')
+            $table->string('order_id')
                 ->comment('Exchange system generated order id');
 
             $table->string('client_order_id')
@@ -235,20 +229,58 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        Schema::create('orders', function (Blueprint $table) {
+            $table->id();
+
+            $table->string('orderable_exchange_type')
+                ->nullable()
+                ->comment('Related exchange order log model class');
+
+            $table->unsignedBigInteger('orderable_exchange_id')
+                ->nullable()
+                ->comment('Related exchange order log model id');
+
+            $table->uuid()
+                ->comment('Auto generated UUID, for query reasons');
+
+            $table->string('order_type')
+                ->comment('E.g.: limit-buy, limit-sell or market');
+
+            $table->foreignId('exchange_symbol_id')
+                ->comment('Related exchange symbol id');
+
+            $table->foreignId('position_id')
+                ->nullable()
+                ->comment('Before an order is created, a nidavellir position is opened (that will aggregate several parameters from different orders)');
+
+            $table->decimal('laddering_percentage_ratio', 3, 3)
+                ->comment('The percentage ratio gap between this (laddered) order and the market order. The market order has a percentage ratio of zero');
+
+            $table->string('system_order_id')
+                ->comment('System generated order id for reference purposes, generated as P:xxx where P means position id on the database');
+
+            $table->timestamps();
+        });
+
         Schema::create('positions', function (Blueprint $table) {
             $table->id();
 
             $table->foreignId('trader_id');
 
-            $table->foreignId('exchange_symbol_id');
-
             $table->decimal('take_profit_percentage', 6, 3)
                 ->nullable()
                 ->comment('Take profit percentage, given from the trade configuration');
 
+            $table->decimal('total_trade_amount', 20, 8)
+                ->nullable()
+                ->comment('The total trade amount available for this trade (meaning the sum of all the margins from all the orders except the limit sell)');
+
             $table->string('status')
                 ->default('new')
-                ->comment('Current status canonical: NEW, ACTIVE, CLOSED');
+                ->comment('Current status canonical: NEW, ACTIVE, ERROR, CLOSED');
+
+            $table->text('comments')
+                ->nullable();
 
             $table->timestamps();
         });
