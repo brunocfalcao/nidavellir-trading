@@ -3,9 +3,11 @@
 namespace Nidavellir\Trading\Commands\System;
 
 use Illuminate\Console\Command;
-use Nidavellir\Trading\Exchanges\Binance\BinanceWebsocketMapper;
-use Nidavellir\Trading\Exchanges\ExchangeWebsocketMapper;
+use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Models\Exchange;
+use Nidavellir\Trading\Models\ExchangeSymbol;
+use Nidavellir\Trading\Exchanges\ExchangeWebsocketMapper;
+use Nidavellir\Trading\Exchanges\Binance\BinanceWebsocketMapper;
 
 class UpsertBinanceMarkPricesCommand extends Command
 {
@@ -15,7 +17,7 @@ class UpsertBinanceMarkPricesCommand extends Command
 
     public function handle()
     {
-        $exchange = Exchange::where('canonical', 'binance');
+        $exchange = Exchange::firstWhere('canonical', 'binance');
 
         $client = new ExchangeWebsocketMapper(
             new BinanceWebsocketMapper(
@@ -29,27 +31,29 @@ class UpsertBinanceMarkPricesCommand extends Command
                 $prices = collect(json_decode($msg, true));
 
                 /**
-                 * Remove the USDT from the token name.
+                 * Remove all non-USDT tokens.
                  */
                 $usdtTokens = $prices->filter(function ($item) {
                     return substr($item['s'], -4) === 'USDT';
                 })->values();
 
                 foreach ($usdtTokens as $token) {
-                    $symbol = Symbol::where('token', $token);
+                    $symbol = Symbol::firstWhere('token', substr($token['s'], 0, -4));
 
-                    ExchangeSymbol::updateOrCreate(
-                        [//where:
-                            'symbol_id' => $symbol->id,
-                            'exchange_id' => $exchange->id,
-                        ],
-                        [//update:
-                            'last_mark_price' => $token['p'],
-                        ]
-                    );
+                    if ($symbol) {
+                        ExchangeSymbol::updateOrCreate(
+                            [//where:
+                                'symbol_id' => $symbol->id,
+                                'exchange_id' => $exchange->id,
+                            ],
+                            [//update:
+                                'last_mark_price' => $token['p'],
+                            ]
+                        );
+                    }
                 }
 
-                echo 'prices updated '.date('H:m:s').PHP_EOL;
+                echo "Prices updated at ".date('H:m:s').PHP_EOL;
             },
             'ping' => function ($conn, $msg) {
                 echo 'received ping from server'.PHP_EOL;
