@@ -3,6 +3,7 @@
 namespace Nidavellir\Trading\Exchanges\Binance;
 
 use Nidavellir\Trading\Abstracts\AbstractMapper;
+use Nidavellir\Trading\Exchanges\Binance\Callers\GetExchangeInformation;
 use Nidavellir\Trading\Exchanges\Binance\REST\Futures;
 use Nidavellir\Trading\Models\Exchange;
 
@@ -33,36 +34,9 @@ class BinanceRESTMapper extends AbstractMapper
         ];
     }
 
-    /**
-     * Returns exchange token information.
-     *
-     * @return array:
-     *
-     * Array keys:
-     * ['symbol'] (e.g.: "BTC" not "BTCUSDT"!)
-     *   ['precision'] => 'price' => XX
-     *                    'quantity' => XX
-     *                    'quote' => XX
-     */
-    public function getExchangeInformation(array $options = []): array
+    public function getExchangeInformation(array $options = [], array $data = [])
     {
-        $futures = new Futures($this->credentials());
-        $data = $futures->exchangeInfo($options)['symbols'];
-
-        $sanitizedData = [];
-
-        // --- Transformer operations ---
-        foreach ($data as $key => $value) {
-            $sanitizedData[$value['baseAsset']] = [
-                'precision' => [
-                    'price' => $value['pricePrecision'],
-                    'quantity' => $value['quantityPrecision'],
-                    'quote' => $value['quotePrecision'],
-                ],
-            ];
-        }
-
-        return $sanitizedData;
+        return (new GetExchangeInformation($this, $options, $data))->result;
     }
 
     /**
@@ -76,6 +50,7 @@ class BinanceRESTMapper extends AbstractMapper
     public function getAccountBalance()
     {
         $futures = new Futures($this->credentials());
+
         $portfolio = $futures->getAccountBalance();
 
         // Remove zero balances, and keep only the others.
@@ -85,6 +60,7 @@ class BinanceRESTMapper extends AbstractMapper
 
         // Map the result.
         $result = [];
+
         foreach ($filteredPortfolio as $item) {
             $result[$item['asset']] = (float) $item['availableBalance'];
         }

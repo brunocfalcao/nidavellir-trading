@@ -2,6 +2,7 @@
 
 namespace Nidavellir\Trading\Concerns\Models;
 
+use Binance\Exception\ClientException;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTMapper;
 
@@ -53,6 +54,12 @@ trait HasTraderFeatures
             new BinanceRESTMapper($this),
         );
 
-        return $exchangeRESTMapper->getAccountBalance();
+        try {
+            $result = $exchangeRESTMapper->getAccountBalance();
+        } catch (ClientException $e) {
+            dd($e->getMessage());
+        }
+
+        return $result;
     }
 }

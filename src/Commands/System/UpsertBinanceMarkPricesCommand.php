@@ -3,11 +3,11 @@
 namespace Nidavellir\Trading\Commands\System;
 
 use Illuminate\Console\Command;
-use Nidavellir\Trading\Models\Symbol;
+use Nidavellir\Trading\Exchanges\Binance\BinanceWebsocketMapper;
+use Nidavellir\Trading\Exchanges\ExchangeWebsocketMapper;
 use Nidavellir\Trading\Models\Exchange;
 use Nidavellir\Trading\Models\ExchangeSymbol;
-use Nidavellir\Trading\Exchanges\ExchangeWebsocketMapper;
-use Nidavellir\Trading\Exchanges\Binance\BinanceWebsocketMapper;
+use Nidavellir\Trading\Models\Symbol;
 
 class UpsertBinanceMarkPricesCommand extends Command
 {
@@ -53,7 +53,7 @@ class UpsertBinanceMarkPricesCommand extends Command
                     }
                 }
 
-                echo "Prices updated at ".date('H:m:s').PHP_EOL;
+                echo 'Prices updated at '.date('H:m:s').PHP_EOL;
             },
             'ping' => function ($conn, $msg) {
                 echo 'received ping from server'.PHP_EOL;

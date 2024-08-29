@@ -3,15 +3,21 @@
 namespace Nidavellir\Trading\Exchanges;
 
 use Nidavellir\Trading\Abstracts\AbstractMapper;
+use Nidavellir\Trading\Models\ApiLog;
 use Nidavellir\Trading\Models\Exchange;
 
 class ExchangeRESTMapper
 {
     protected $mapper;
 
-    public function __construct(AbstractMapper $mapper)
-    {
+    protected $data;
+
+    public function __construct(
+        AbstractMapper $mapper,
+        array $data = []
+    ) {
         $this->mapper = $mapper;
+        $this->data = $data;
     }
 
     /**
@@ -25,9 +31,9 @@ class ExchangeRESTMapper
      *                    'quantity' => XX
      *                    'quote' => XX
      */
-    public function getExchangeInformation(array $options = [])
+    public function getExchangeInformation(array $options = [], array $data = [])
     {
-        return $this->mapper->getExchangeInformation($options);
+        return $this->mapper->getExchangeInformation($options, $data);
     }
 
     /**
@@ -40,7 +46,29 @@ class ExchangeRESTMapper
      */
     public function getAccountBalance()
     {
-        return $this->mapper->getAccountBalance();
+        $result = null;
+
+        try {
+            $result = $this->mapper->getAccountBalance();
+
+            ApiLog::create([
+                'result' => 'ok',
+                'exchange_id' => $this->mapper->exchange()->id,
+                'response' => json_encode($result, JSON_PRETTY_PRINT),
+            ]);
+
+            return $result;
+        } catch (\Exception $e) {
+            ApiLog::create([
+                'result' => 'error',
+                'trader_id' => $this->mapper->trader->id,
+                'exchange_id' => $this->mapper->exchange()->id,
+                'response' => json_encode($result, JSON_PRETTY_PRINT),
+                'exception' => json_encode($e, JSON_PRETTY_PRINT),
+            ]);
+
+            return false;
+        }
     }
 
     // TODO / Testing.

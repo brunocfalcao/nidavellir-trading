@@ -14,6 +14,7 @@ use Nidavellir\Trading\Jobs\System\UpsertFearGreedIndexJob;
 use Nidavellir\Trading\Models\Exchange;
 use Nidavellir\Trading\Models\System;
 use Nidavellir\Trading\Models\Trader;
+use Nidavellir\Trading\Nidavellir;
 
 class TradingGenesisSeeder extends Seeder
 {
@@ -49,7 +50,9 @@ class TradingGenesisSeeder extends Seeder
             new UpsertSymbolRankings,
 
             // Exchange-based jobs.
-            new UpsertExchangeAvailableTokens(new BinanceRESTMapper($trader)),
+            new UpsertExchangeAvailableTokens(new BinanceRESTMapper(
+                credentials: Nidavellir::getSystemCredentials('binance')
+            )),
 
             // Disable non-elligible & non-ranked symbols.
             new UpsertEligibleSymbolsJob,

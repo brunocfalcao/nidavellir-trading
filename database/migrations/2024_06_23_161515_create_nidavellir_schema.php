@@ -12,6 +12,33 @@ return new class extends Migration
      */
     public function up(): void
     {
+        Schema::create('api_logs', function (Blueprint $table) {
+            $table->id();
+
+            $table->foreignId('exchange_id')
+                ->nullable();
+
+            $table->foreignId('trader_id')
+                ->nullable();
+
+            $table->longText('payload')
+                ->nullable();
+
+            $table->longText('response')
+                ->nullable();
+
+            $table->longText('other_data')
+                ->nullable();
+
+            $table->longText('exception')
+                ->nullable();
+
+            $table->string('result')
+                ->nullable();
+
+            $table->timestamps();
+        });
+
         Schema::create('system', function (Blueprint $table) {
             $table->id();
 
@@ -96,7 +123,12 @@ return new class extends Migration
             $table->unsignedInteger('precision_quote');
 
             $table->boolean('is_active')
-                ->default(true);
+                ->default(true)
+                ->comment('Active means the symbol will be syncronized with the exchange (price, precision, etc)');
+
+            $table->boolean('is_eligible')
+                ->default(false)
+                ->comment('Eligible means the symbol is a candidate to be traded at the moment');
 
             $table->decimal('last_mark_price', 20, 8)
                 ->nullable()

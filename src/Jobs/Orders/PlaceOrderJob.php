@@ -69,7 +69,10 @@ class PlaceOrderJob implements ShouldQueue
          * opened given the passed percentage ratio.
          */
 
-        // Obtain the position total trade amount.
+        /**
+         * Obtain the position total trade amount.
+         * Always floor rounded.
+         */
         $tradeAmount = $this->position->total_trade_amount;
 
         $exchangeRESTMapper = new ExchangeRESTMapper(
@@ -77,24 +80,62 @@ class PlaceOrderJob implements ShouldQueue
         );
 
         // Grab the token name.
-        $symbol = strtoupper($this->exchangeSymbol->symbol->token);
+        $exchangeSymbol = $this->exchangeSymbol;
+        $symbol = $this->exchangeSymbol->symbol;
 
         /**
          * Compute the quantity, given the last mark price of the
          * token and the trade amount divided by the amount ratio.
+         *
+         * We need to format the quantity given the symbol
+         * precision (ExchangeSymbol->precision_quantity).
          */
-        $quantity = floor($tradeAmount / $ratio[1] / 143);
+        $orderQuantity = round(
+            $tradeAmount / $this->ratio[1] / $exchangeSymbol->last_mark_price,
+            $exchangeSymbol->precision_quantity
+        );
 
-        // Market order?
-        if ($ratio[0] == 0) {
-            $data = $exchangeRESTMapper->placeSingleOrder(
-                [
-                    'symbol' => "{$symbol}USDT",
-                    'type' => 'MARKET',
-                    'side' => 'BUY',
-                    'quantity' => 1,
-                ]
-            );
+        /**
+         * Compute order parameters.
+         * For now, only for Binance.
+         */
+        $orderSymbol = "{$symbol->token}USDT";
+        $orderType = $this->ratio[0] == 0 ? 'MARKET' : 'LIMIT';
+        $orderSide = $this->ratio[1] == 1 ? config('nidavellir.positions.side.to_sell') :
+                                      config('nidavellir.positions.side.to_buy');
+
+        info_multiple(
+            'Position id: '.$this->position->id,
+            'Trade total amount: '.$tradeAmount,
+            'Ratio (Quantity division): '.$this->ratio[1], // Quantity ratio
+            'Ratio (Percentage): '.$this->ratio[0],
+            'Symbol: '.$symbol->token,
+            'Mark Price: '.$exchangeSymbol->last_mark_price,
+            'Quantity: '.$orderQuantity,
+            'Type: '.$orderType,
+            'Side: '.$orderSide
+        );
+
+        $orderData =
+            [
+                'symbol' => $orderSymbol,
+                'type' => $orderType,
+                'side' => $orderSide,
+                'quantity' => $orderQuantity,
+            ];
+
+        /**
+         * In case we are opening a limit order we need to
+         * compute the price variation given the percentage
+         * price ratio (ratio[0]).
+         */
+        if ($type == 'LIMIT') {
         }
+
+        $data = $exchangeRESTMapper->placeSingleOrder(
+            $orderData
+        );
+
+        dd($data);
     }
 }

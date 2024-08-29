@@ -26,7 +26,8 @@ class PositionCreatedListener extends AbstractListener
 
         /**
          * In case the position has a nullable total trade
-         * amount, we need to calculate the new one.
+         * amount, we need to calculate the total trade amount
+         * and insert into the position.
          */
         if ($position->total_trade_amount == null) {
             // Get trader available balance. Runs synchronously.
@@ -62,7 +63,7 @@ class PositionCreatedListener extends AbstractListener
 
             // Update total trade amount (USDT).
             $position->update([
-                'total_trade_amount' => floor($usdtBalance * $maxPercentageTradeAmount / 100),
+                'total_trade_amount' => round(floor($usdtBalance * $maxPercentageTradeAmount / 100)),
             ]);
         }
 
@@ -72,8 +73,11 @@ class PositionCreatedListener extends AbstractListener
          * the exchange_symbol.is_active=true.
          */
         $exchangeSymbols = ExchangeSymbol::where('is_active', true)
+            ->where('is_eligible', true)
             ->where('exchange_id', $trader->exchange_id)
             ->get();
+
+        dd($exchangeSymbols->count());
 
         /**
          * Remove exchange symbols that are already being used
@@ -104,7 +108,13 @@ class PositionCreatedListener extends AbstractListener
             );
         }
 
-        Bus::batch([
+        /**
+         * The orders are placed as :
+         * market order first
+         * then the limit-"buy" group
+         * then the limit-"sell"
+         */
+        Bus::chain([
             $orders,
         ])->dispatch();
 

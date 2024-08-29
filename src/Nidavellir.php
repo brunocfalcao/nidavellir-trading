@@ -7,6 +7,11 @@ use Nidavellir\Trading\Models\System;
 
 class Nidavellir
 {
+    public static function getSystemCredentials(string $exchangeConfigCanonical)
+    {
+        return config('nidavellir.system.api.credentials.'.$exchangeConfigCanonical);
+    }
+
     public static function getTradeConfiguration()
     {
         /**

@@ -53,7 +53,7 @@ trait Market
      */
     public function exchangeInfo(array $options = [])
     {
-        return $this->publicRequest('GET', '/fapi/v1/exchangeInfo', $options);
+        return $this->publicRequest('GET', '/fa2pi/v1/exchangeInfo', $options);
     }
 
     /**

@@ -42,9 +42,11 @@ class BinanceWebsocketMapper extends AbstractMapper
     }
 
     //https://developers.binance.com/docs/derivatives/usds-margined-futures/websocket-market-streams/Mark-Price-Stream
+    // TODO!
     public function markPrice(string $symbol, $callback)
     {
-        $url = "{$this->baseURL}/ws/".strtolower($symbol).'@markPrice@1s';
-        $this->handleCallBack($url, $callback);
+        $futures = new Futures($this->credentials());
+
+        return $futures->markPrice($symbol, $callback);
     }
 }
