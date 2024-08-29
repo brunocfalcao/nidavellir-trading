@@ -15,11 +15,19 @@ return new class extends Migration
         Schema::create('api_logs', function (Blueprint $table) {
             $table->id();
 
+            $table->string('caller_name');
+
             $table->foreignId('exchange_id')
                 ->nullable();
 
             $table->foreignId('trader_id')
                 ->nullable();
+
+            $table->foreignId('position_id')
+                  ->nullable();
+
+            $table->foreignId('order_id')
+                  ->nullable();
 
             $table->longText('payload')
                 ->nullable();
