@@ -9,7 +9,7 @@ abstract class AbstractRESTWrapper
     /**
      * The Exchange mapper itself for api calls.
      */
-    protected $mapper;
+    public $mapper;
 
     public function __construct(AbstractMapper $mapper)
     {

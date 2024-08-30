@@ -23,7 +23,7 @@ trait HasTraderFeatures
     }
 
     // Returns the exchange class REST name to be instanciated.
-    public function getExchangeRESTWrapper()
+    public function getExchangeWrapperInUse()
     {
         $className = $this->exchange->full_qualified_class_name_rest;
 

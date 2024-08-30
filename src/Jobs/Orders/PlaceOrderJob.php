@@ -76,7 +76,7 @@ class PlaceOrderJob implements ShouldQueue
         $tradeAmount = $this->position->total_trade_amount;
 
         $exchangeRESTMapper = new ExchangeRESTWrapper(
-            $this->position->trader->getExchangeRESTWrapper()
+            $this->position->trader->getExchangeWrapperInUse()
         );
 
         // Grab the token name.

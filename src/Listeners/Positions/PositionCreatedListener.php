@@ -32,21 +32,13 @@ class PositionCreatedListener extends AbstractListener
         if ($position->total_trade_amount == null) {
             // Get trader available balance. Runs synchronously.
 
-            $exchangeRESTMapper = new ExchangeRESTWrapper(
-                $trader->getExchangeRESTWrapper()
+            $apiWrapper = new ExchangeRESTWrapper(
+                $trader->getExchangeWrapperInUse()
             );
 
-            $exchangeRESTMapper->withTrader($trader);
-            $exchangeRESTMapper->withPosition($position);
+            $apiWrapper->withPosition($position);
 
-            dd($exchangeRESTMapper->getAccountBalance());
-
-            // Already has the trader encapsulated.
-            $exchangeRESTMapper->getAccountBalance();
-
-            dd('here');
-
-            $availableBalance = $trader->getAvailableBalance(data: ['position' => $position]);
+            dd($apiWrapper->getAccountBalance());
 
             /**
              * Check if the trader's available amount is more than
@@ -135,13 +127,13 @@ class PositionCreatedListener extends AbstractListener
 
         // Get the active exchange mapper for api interfacing.
         /*
-        $exchangeRESTMapper = new ExchangeRESTWrapper(
-            $trader->getExchangeRESTWrapper()
+        $apiWrapper = new ExchangeRESTWrapper(
+            $trader->getExchangeWrapperInUse()
         );
         */
 
         /*
-        $exchangeRESTMapper = new ExchangeRESTWrapper(
+        $apiWrapper = new ExchangeRESTWrapper(
             new BinanceRESTMapper(Trader::find(1)),
         );
         */

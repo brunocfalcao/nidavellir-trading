@@ -3,7 +3,6 @@
 namespace Nidavellir\Trading\Abstracts;
 
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
-use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\ApiLog;
 
 abstract class AbstractCaller
@@ -27,9 +26,11 @@ abstract class AbstractCaller
         $apiLog = ApiLog::create([
             'result' => 'ok',
             'caller_name' => $this->callerName,
+            'position_id' => array_key_exists('position', $this->mapper->properties) ? $this->mapper->properties['position']->id : null,
+            'order_id' => array_key_exists('order', $this->mapper->properties) ? $this->mapper->properties['order']->id : null,
+            'trader_id' => $this->mapper->trader?->id,
             'mapper_properties' => $this->mapper->properties,
             'exchange_id' => $this->mapper->exchange()->id,
-            'trader_id' => $this->mapper->trader?->id,
         ]);
 
         try {

@@ -30,7 +30,7 @@ return new class extends Migration
                 ->nullable();
 
             $table->longText('mapper_properties')
-                  ->nullable();
+                ->nullable();
 
             $table->longText('response')
                 ->nullable();

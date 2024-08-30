@@ -17,19 +17,38 @@ class GetAccountBalance extends AbstractCaller
 
     public function parseResult()
     {
-        dd($this->trader);
-        // Remove zero balances, and keep only the others.
-        $filteredPortfolio = array_filter($this->result, function ($item) {
-            return (float) $item['availableBalance'] !== 0.0;
-        });
+        $this->result = array_reduce(
+            // The original array to reduce.
+            $this->result,
+            /**
+             * The callback function applied to each item in
+             * the array.
+             */
+            function ($carry, $item) {
 
-        // Map the result.
-        $result = [];
+                // Cast the available balance to a float.
+                $balance = (float) $item['availableBalance'];
 
-        foreach ($filteredPortfolio as $item) {
-            $this->result[$item['asset']] = (float) $item['availableBalance'];
-        }
+                /**
+                 * If the balance is not zero, add it to the
+                 * result array.
+                 */
+                if ($balance !== 0.0) {
 
-        dd($this->result);
+                    /**
+                     * Set the asset name as the key and the
+                     * balance as the value.
+                     */
+                    $carry[$item['asset']] = $balance;
+                }
+
+                // Return the accumulated result.
+                return $carry;
+            },
+            // Start with an empty array to accumulate results.
+            []
+        );
+
+        return $this->result;
     }
 }

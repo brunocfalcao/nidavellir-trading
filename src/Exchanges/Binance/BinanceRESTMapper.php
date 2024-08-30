@@ -6,7 +6,6 @@ use Nidavellir\Trading\Abstracts\AbstractMapper;
 use Nidavellir\Trading\Exchanges\Binance\Callers\GetAccountBalance;
 use Nidavellir\Trading\Exchanges\Binance\Callers\GetExchangeInformation;
 use Nidavellir\Trading\Exchanges\Binance\REST\Futures;
-use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Exchange;
 
 /**
@@ -43,28 +42,9 @@ class BinanceRESTMapper extends AbstractMapper
      * ['ETH' => 6.24,
      *  'USDT' => 330.11]
      */
-    public function getAccountBalance(array $options = [], array $data = [])
+    public function getAccountBalance()
     {
-        return (new getAccountBalance($this, $options, $data))->result;
-        /*
-        $futures = new Futures($this->credentials());
-
-        $portfolio = $futures->getAccountBalance();
-
-        // Remove zero balances, and keep only the others.
-        $filteredPortfolio = array_filter($portfolio, function ($item) {
-            return (float) $item['availableBalance'] !== 0.0;
-        });
-
-        // Map the result.
-        $result = [];
-
-        foreach ($filteredPortfolio as $item) {
-            $result[$item['asset']] = (float) $item['availableBalance'];
-        }
-
-        return $result;
-        */
+        return (new getAccountBalance($this))->result;
     }
 
     /**
