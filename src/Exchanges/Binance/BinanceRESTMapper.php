@@ -3,8 +3,10 @@
 namespace Nidavellir\Trading\Exchanges\Binance;
 
 use Nidavellir\Trading\Abstracts\AbstractMapper;
+use Nidavellir\Trading\Exchanges\Binance\Callers\GetAccountBalance;
 use Nidavellir\Trading\Exchanges\Binance\Callers\GetExchangeInformation;
 use Nidavellir\Trading\Exchanges\Binance\REST\Futures;
+use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Exchange;
 
 /**
@@ -14,17 +16,11 @@ use Nidavellir\Trading\Models\Exchange;
  */
 class BinanceRESTMapper extends AbstractMapper
 {
-    /**
-     * Returns the exchange model instance by canonical.
-     */
     public function exchange(): Exchange
     {
         return Exchange::firstWhere('canonical', 'binance');
     }
 
-    /**
-     * Returns FUTURES credentials.
-     */
     public function credentials(): array
     {
         return [
@@ -34,9 +30,9 @@ class BinanceRESTMapper extends AbstractMapper
         ];
     }
 
-    public function getExchangeInformation(array $options = [], array $data = [])
+    public function getExchangeInformation(ExchangeRESTWrapper $RESTMapper)
     {
-        return (new GetExchangeInformation($this, $options, $data))->result;
+        return (new GetExchangeInformation($this, $RESTMapper))->result;
     }
 
     /**
@@ -47,8 +43,10 @@ class BinanceRESTMapper extends AbstractMapper
      * ['ETH' => 6.24,
      *  'USDT' => 330.11]
      */
-    public function getAccountBalance()
+    public function getAccountBalance(array $options = [], array $data = [])
     {
+        return (new getAccountBalance($this, $options, $data))->result;
+        /*
         $futures = new Futures($this->credentials());
 
         $portfolio = $futures->getAccountBalance();
@@ -66,6 +64,7 @@ class BinanceRESTMapper extends AbstractMapper
         }
 
         return $result;
+        */
     }
 
     /**

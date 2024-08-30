@@ -8,7 +8,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Nidavellir\Trading\Abstracts\AbstractMapper;
-use Nidavellir\Trading\Exchanges\ExchangeRESTMapper;
+use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Exchange;
 use Nidavellir\Trading\Models\Symbol;
 
@@ -25,7 +25,7 @@ class UpsertExchangeAvailableTokens implements ShouldQueue
 
     public function handle()
     {
-        $exchangeMapper = new ExchangeRESTMapper($this->mapper);
+        $exchangeMapper = new ExchangeRESTWrapper($this->mapper);
 
         $data = $exchangeMapper->getExchangeInformation();
 

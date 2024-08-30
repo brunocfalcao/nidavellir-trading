@@ -5,7 +5,7 @@ namespace Nidavellir\Trading\Commands\System;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
-use Nidavellir\Trading\Exchanges\ExchangeRESTMapper;
+use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Trader;
 
 class TestCommand extends Command
@@ -22,7 +22,7 @@ class TestCommand extends Command
     public function handle()
     {
         /*
-        $exchangeRESTMapper = new ExchangeRESTMapper(
+        $exchangeRESTMapper = new ExchangeRESTWrapper(
             new BinanceRESTMapper(Trader::find(1)),
         );
 

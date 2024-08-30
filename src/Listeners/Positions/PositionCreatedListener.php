@@ -5,7 +5,7 @@ namespace Nidavellir\Trading\Listeners\Positions;
 use Illuminate\Support\Facades\Bus;
 use Nidavellir\Trading\Abstracts\AbstractListener;
 use Nidavellir\Trading\Events\Positions\PositionCreatedEvent;
-use Nidavellir\Trading\Exchanges\ExchangeRESTMapper;
+use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Jobs\Orders\PlaceOrderJob;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Trader;
@@ -31,7 +31,22 @@ class PositionCreatedListener extends AbstractListener
          */
         if ($position->total_trade_amount == null) {
             // Get trader available balance. Runs synchronously.
-            $availableBalance = $trader->getAvailableBalance();
+
+            $exchangeRESTMapper = new ExchangeRESTWrapper(
+                $trader->getExchangeRESTWrapper()
+            );
+
+            $exchangeRESTMapper->withTrader($trader);
+            $exchangeRESTMapper->withPosition($position);
+
+            dd($exchangeRESTMapper->getAccountBalance());
+
+            // Already has the trader encapsulated.
+            $exchangeRESTMapper->getAccountBalance();
+
+            dd('here');
+
+            $availableBalance = $trader->getAvailableBalance(data: ['position' => $position]);
 
             /**
              * Check if the trader's available amount is more than
@@ -120,13 +135,13 @@ class PositionCreatedListener extends AbstractListener
 
         // Get the active exchange mapper for api interfacing.
         /*
-        $exchangeRESTMapper = new ExchangeRESTMapper(
-            $trader->getExchangeRESTMapper()
+        $exchangeRESTMapper = new ExchangeRESTWrapper(
+            $trader->getExchangeRESTWrapper()
         );
         */
 
         /*
-        $exchangeRESTMapper = new ExchangeRESTMapper(
+        $exchangeRESTMapper = new ExchangeRESTWrapper(
             new BinanceRESTMapper(Trader::find(1)),
         );
         */

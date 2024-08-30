@@ -24,10 +24,10 @@ return new class extends Migration
                 ->nullable();
 
             $table->foreignId('position_id')
-                  ->nullable();
+                ->nullable();
 
             $table->foreignId('order_id')
-                  ->nullable();
+                ->nullable();
 
             $table->longText('payload')
                 ->nullable();

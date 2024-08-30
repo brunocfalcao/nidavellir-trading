@@ -4,7 +4,7 @@ namespace Nidavellir\Trading\Commands\System;
 
 use Illuminate\Console\Command;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
-use Nidavellir\Trading\Exchanges\ExchangeRESTMapper;
+use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Trader;
 
 class CycleCommand extends Command
@@ -28,7 +28,7 @@ class CycleCommand extends Command
          * so forth. All of this for each trader subscription
          * that is active on the system.
          */
-        $exchangeRESTMapper = new ExchangeRESTMapper(
+        $exchangeRESTMapper = new ExchangeRESTWrapper(
             new BinanceRESTMapper(Trader::find(1)),
         );
 

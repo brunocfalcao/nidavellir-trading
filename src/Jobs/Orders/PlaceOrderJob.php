@@ -8,7 +8,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Nidavellir\Trading\Exchanges\ExchangeRESTMapper;
+use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Position;
 
@@ -75,8 +75,8 @@ class PlaceOrderJob implements ShouldQueue
          */
         $tradeAmount = $this->position->total_trade_amount;
 
-        $exchangeRESTMapper = new ExchangeRESTMapper(
-            $this->position->trader->getExchangeRESTMapper()
+        $exchangeRESTMapper = new ExchangeRESTWrapper(
+            $this->position->trader->getExchangeRESTWrapper()
         );
 
         // Grab the token name.

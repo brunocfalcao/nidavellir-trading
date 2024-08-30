@@ -2,10 +2,6 @@
 
 namespace Nidavellir\Trading\Concerns\Models;
 
-use Binance\Exception\ClientException;
-use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
-use Nidavellir\Trading\Exchanges\ExchangeRESTMapper;
-
 trait HasTraderFeatures
 {
     /**
@@ -27,10 +23,14 @@ trait HasTraderFeatures
     }
 
     // Returns the exchange class REST name to be instanciated.
-    public function getExchangeRESTMapper()
+    public function getExchangeRESTWrapper()
     {
         $className = $this->exchange->full_qualified_class_name_rest;
 
+        /**
+         * Return an exchange mapper, that is being used by
+         * this trader, with himself authenticated.
+         */
         return new $className($this);
     }
 
@@ -40,26 +40,5 @@ trait HasTraderFeatures
         $className = $this->exchange->full_qualified_class_name_websocket;
 
         return new $className($this);
-    }
-
-    /**
-     * Returns the available balance from the futures.
-     *
-     * Array:
-     * ['TOKEN' => amount, 'TOKEN' => amount, ...]
-     */
-    public function getAvailableBalance()
-    {
-        $exchangeRESTMapper = new ExchangeRESTMapper(
-            new BinanceRESTMapper($this),
-        );
-
-        try {
-            $result = $exchangeRESTMapper->getAccountBalance();
-        } catch (ClientException $e) {
-            dd($e->getMessage());
-        }
-
-        return $result;
     }
 }

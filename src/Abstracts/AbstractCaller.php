@@ -2,8 +2,9 @@
 
 namespace Nidavellir\Trading\Abstracts;
 
-use Nidavellir\Trading\Models\ApiLog;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
+use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
+use Nidavellir\Trading\Models\ApiLog;
 
 abstract class AbstractCaller
 {
@@ -17,18 +18,18 @@ abstract class AbstractCaller
 
     protected string $callerName = 'Undefined';
 
+    protected ExchangeRESTWrapper $RESTWrapper;
+
     public $result;
 
     public function __construct(
         BinanceRESTMapper $mapper,
-        array $options = [],
-        array $data = [],
-        bool $reportSilently = false
+        ExchangeRESTWrapper $RESTWrapper
     ) {
         $this->mapper = $mapper;
         $this->options = $options;
         $this->data = $data;
-        $this->reportSilently = $reportSilently;
+        $this->reportSilently = false;
 
         $this->parseRequest();
 
@@ -54,7 +55,7 @@ abstract class AbstractCaller
 
             if (! $this->reportSilently) {
                 throw new \Exception(
-                    'Api error - '.$this->callerName.' ( '.$this->mapper->exchange()->name.' )'
+                    'Api error - '.$this->callerName.' ( '.$this->mapper->exchange()->name.' ) - '.$e->getMessage()
                 );
             }
         } finally {

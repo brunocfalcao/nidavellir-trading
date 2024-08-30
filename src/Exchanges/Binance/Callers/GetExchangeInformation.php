@@ -3,9 +3,7 @@
 namespace Nidavellir\Trading\Exchanges\Binance\Callers;
 
 use Nidavellir\Trading\Abstracts\AbstractCaller;
-use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\Binance\REST\Futures;
-use Nidavellir\Trading\Models\ApiLog;
 
 class GetExchangeInformation extends AbstractCaller
 {
