@@ -2,12 +2,10 @@
 
 namespace Nidavellir\Trading\Listeners\Positions;
 
-use Illuminate\Support\Facades\Bus;
 use Nidavellir\Trading\Abstracts\AbstractListener;
 use Nidavellir\Trading\Events\Positions\PositionCreatedEvent;
-use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
-use Nidavellir\Trading\Jobs\Orders\PlaceOrderJob;
 use Nidavellir\Trading\Models\ExchangeSymbol;
+use Nidavellir\Trading\Models\Order;
 use Nidavellir\Trading\Models\Trader;
 use Nidavellir\Trading\Nidavellir;
 
@@ -78,29 +76,36 @@ class PositionCreatedListener extends AbstractListener
             ]);
         }
 
-        /**
-         * Obtain the eligible symbols to open a trade.
-         * The symbols that are marked as eligible are
-         * the exchange_symbol.is_active=true.
-         */
-        $exchangeSymbols = ExchangeSymbol::where('is_active', true)
-            ->where('is_eligible', true)
-            ->where('exchange_id', $trader->exchange_id)
-            ->get();
+        if ($position->exchange_symbol_id == null) {
+            /**
+             * Obtain the eligible symbols to open a trade.
+             * The symbols that are marked as eligible are
+             * the exchange_symbol.is_active=true.
+             */
+            $exchangeSymbols =
+            ExchangeSymbol::where('is_active', true)
+                ->where('is_eligible', true)
+                ->where('exchange_id', $trader->exchange_id)
+                ->get();
 
-        /**
-         * Remove exchange symbols that are already being used
-         * by the trader positions.
-         */
+            /**
+             * Remove exchange symbols that are already being used
+             * by the trader positions.
+             */
 
-        // TODO.
+            // TODO.
 
-        /**
-         * Pick now a random eligible exchange symbol, normally
-         * there are around 20 symbols available that are
-         * selected everyday.
-         */
-        $exchangeSymbol = $exchangeSymbols->random();
+            /**
+             * Pick now a random eligible exchange symbol, normally
+             * there are around 20 symbols available that are
+             * selected everyday.
+             */
+            $exchangeSymbol = $exchangeSymbols->random();
+
+            $position->update([
+                'exchange_symbol_id' => $exchangeSymbol->id,
+            ]);
+        }
 
         /**
          * Create the orders, based on the trading configuration
@@ -108,36 +113,13 @@ class PositionCreatedListener extends AbstractListener
          */
         $ratios = $configuration['orders']['ratios'];
 
-        $orders = [];
         foreach ($ratios as $ratio) {
-            $orders[] = new PlaceOrderJob(
-                $position,
-                $exchangeSymbol,
-                $ratio // [percentageRatio, amountRatio]
-            );
+            Order::create([
+                'exchange_id' => $trader->exchange->id,
+                'position_id' => $position->id,
+                'price_percentage_ratio' => $ratio[0],
+                'amount_divider' => $ratio[1],
+            ]);
         }
-
-        /**
-         * The orders are placed as :
-         * market order first
-         * then the limit-"buy" group
-         * then the limit-"sell"
-         */
-        Bus::chain([
-            $orders,
-        ])->dispatch();
-
-        // Get the active exchange mapper for api interfacing.
-        /*
-        $apiWrapper = new ExchangeRESTWrapper(
-            $trader->getExchangeWrapperInUse()
-        );
-        */
-
-        /*
-        $apiWrapper = new ExchangeRESTWrapper(
-            new BinanceRESTMapper(Trader::find(1)),
-        );
-        */
     }
 }

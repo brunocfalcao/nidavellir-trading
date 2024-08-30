@@ -270,7 +270,7 @@ return new class extends Migration
             $table->id();
 
             $table->foreignId('exchange_id')
-                  ->nullable();
+                ->nullable();
 
             $table->foreignId('position_id')
                 ->nullable()
@@ -280,22 +280,22 @@ return new class extends Migration
                 ->comment('Auto generated UUID, for query reasons');
 
             $table->decimal('price_percentage_ratio', 6, 3)
-                  ->comment('Price percentage ratio from the market order. Market order, the price ratio is zero');
+                ->comment('Price percentage ratio from the market order. Market order, the price ratio is zero');
 
             $table->unsignedTinyInteger('amount_divider')
-                  ->comment('How much the total trade amount will be divided for this trade. The take profit is one because we sell the total position');
+                ->comment('How much the total trade amount will be divided for this trade. The take profit is one because we sell the total position');
 
             $table->decimal('price', 20, 8)
-                  ->nullable()
-                  ->comment('The order price where it was actually filled, or that will be');
+                ->nullable()
+                ->comment('The order price where it was actually filled, or that will be');
 
             $table->string('system_order_id')
-                  ->nullable()
+                ->nullable()
                 ->comment('System generated order id for reference purposes, generated as P:xxx where P means position id on the database');
 
             $table->longText('response')
-                  ->nullable()
-                  ->comment('The full exchange api response');
+                ->nullable()
+                ->comment('The full exchange api response');
 
             $table->timestamps();
         });
@@ -305,8 +305,11 @@ return new class extends Migration
 
             $table->foreignId('trader_id');
 
+            $table->foreignId('exchange_symbol_id')
+                ->nullable();
+
             $table->longText('trade_configuration')
-                  ->nullable()
+                ->nullable()
                 ->comment('Trade configuration at the moment of the position creation');
 
             $table->decimal('total_trade_amount', 20, 8)

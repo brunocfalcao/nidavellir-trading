@@ -50,7 +50,7 @@ class UpsertExchangeAvailableTokens implements ShouldQueue
                 $attributes = [
                     'precision_price' => $precisions['precision']['price'],
                     'precision_quantity' => $precisions['precision']['quantity'],
-                    'precision_quote' => $precisions['precision']['quote']
+                    'precision_quote' => $precisions['precision']['quote'],
                 ];
 
                 // Sync the pivot table with the new attributes
