@@ -10,37 +10,25 @@ abstract class AbstractCaller
 {
     protected AbstractMapper $mapper;
 
-    protected array $options;
-
-    protected array $data;
-
-    protected bool $throwSilent;
+    protected bool $throwSilently;
 
     protected string $callerName = 'Undefined';
-
-    protected ExchangeRESTWrapper $RESTWrapper;
 
     public $result;
 
     public function __construct(
-        BinanceRESTMapper $mapper,
-        ExchangeRESTWrapper $RESTWrapper
+        BinanceRESTMapper $mapper
     ) {
         $this->mapper = $mapper;
-        $this->options = $options;
-        $this->data = $data;
-        $this->reportSilently = false;
+        $this->throwSilently = false;
 
         $this->parseRequest();
 
         $apiLog = ApiLog::create([
             'result' => 'ok',
             'caller_name' => $this->callerName,
+            'mapper_properties' => $this->mapper->properties,
             'exchange_id' => $this->mapper->exchange()->id,
-            'payload' => serialize($this->options),
-            'other_data' => serialize($this->data),
-            'position_id' => array_key_exists('position', $this->data) ? $this->data['position']->id : null,
-            'order_id' => array_key_exists('order', $this->data) ? $this->data['order']->id : null,
             'trader_id' => $this->mapper->trader?->id,
         ]);
 
@@ -53,7 +41,7 @@ abstract class AbstractCaller
                 'exception' => $e->getMessage().' on file '.$e->getFile().' on line '.$e->getLine().' - '.$e->getCode(),
             ]);
 
-            if (! $this->reportSilently) {
+            if (! $this->throwSilently) {
                 throw new \Exception(
                     'Api error - '.$this->callerName.' ( '.$this->mapper->exchange()->name.' ) - '.$e->getMessage()
                 );

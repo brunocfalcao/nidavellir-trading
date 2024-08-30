@@ -30,9 +30,9 @@ class BinanceRESTMapper extends AbstractMapper
         ];
     }
 
-    public function getExchangeInformation(ExchangeRESTWrapper $RESTMapper)
+    public function getExchangeInformation()
     {
-        return (new GetExchangeInformation($this, $RESTMapper))->result;
+        return (new GetExchangeInformation($this))->result;
     }
 
     /**

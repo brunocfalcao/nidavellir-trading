@@ -11,16 +11,8 @@ abstract class AbstractRESTWrapper
      */
     protected $mapper;
 
-    /**
-     * This properties array will store everything called
-     * from the $exchangeRESTMapper->withTrader('1'),
-     * so it will have $properties['trader'] = 1;
-     */
-    protected $properties;
-
-    public function __construct(
-        AbstractMapper $mapper,
-    ) {
+    public function __construct(AbstractMapper $mapper)
+    {
         $this->mapper = $mapper;
     }
 

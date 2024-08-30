@@ -7,18 +7,20 @@ use Nidavellir\Trading\Models\Trader;
 abstract class AbstractMapper
 {
     // Possible trader that will use the current exchange instance.
-    protected ?Trader $trader;
+    public ?Trader $trader;
 
     // A possible set of credentials in case we don't have a trader.
     protected array $credentials;
 
     // Additional properties that are used for api calls.
-    public array $properties;
+    public array $properties = [];
 
     public function __construct(?Trader $trader = null, ?array $credentials = [])
     {
         $this->trader = $trader;
         $this->credentials = $credentials;
+        // Necessary for api calls that needs an "options".
+        $this->properties['options'] = [];
 
         // $credentials have priority over the $trader.
         if (! is_null($trader) && empty($this->credentials)) {

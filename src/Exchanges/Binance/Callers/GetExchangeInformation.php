@@ -12,7 +12,7 @@ class GetExchangeInformation extends AbstractCaller
     public function call()
     {
         $futures = new Futures($this->mapper->credentials());
-        $this->result = $futures->exchangeInfo($this->options)['symbols'];
+        $this->result = $futures->exchangeInfo($this->mapper->properties['options'])['symbols'];
     }
 
     /**

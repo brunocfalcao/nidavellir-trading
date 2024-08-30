@@ -29,13 +29,10 @@ return new class extends Migration
             $table->foreignId('order_id')
                 ->nullable();
 
-            $table->longText('payload')
-                ->nullable();
+            $table->longText('mapper_properties')
+                  ->nullable();
 
             $table->longText('response')
-                ->nullable();
-
-            $table->longText('other_data')
                 ->nullable();
 
             $table->longText('exception')
