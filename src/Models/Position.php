@@ -14,4 +14,9 @@ class Position extends AbstractModel
     {
         return $this->belongsTo(Trader::class);
     }
+
+    public function exchangeSymbol()
+    {
+        return $this->belongsTo(ExchangeSymbol::class);
+    }
 }

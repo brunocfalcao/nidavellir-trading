@@ -277,8 +277,8 @@ return new class extends Migration
                 ->comment('Before an order is created, a nidavellir position is opened (that will aggregate several parameters from different orders)');
 
             $table->string('status')
-                  ->default('new')
-                  ->comment('New (not processed yet), active (processed by api, successfully), filled (processed and got filled), cancelled (processed and got cancelled)');
+                ->default('new')
+                ->comment('New (not processed yet), active (processed by api, successfully), filled (processed and got filled), cancelled (processed and got cancelled)');
 
             $table->uuid()
                 ->comment('Auto generated UUID, for query reasons');
@@ -313,7 +313,8 @@ return new class extends Migration
                 ->nullable();
 
             $table->string('side')
-                  ->comment('Long (buy) or Short (sell)');
+                ->nullable()
+                ->comment('Long (buy) or Short (sell)');
 
             $table->longText('trade_configuration')
                 ->nullable()

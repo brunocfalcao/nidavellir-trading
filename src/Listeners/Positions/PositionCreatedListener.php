@@ -107,6 +107,12 @@ class PositionCreatedListener extends AbstractListener
             ]);
         }
 
+        if ($position->side == null) {
+            $position->update([
+                'side' => config('nidavellir.positions.side.current'),
+            ]);
+        }
+
         /**
          * Create the orders, based on the trading configuration
          * and on the market trend (bearish or bulish);

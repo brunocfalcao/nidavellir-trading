@@ -29,7 +29,8 @@ class TestCommand extends Command
         dd($exchangeRESTMapper->getAccountBalance());
         */
 
-        //DB::table('positions')->truncate();
+        DB::table('positions')->truncate();
+        DB::table('orders')->truncate();
 
         // Open position.
         Trader::find(1)->positions()->create([]);

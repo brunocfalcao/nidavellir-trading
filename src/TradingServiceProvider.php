@@ -2,18 +2,18 @@
 
 namespace Nidavellir\Trading;
 
+use Brunocfalcao\LaravelHelpers\Traits\ForServiceProviders\HasAutoLoaders;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
-use Nidavellir\Trading\Commands\System\TestCommand;
 use Nidavellir\Trading\Commands\System\CycleCommand;
+use Nidavellir\Trading\Commands\System\TestCommand;
+use Nidavellir\Trading\Commands\System\UpsertBinanceMarkPricesCommand;
 use Nidavellir\Trading\Events\Orders\OrderCreatedEvent;
-use Nidavellir\Trading\Listeners\Traders\LoggedInListener;
 use Nidavellir\Trading\Events\Positions\PositionCreatedEvent;
 use Nidavellir\Trading\Listeners\Orders\OrderCreatedListener;
 use Nidavellir\Trading\Listeners\Positions\PositionCreatedListener;
-use Nidavellir\Trading\Commands\System\UpsertBinanceMarkPricesCommand;
-use Brunocfalcao\LaravelHelpers\Traits\ForServiceProviders\HasAutoLoaders;
+use Nidavellir\Trading\Listeners\Traders\LoggedInListener;
 
 class TradingServiceProvider extends ServiceProvider
 {
