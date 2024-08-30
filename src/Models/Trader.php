@@ -22,7 +22,7 @@ class Trader extends Authenticatable
         'password',
         'remember_token',
         'binance_api_key',
-        'binance_secret_key'
+        'binance_secret_key',
     ];
 
     protected function casts(): array

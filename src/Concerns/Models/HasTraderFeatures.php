@@ -2,6 +2,8 @@
 
 namespace Nidavellir\Trading\Concerns\Models;
 
+use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
+
 trait HasTraderFeatures
 {
     /**
@@ -22,8 +24,13 @@ trait HasTraderFeatures
         }
     }
 
+    public function withRESTApi()
+    {
+        return new ExchangeRESTWrapper($this->getExchangeWrapperInUse());
+    }
+
     // Returns the exchange class REST name to be instanciated.
-    public function getExchangeWrapperInUse()
+    protected function getExchangeWrapperInUse()
     {
         $className = $this->exchange->full_qualified_class_name_rest;
 

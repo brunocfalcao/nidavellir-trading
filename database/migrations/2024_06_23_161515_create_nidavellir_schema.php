@@ -304,9 +304,8 @@ return new class extends Migration
 
             $table->foreignId('trader_id');
 
-            $table->decimal('take_profit_percentage', 6, 3)
-                ->nullable()
-                ->comment('Take profit percentage, given from the trade configuration');
+            $table->longText('trade_configuration')
+                ->comment('Trade configuration at the moment of the position creation');
 
             $table->decimal('total_trade_amount', 20, 8)
                 ->nullable()

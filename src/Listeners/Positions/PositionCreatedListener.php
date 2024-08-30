@@ -24,6 +24,10 @@ class PositionCreatedListener extends AbstractListener
          */
         $configuration = Nidavellir::getTradeConfiguration();
 
+        $position->update([
+            'trade_configuration' => $configuration,
+        ]);
+
         /**
          * In case the position has a nullable total trade
          * amount, we need to calculate the total trade amount
@@ -32,13 +36,11 @@ class PositionCreatedListener extends AbstractListener
         if ($position->total_trade_amount == null) {
             // Get trader available balance. Runs synchronously.
 
-            $apiWrapper = new ExchangeRESTWrapper(
-                $trader->getExchangeWrapperInUse()
-            );
-
-            $apiWrapper->withPosition($position);
-
-            dd($apiWrapper->getAccountBalance());
+            $availableBalance =
+                $trader
+                    ->withRESTApi()
+                    ->withPosition($position)
+                    ->getAccountBalance();
 
             /**
              * Check if the trader's available amount is more than
@@ -69,8 +71,10 @@ class PositionCreatedListener extends AbstractListener
             $maxPercentageTradeAmount = $configuration['positions']['amount_percentage_per_trade'];
 
             // Update total trade amount (USDT).
+            $totalTradeAmount = round(floor($usdtBalance * $maxPercentageTradeAmount / 100));
+
             $position->update([
-                'total_trade_amount' => round(floor($usdtBalance * $maxPercentageTradeAmount / 100)),
+                'total_trade_amount' => $totalTradeAmount,
             ]);
         }
 
