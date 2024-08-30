@@ -59,7 +59,7 @@ class UpsertSymbols implements ShouldQueue
                 ['coinmarketcap_id' => $item['id']],
                 [
                     'name' => $item['name'],
-                    'token' => $item['symbol'],
+                    'token' => $item['symbol']
                 ]
             );
         }

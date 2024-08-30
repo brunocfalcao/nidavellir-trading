@@ -88,8 +88,6 @@ class PositionCreatedListener extends AbstractListener
             ->where('exchange_id', $trader->exchange_id)
             ->get();
 
-        dd($exchangeSymbols->count());
-
         /**
          * Remove exchange symbols that are already being used
          * by the trader positions.
@@ -115,7 +113,7 @@ class PositionCreatedListener extends AbstractListener
             $orders[] = new PlaceOrderJob(
                 $position,
                 $exchangeSymbol,
-                $ratio
+                $ratio // [percentageRatio, amountRatio]
             );
         }
 

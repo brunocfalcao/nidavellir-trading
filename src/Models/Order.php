@@ -21,8 +21,13 @@ class Order extends AbstractModel
         ];
     }
 
-    public function exchangeSymbol()
+    public function position()
     {
-        return $this->belongsTo(ExchangeSymbol::class);
+        return $this->belongsTo(Position::class);
+    }
+
+    public function exchange()
+    {
+        return $this->belongsTo(Exchange::class);
     }
 }

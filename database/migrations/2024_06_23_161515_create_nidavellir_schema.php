@@ -132,7 +132,7 @@ return new class extends Migration
                 ->comment('Active means the symbol will be syncronized with the exchange (price, precision, etc)');
 
             $table->boolean('is_eligible')
-                ->default(false)
+                ->default(true)
                 ->comment('Eligible means the symbol is a candidate to be traded at the moment');
 
             $table->decimal('last_mark_price', 20, 8)
@@ -269,32 +269,33 @@ return new class extends Migration
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
 
-            $table->string('orderable_exchange_type')
-                ->nullable()
-                ->comment('Related exchange order log model class');
-
-            $table->unsignedBigInteger('orderable_exchange_id')
-                ->nullable()
-                ->comment('Related exchange order log model id');
-
-            $table->uuid()
-                ->comment('Auto generated UUID, for query reasons');
-
-            $table->string('order_type')
-                ->comment('E.g.: limit-buy, limit-sell or market');
-
-            $table->foreignId('exchange_symbol_id')
-                ->comment('Related exchange symbol id');
+            $table->foreignId('exchange_id')
+                  ->nullable();
 
             $table->foreignId('position_id')
                 ->nullable()
                 ->comment('Before an order is created, a nidavellir position is opened (that will aggregate several parameters from different orders)');
 
-            $table->decimal('laddering_percentage_ratio', 3, 3)
-                ->comment('The percentage ratio gap between this (laddered) order and the market order. The market order has a percentage ratio of zero');
+            $table->uuid()
+                ->comment('Auto generated UUID, for query reasons');
+
+            $table->decimal('price_percentage_ratio', 6, 3)
+                  ->comment('Price percentage ratio from the market order. Market order, the price ratio is zero');
+
+            $table->unsignedTinyInteger('amount_divider')
+                  ->comment('How much the total trade amount will be divided for this trade. The take profit is one because we sell the total position');
+
+            $table->decimal('price', 20, 8)
+                  ->nullable()
+                  ->comment('The order price where it was actually filled, or that will be');
 
             $table->string('system_order_id')
+                  ->nullable()
                 ->comment('System generated order id for reference purposes, generated as P:xxx where P means position id on the database');
+
+            $table->longText('response')
+                  ->nullable()
+                  ->comment('The full exchange api response');
 
             $table->timestamps();
         });
@@ -305,6 +306,7 @@ return new class extends Migration
             $table->foreignId('trader_id');
 
             $table->longText('trade_configuration')
+                  ->nullable()
                 ->comment('Trade configuration at the moment of the position creation');
 
             $table->decimal('total_trade_amount', 20, 8)
