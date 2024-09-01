@@ -27,6 +27,7 @@ abstract class AbstractCaller
             'caller_name' => $this->callerName,
             'position_id' => array_key_exists('position', $this->mapper->properties) ? $this->mapper->properties['position']->id : null,
             'order_id' => array_key_exists('order', $this->mapper->properties) ? $this->mapper->properties['order']->id : null,
+            'exchange_symbol_id' => array_key_exists('exchange_symbol', $this->mapper->properties) ? $this->mapper->properties['exchange_symbol']->id : null,
             'trader_id' => $this->mapper->trader?->id,
             'mapper_properties' => $this->mapper->properties,
             'exchange_id' => $this->mapper->exchange()->id,

@@ -6,6 +6,8 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
+use Nidavellir\Trading\Models\ExchangeSymbol;
+use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Models\Trader;
 
 class TestCommand extends Command
@@ -32,8 +34,16 @@ class TestCommand extends Command
         DB::table('positions')->truncate();
         DB::table('orders')->truncate();
 
-        // Open position.
-        Trader::find(1)->positions()->create([]);
+        // Open position with specific arguments.
+        $symbol = Symbol::firstWhere('token', 'SOL');
+
+        Trader::find(1)->positions()->create([
+            'total_trade_amount' => 100,
+            'exchange_symbol_id' => ExchangeSymbol::firstWhere(
+                'symbol_id',
+                $symbol->id
+            )->id,
+        ]);
 
         $this->info('All good.');
     }

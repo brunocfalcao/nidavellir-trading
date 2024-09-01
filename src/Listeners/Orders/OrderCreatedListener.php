@@ -33,6 +33,9 @@ class OrderCreatedListener extends AbstractListener
             $markPrice = $order->position
                 ->trader
                 ->withRESTApi()
+                ->withExchangeSymbol($exchangeSymbol)
+                ->withPosition($order->position)
+                ->withOrder($order)
                 ->withSymbol($orderSymbol)
                 ->getMarkPrice();
 
@@ -43,6 +46,7 @@ class OrderCreatedListener extends AbstractListener
              * by the mark price of the market order, and
              * then computed using the percentage ratio.
              */
+            return;
         }
 
         // Compute the right quantity.
@@ -78,6 +82,8 @@ class OrderCreatedListener extends AbstractListener
             'symbol' => $symbol,
             //'price' => $
         ];
+
+        return;
 
         dd($order->position->trader
             ->withRESTApi()

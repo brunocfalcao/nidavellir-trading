@@ -26,6 +26,9 @@ return new class extends Migration
             $table->foreignId('position_id')
                 ->nullable();
 
+            $table->foreignId('exchange_symbol_id')
+                ->nullable();
+
             $table->foreignId('order_id')
                 ->nullable();
 
@@ -292,7 +295,7 @@ return new class extends Migration
             $table->unsignedTinyInteger('amount_divider')
                 ->comment('How much the total trade amount will be divided for this trade. The take profit is one because we sell the total position');
 
-            $table->decimal('price', 20, 8)
+            $table->decimal('average_price', 20, 8)
                 ->nullable()
                 ->comment('The order price where it was actually filled, or that will be');
 
@@ -315,6 +318,10 @@ return new class extends Migration
             $table->foreignId('exchange_symbol_id')
                 ->nullable();
 
+            $table->string('status')
+                ->default('new')
+                ->comment('Current status canonical: NEW, ACTIVE, ERROR, CLOSED');
+
             $table->string('side')
                 ->nullable()
                 ->comment('Long (buy) or Short (sell)');
@@ -326,10 +333,6 @@ return new class extends Migration
             $table->decimal('total_trade_amount', 20, 8)
                 ->nullable()
                 ->comment('The total trade amount available for this trade (meaning the sum of all the margins from all the orders except the limit sell)');
-
-            $table->string('status')
-                ->default('new')
-                ->comment('Current status canonical: NEW, ACTIVE, ERROR, CLOSED');
 
             $table->text('comments')
                 ->nullable();
