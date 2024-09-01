@@ -8,7 +8,6 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Http;
 use Nidavellir\Trading\Exchanges\CoinmarketCap\CoinmarketCapRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Symbol;
@@ -22,7 +21,7 @@ class UpsertSymbols implements ShouldQueue
         Queueable,
         SerializesModels;
 
-    private int $limit;
+    private ?int $limit;
 
     public function __construct(?int $limit = null)
     {
@@ -37,33 +36,9 @@ class UpsertSymbols implements ShouldQueue
             )
         );
 
-        dd($api->getSymbols());
+        $api->withOptions(['limit' => $this->limit]);
 
-        $apiKey = env('COINMARKETCAP_API_KEY');
-        if (empty($apiKey)) {
-            throw new \Exception('No CoinmarketCap API key defined for symbols upserting. Aborting...');
-
-            return;
-        }
-
-        $url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/map?sort=cmc_rank'.($this->limit ? '&limit='.$this->limit : null);
-
-        $response = Http::withHeaders([
-            'X-CMC_PRO_API_KEY' => $apiKey,
-        ])->get($url);
-
-        if ($response->failed()) {
-            throw new \Exception('Failed to fetch data from Coinmarketcap.');
-
-            return;
-        }
-
-        $data = $response->json('data');
-        if (empty($data)) {
-            throw new \Exception('No data found from Coinmarketcap.');
-
-            return;
-        }
+        $data = $api->getSymbols();
 
         foreach ($data as $item) {
             $symbol = Symbol::updateOrCreate(

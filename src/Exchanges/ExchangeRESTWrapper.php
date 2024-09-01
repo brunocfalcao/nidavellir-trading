@@ -6,6 +6,7 @@ use Nidavellir\Trading\Abstracts\AbstractRESTWrapper;
 
 class ExchangeRESTWrapper extends AbstractRESTWrapper
 {
+    // CoinmarketCap getSymbols(), populates Symbols.
     public function getSymbols()
     {
         return $this->mapper->getSymbols($this);

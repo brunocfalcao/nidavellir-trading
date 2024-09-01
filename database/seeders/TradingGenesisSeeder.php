@@ -52,7 +52,7 @@ class TradingGenesisSeeder extends Seeder
 
         Bus::chain([
             // System jobs.
-            new UpsertSymbols(200),
+            new UpsertSymbols,
             new UpsertSymbolMetadata,
             new UpsertSymbolRankings,
 

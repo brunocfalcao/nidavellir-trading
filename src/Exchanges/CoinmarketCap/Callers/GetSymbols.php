@@ -11,8 +11,10 @@ class GetSymbols extends AbstractCaller
 
     public function call()
     {
-        dd('inside call');
         $api = new API($this->mapper->connectionDetails());
-        $this->result = $api->getSymbols();
+
+        $this->result = $api->getSymbols(
+            $this->mapper->properties
+        );
     }
 }
