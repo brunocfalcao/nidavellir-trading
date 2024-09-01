@@ -5,14 +5,27 @@ namespace Nidavellir\Trading\Exchanges\Binance\Callers;
 use Nidavellir\Trading\Abstracts\AbstractCaller;
 use Nidavellir\Trading\Exchanges\Binance\REST\Futures;
 
-class GetExchangeInformation extends AbstractCaller
+class NewOrder extends AbstractCaller
 {
-    protected string $callerName = 'Get Exchange Information';
+    protected string $callerName = 'New Order';
+
+    public function prepareRequest()
+    {
+        if (! array_key_exists('timeInForce', $this->mapper->properties)) {
+            $this->mapper->properties['timeinforce'] = 'GTC';
+        }
+    }
 
     public function call()
     {
         $futures = new Futures($this->mapper->connectionDetails());
-        $this->result = $futures->exchangeInfo($this->mapper->properties['options'])['symbols'];
+
+        $this->result = $futures->newOrder(
+            $this->mapper->properties['symbol'],
+            $this->mapper->properties['side'],
+            $this->mapper->properties['type'],
+            $this->mapper->properties
+        );
     }
 
     /**

@@ -29,6 +29,13 @@ class TradingGenesisSeeder extends Seeder
         $exchange->futures_url_websockets_prefix = 'wss://fstream.binance.com';
         $exchange->save();
 
+        $cmc = new Exchange;
+        $cmc->name = 'CoinmarketCap';
+        $cmc->canonical = 'coinmarketcap';
+        $cmc->full_qualified_class_name_rest = "Nidavellir\Trading\Exchanges\Coin\BinanceRESTMapper";
+        $cmc->generic_url_prefix = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency';
+        $cmc->save();
+
         // Admin/standard trader person.
         $trader = new Trader;
         $trader->name = env('TRADER_NAME');

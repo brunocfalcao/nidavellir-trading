@@ -6,6 +6,11 @@ use Nidavellir\Trading\Abstracts\AbstractRESTWrapper;
 
 class ExchangeRESTWrapper extends AbstractRESTWrapper
 {
+    public function getSymbols()
+    {
+        return $this->mapper->getSymbols($this);
+    }
+
     public function getExchangeInformation()
     {
         return $this->mapper->getExchangeInformation($this);
@@ -16,9 +21,14 @@ class ExchangeRESTWrapper extends AbstractRESTWrapper
         return $this->mapper->getAccountBalance($this);
     }
 
-    // TODO / Testing.
-    public function placeSingleOrder(array $options = [])
+    public function getMarkPrice()
     {
-        return $this->mapper->newOrder($options);
+        return $this->mapper->getMarkPrice($this);
+    }
+
+    // TODO / Testing.
+    public function placeSingleOrder()
+    {
+        return $this->mapper->newOrder($this);
     }
 }

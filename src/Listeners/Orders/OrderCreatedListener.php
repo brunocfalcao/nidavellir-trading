@@ -18,12 +18,6 @@ class OrderCreatedListener extends AbstractListener
         // Get total position trade amount.
         $tradeAmount = $order->position->total_trade_amount;
 
-        // Compute the right quantity.
-        $orderQuantity = round(
-            $tradeAmount / $order->amount_divider / $exchangeSymbol->last_mark_price,
-            $exchangeSymbol->precision_quantity
-        );
-
         /**
          * Compute order parameters.
          * For now, only for Binance.
@@ -31,26 +25,72 @@ class OrderCreatedListener extends AbstractListener
         $orderSymbol = "{$symbol->token}USDT";
         $orderType = $order->price_percentage_ratio == 0 ? 'MARKET' : 'LIMIT';
 
+        /**
+         * Market order?
+         * Get the symbol last mark price.
+         */
+        if ($orderType == 'MARKET') {
+            $markPrice = $order->position
+                ->trader
+                ->withRESTApi()
+                ->withSymbol($orderSymbol)
+                ->getMarkPrice();
+
+            $exchangeSymbol->update(['last_mark_price' => $markPrice]);
+        } else {
+            /**
+             * A limit order will have the price computed
+             * by the mark price of the market order, and
+             * then computed using the percentage ratio.
+             */
+        }
+
+        // Compute the right quantity.
+        $orderQuantity = round(
+            $tradeAmount / $order->amount_divider / $markPrice,
+            $exchangeSymbol->precision_quantity
+        );
+
         // Amount divider = 1 then it's a limit-"sell" order.
         $orderSide = $order->amount_divider == 1 ? 'SELL' : 'BUY';
 
         info_multiple(
-            'Position id: '.$order->position->id,
-            'Trade total amount: '.$tradeAmount,
-            'Ratio (Quantity division): '.$order->amount_divider, // Quantity ratio
-            'Ratio (Percentage): '.$order->price_percentage_ratio,
-            'Symbol: '.$symbol->token,
-            'Mark Price: '.$exchangeSymbol->last_mark_price,
-            'Quantity: '.$orderQuantity,
-            'Type: '.$orderType,
-            'Side: '.$orderSide
+            ' ',
+            '======= TRADE START =======',
+            'Position id ------------- : '.$order->position->id,
+            'Trade total amount ------ : '.$tradeAmount,
+            'Ratio (Quantity division) : '.$order->amount_divider, // Quantity ratio
+            'Ratio (Percentage) ------ : '.$order->price_percentage_ratio,
+            'Symbol ------------------ : '.$symbol->token,
+            'Mark Price -------------- : '.$markPrice,
+            'Quantity ---------------- : '.$orderQuantity,
+            'Type -------------------- : '.$orderType,
+            'Side -------------------- : '.$orderSide,
+            '======== TRADE END =======',
+            ' '
         );
+
+        // Fill the mapper properties with the concluded data.
+        $properties = [
+            'side' => $orderSide,
+            'type' => $orderType,
+            'quantity' => $orderQuantity,
+            'symbol' => $symbol,
+            //'price' => $
+        ];
+
+        dd($order->position->trader
+            ->withRESTApi()
+            ->withOrder($order)
+                ->mapper
+                ->properties['options']);
 
         // Market order? Process immediately.
         if ($order->price_percentage_ratio == 0) {
             $order->position->trader
                 ->withRESTApi()
-                ->withOrder($order);
+                ->withOrder($order)
+                ->placeSingleOrder();
         }
     }
 }

@@ -5,6 +5,7 @@ namespace Nidavellir\Trading\Exchanges\Binance;
 use Nidavellir\Trading\Abstracts\AbstractMapper;
 use Nidavellir\Trading\Exchanges\Binance\Callers\GetAccountBalance;
 use Nidavellir\Trading\Exchanges\Binance\Callers\GetExchangeInformation;
+use Nidavellir\Trading\Exchanges\Binance\Callers\GetMarkPrice;
 use Nidavellir\Trading\Exchanges\Binance\REST\Futures;
 use Nidavellir\Trading\Models\Exchange;
 
@@ -15,12 +16,12 @@ use Nidavellir\Trading\Models\Exchange;
  */
 class BinanceRESTMapper extends AbstractMapper
 {
-    public function exchange(): Exchange
+    public function exchange()
     {
         return Exchange::firstWhere('canonical', 'binance');
     }
 
-    public function credentials(): array
+    public function connectionDetails()
     {
         return [
             'url' => $this->exchange()->futures_url_rest_prefix,
@@ -48,13 +49,21 @@ class BinanceRESTMapper extends AbstractMapper
     }
 
     /**
+     * Returns a mark price for a specific symbol.
+     */
+    public function getMarkPrice()
+    {
+        return (new GetMarkPrice($this))->result;
+    }
+
+    /**
      * Places an order on the system, via REST api call.
      * string $symbol, string $side, string $type, array $options = []
      * ['symbol-currency'=> '', (SOL-USDT)
      *  'side' => '', BUY/SELL
      *  'type' => '' MARKET/LIMIT,
-     *  'quantity' => 500 (USDT),
-     *  'price' => 45.56 (USDT)
+     *  'quantity' => 500 quantity of token,
+     *  'price' => 45.56 if it's limit order
      */
     public function newOrder(array $options)
     {

@@ -72,9 +72,11 @@ return new class extends Migration
                 ->comment('Unique natural identifier');
 
             $table->string('full_qualified_class_name_rest')
+                ->nullable()
                 ->comment('E.g: Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper');
 
             $table->string('full_qualified_class_name_websocket')
+                ->nullable()
                 ->comment('E.g: Nidavellir\Trading\Exchanges\Binance\BinanceWebsocketMapper');
 
             $table->string('futures_url_rest_prefix')
@@ -83,8 +85,9 @@ return new class extends Migration
             $table->string('futures_url_websockets_prefix')
                 ->nullable();
 
-            $table->string('spot_url_prefix')
-                ->nullable();
+            $table->string('generic_url_prefix')
+                ->nullable()
+                ->comment('Used for fallback cases, like for coinmarketcap calls');
 
             $table->timestamps();
         });
@@ -206,8 +209,8 @@ return new class extends Migration
             $table->string('status')
                 ->comment('Order current status. E.g.: NEW, FILLED, EXPIRED');
 
-            $table->decimal('price', 15, 8)
-                ->comment('The token targeted price when the order was created');
+            $table->decimal('market_mark_price', 15, 8)
+                ->comment('The token targeted price when the position market order was created');
 
             $table->decimal('avg_price', 15, 8)
                 ->comment('The actually filled average price for this order, most of the cases is the same as the targetted price');

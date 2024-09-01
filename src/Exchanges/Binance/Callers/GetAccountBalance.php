@@ -11,7 +11,7 @@ class GetAccountBalance extends AbstractCaller
 
     public function call()
     {
-        $futures = new Futures($this->mapper->credentials());
+        $futures = new Futures($this->mapper->connectionDetails());
         $this->result = $futures->getAccountBalance();
     }
 

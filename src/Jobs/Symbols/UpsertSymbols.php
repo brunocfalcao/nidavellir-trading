@@ -9,7 +9,10 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
+use Nidavellir\Trading\Exchanges\CoinmarketCap\CoinmarketCapRESTMapper;
+use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Symbol;
+use Nidavellir\Trading\Nidavellir;
 
 class UpsertSymbols implements ShouldQueue
 {
@@ -28,6 +31,14 @@ class UpsertSymbols implements ShouldQueue
 
     public function handle()
     {
+        $api = new ExchangeRESTWrapper(
+            new CoinmarketCapRESTMapper(
+                credentials: Nidavellir::getSystemCredentials('coinmarketcap')
+            )
+        );
+
+        dd($api->getSymbols());
+
         $apiKey = env('COINMARKETCAP_API_KEY');
         if (empty($apiKey)) {
             throw new \Exception('No CoinmarketCap API key defined for symbols upserting. Aborting...');

@@ -19,6 +19,7 @@ abstract class AbstractMapper
     {
         $this->trader = $trader;
         $this->credentials = $credentials;
+
         // Necessary for api calls that needs an "options".
         $this->properties['options'] = [];
 
@@ -31,4 +32,8 @@ abstract class AbstractMapper
             throw new \Exception('No trader neither credentials defined');
         }
     }
+
+    public function exchange() {}
+
+    public function connectionDetails() {}
 }

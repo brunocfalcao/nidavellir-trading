@@ -27,27 +27,31 @@ class UpsertEligibleSymbolsJob implements ShouldQueue
     public function handle()
     {
         // Get non-elligible symbols from the configuration.
-        $tokens = config('nidavellir.symbols.excluded.tokens');
+        $excludedTokens = config('nidavellir.symbols.excluded.tokens');
 
         // Get min coinmarketcap rank defined on configuration.
         $rank = config('nidavellir.symbols.excluded.min_rank');
 
-        // Iterate exchange symbols and disable/enable them.
-        ExchangeSymbol::all()->each(function ($exchangeSymbol) use ($tokens, $rank) {
+        // All symbols deserve a new chance.
+        ExchangeSymbol::query()->update([
+            'is_active' => true,
+            'is_eligible' => true,
+        ]);
 
-            // Symbol in config? -- Disable it.
-            if (in_array($exchangeSymbol->symbol->token, $tokens)) {
-                $exchangeSymbol->update(['is_active' => false]);
+        // Iterate exchange symbols and disable/eligible them.
+        ExchangeSymbol::all()->each(function ($exchangeSymbol) use ($excludedTokens, $rank) {
+
+            // Symbol in exclusions config? -- Disable it.
+            if (in_array($exchangeSymbol->symbol->token, $excludedTokens)) {
+                $exchangeSymbol->update([
+                    'is_active' => false,
+                    'is_eligible' => false]);
             }
 
-            // Symbol not in 25th rank? -- Disable it.
+            // Symbol not in 25th rank? -- Not eligible.
             elseif ($exchangeSymbol->symbol->rank > $rank) {
-                $exchangeSymbol->update(['is_active' => false]);
-            }
-
-            // Already disabled? Reactivate it.
-            elseif (! $exchangeSymbol->is_active) {
-                $exchangeSymbol->update(['is_active' => true]);
+                $exchangeSymbol->update([
+                    'is_eligible' => false]);
             }
         });
     }

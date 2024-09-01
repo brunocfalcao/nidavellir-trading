@@ -2,7 +2,6 @@
 
 namespace Nidavellir\Trading\Abstracts;
 
-use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Models\ApiLog;
 
 abstract class AbstractCaller
@@ -16,12 +15,12 @@ abstract class AbstractCaller
     public $result;
 
     public function __construct(
-        BinanceRESTMapper $mapper
+        AbstractMapper $mapper
     ) {
         $this->mapper = $mapper;
         $this->throwSilently = false;
 
-        $this->parseRequest();
+        $this->prepareRequest();
 
         $apiLog = ApiLog::create([
             'result' => 'ok',
@@ -54,7 +53,7 @@ abstract class AbstractCaller
         $this->parseResult();
     }
 
-    public function parseRequest()
+    public function prepareRequest()
     {
         //
     }
