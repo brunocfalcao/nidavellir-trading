@@ -9,6 +9,7 @@ use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Models\Trader;
+use Nidavellir\Trading\Nidavellir;
 
 class TestCommand extends Command
 {
@@ -23,14 +24,23 @@ class TestCommand extends Command
 
     public function handle()
     {
-        /*
-        $exchangeRESTMapper = new ExchangeRESTWrapper(
-            new BinanceRESTMapper(Trader::find(1)),
+        $wrapper = new ExchangeRESTWrapper(
+            new BinanceRESTMapper(
+                credentials: Nidavellir::getSystemCredentials('binance')
+            )
         );
 
-        dd($exchangeRESTMapper->getAccountBalance());
-        */
+        dd($wrapper
+            ->withOptions(['symbol' => 'DASHUSDT'])
+            ->getLeverageBracket());
 
+    }
+
+    /**
+     * Tests a new position creation.
+     */
+    private function testNewPosition()
+    {
         DB::table('positions')->truncate();
         DB::table('orders')->truncate();
 

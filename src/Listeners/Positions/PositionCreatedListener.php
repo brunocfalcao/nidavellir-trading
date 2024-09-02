@@ -76,16 +76,23 @@ class PositionCreatedListener extends AbstractListener
             ]);
         }
 
+        /**
+         * If we have an empty exchange symbol, then we
+         * need to select an eligible one.
+         */
         if ($position->exchange_symbol_id == null) {
             /**
              * Obtain the eligible symbols to open a trade.
              * The symbols that are marked as eligible are
-             * the exchange_symbol.is_active=true.
+             * the exchange_symbol.is_eligible = true.
              */
-            $exchangeSymbols =
+            $eligibleSymbols =
             ExchangeSymbol::where('is_active', true)
                 ->where('is_eligible', true)
-                ->where('exchange_id', $trader->exchange_id)
+                ->where(
+                    'exchange_id',
+                    $trader->exchange_id
+                )
                 ->get();
 
             /**
@@ -96,28 +103,37 @@ class PositionCreatedListener extends AbstractListener
             // TODO.
 
             /**
-             * Pick now a random eligible exchange symbol, normally
-             * there are around 20 symbols available that are
-             * selected everyday.
+             * Pick a random eligible exchange symbol,
+             * from the eligible ones.
              */
-            $exchangeSymbol = $exchangeSymbols->random();
+            $exchangeSymbol = $eligibleSymbols->random();
 
             $position->update([
                 'exchange_symbol_id' => $exchangeSymbol->id,
             ]);
         }
 
+        /**
+         * If the position side (buy, sell) is null, we
+         * need to get the current side from the
+         * configuration.
+         */
         if ($position->side == null) {
             $position->update([
-                'side' => config('nidavellir.positions.side.current'),
+                'side' => config(
+                    'nidavellir.positions.current_side'
+                ),
             ]);
         }
 
         /**
-         * Create the orders, based on the trading configuration
-         * and on the market trend (bearish or bulish);
+         * Create the orders, based on the trading
+         * configuration and on the market trend
+         * (bearish or bulish);
          */
-        $ratios = $configuration['orders']['ratios'];
+        $configurationRatio = config('nidavellir.positions.current_ratio');
+
+        $ratios = $configuration['orders'][$configurationRatio]['ratios'];
 
         foreach ($ratios as $ratio) {
             Order::create([

@@ -280,4 +280,10 @@ trait Market
     {
         return $this->publicRequest('GET', 'fapi/v1/ticker', $options);
     }
+
+    // https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Notional-and-Leverage-Brackets
+    public function leverageBracket(array $options = [])
+    {
+        return $this->signRequest('GET', 'fapi/v1/leverageBracket', $options);
+    }
 }
