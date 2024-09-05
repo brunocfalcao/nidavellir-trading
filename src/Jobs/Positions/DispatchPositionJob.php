@@ -227,7 +227,6 @@ class DispatchPositionJob implements ShouldQueue
          * and in case an order fails, we can cancel the
          * orders that were already placed.
          */
-
         foreach ($position->orders as $order) {
             dd($order);
         }
