@@ -7,6 +7,36 @@ use Nidavellir\Trading\Models\System;
 
 class Nidavellir
 {
+    /**
+     * At the moment, the leverageData is exactly the
+     * binance NotionalandBracket leverage token data.
+     *
+     * Later needs to change to an universal data when
+     * we have more exchanges.
+     */
+    public static function getMaximumLeverage(array $leverageData, string $symbol, float $totalTradeAmount): int
+    {
+        foreach ($leverageData as $data) {
+            if ($data['symbol'] === $symbol) {
+                $maxLeverage = 1; // Default to the minimum leverage
+
+                foreach ($data['brackets'] as $bracket) {
+                    $potentialTradeAmount = $totalTradeAmount * $bracket['initialLeverage'];
+
+                    // Check if the potential trade amount does not exceed the notionalCap
+                    if ($potentialTradeAmount <= $bracket['notionalCap'] && $bracket['initialLeverage'] > $maxLeverage) {
+                        $maxLeverage = $bracket['initialLeverage'];
+                    }
+                }
+
+                return $maxLeverage;
+            }
+        }
+
+        // If symbol is not found, throw an exception
+        throw new Exception("Symbol '$symbol' not found in leverage data.");
+    }
+
     public static function getSystemCredentials(string $exchangeConfigCanonical)
     {
         return config('nidavellir.system.api.credentials.'.$exchangeConfigCanonical);
@@ -54,7 +84,8 @@ class Nidavellir
             'bearish' : 'bullish';
 
         // Construct trade configuration.
-        $tradeConfiguration['orders'] = config('nidavellir.orders.'.$marketTrend);
+        $ordersGroup = config('nidavellir.positions.current_order_ratio_group');
+        $tradeConfiguration['orders'] = config('nidavellir.orders.'.$ordersGroup);
         $tradeConfiguration['positions'] = config('nidavellir.positions');
 
         return $tradeConfiguration;

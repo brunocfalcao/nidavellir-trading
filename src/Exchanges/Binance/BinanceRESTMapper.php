@@ -7,6 +7,7 @@ use Nidavellir\Trading\Exchanges\Binance\Callers\GetAccountBalance;
 use Nidavellir\Trading\Exchanges\Binance\Callers\GetExchangeInformation;
 use Nidavellir\Trading\Exchanges\Binance\Callers\GetLeverageBracket;
 use Nidavellir\Trading\Exchanges\Binance\Callers\GetMarkPrice;
+use Nidavellir\Trading\Exchanges\Binance\Callers\PlaceOrder;
 use Nidavellir\Trading\Exchanges\Binance\REST\Futures;
 use Nidavellir\Trading\Models\Exchange;
 
@@ -71,19 +72,8 @@ class BinanceRESTMapper extends AbstractMapper
      *  'quantity' => 500 quantity of token,
      *  'price' => 45.56 if it's limit order
      */
-    public function newOrder(array $options)
+    public function setOrder()
     {
-        $connection = new Futures($this->credentials());
-
-        if (! array_key_exists('timeInForce', $options)) {
-            $options['timeinforce'] = 'GTC';
-        }
-
-        return $connection->newOrder(
-            symbol: $options['symbol'],
-            side: $options['side'],
-            type: $options['type'],
-            options: $options
-        );
+        return (new PlaceOrder($this))->result;
     }
 }

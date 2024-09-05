@@ -30,7 +30,7 @@ class UpsertEligibleSymbolsJob implements ShouldQueue
         $excludedTokens = config('nidavellir.symbols.excluded.tokens');
 
         // Get min coinmarketcap rank defined on configuration.
-        $rank = config('nidavellir.symbols.excluded.min_rank');
+        $rank = config('nidavellir.symbols.excluded.max_rank');
 
         // All symbols deserve a new chance.
         ExchangeSymbol::query()->update([

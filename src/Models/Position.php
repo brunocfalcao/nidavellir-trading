@@ -19,4 +19,9 @@ class Position extends AbstractModel
     {
         return $this->belongsTo(ExchangeSymbol::class);
     }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
 }

@@ -33,8 +33,8 @@ class ExchangeRESTWrapper extends AbstractRESTWrapper
     }
 
     // TODO / Testing.
-    public function placeSingleOrder()
+    public function setOrder()
     {
-        return $this->mapper->newOrder($this);
+        return $this->mapper->setOrder($this);
     }
 }

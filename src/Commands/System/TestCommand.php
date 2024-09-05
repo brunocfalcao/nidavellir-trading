@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\ExchangeSymbol;
+use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Models\Trader;
 use Nidavellir\Trading\Nidavellir;
@@ -24,6 +25,11 @@ class TestCommand extends Command
 
     public function handle()
     {
+        $this->testNewPosition();
+    }
+
+    private function testTokenLeverage()
+    {
         $wrapper = new ExchangeRESTWrapper(
             new BinanceRESTMapper(
                 credentials: Nidavellir::getSystemCredentials('binance')
@@ -31,9 +37,8 @@ class TestCommand extends Command
         );
 
         dd($wrapper
-            ->withOptions(['symbol' => 'DASHUSDT'])
+            ->withOptions(['symbol' => 'LTCUSDT'])
             ->getLeverageBracket());
-
     }
 
     /**
@@ -44,11 +49,17 @@ class TestCommand extends Command
         DB::table('positions')->truncate();
         DB::table('orders')->truncate();
 
+        $position = Position::create([
+            'trader_id' => Trader::find(1)->id,
+        ]);
+
+        return;
+
         // Open position with specific arguments.
-        $symbol = Symbol::firstWhere('token', 'SOL');
+        $symbol = Symbol::firstWhere('token', 'LTC');
 
         Trader::find(1)->positions()->create([
-            'total_trade_amount' => 100,
+            'total_trade_amount' => 1000,
             'exchange_symbol_id' => ExchangeSymbol::firstWhere(
                 'symbol_id',
                 $symbol->id

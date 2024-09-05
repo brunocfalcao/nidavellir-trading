@@ -275,9 +275,6 @@ return new class extends Migration
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('exchange_id')
-                ->nullable();
-
             $table->foreignId('position_id')
                 ->nullable()
                 ->comment('Before an order is created, a nidavellir position is opened (that will aggregate several parameters from different orders)');
@@ -289,13 +286,16 @@ return new class extends Migration
             $table->uuid()
                 ->comment('Auto generated UUID, for query reasons');
 
+            $table->string('type')
+                ->comment('Order type, limit-buy, market, etc');
+
             $table->decimal('price_percentage_ratio', 6, 3)
                 ->comment('Price percentage ratio from the market order. Market order, the price ratio is zero');
 
             $table->unsignedTinyInteger('amount_divider')
                 ->comment('How much the total trade amount will be divided for this trade. The take profit is one because we sell the total position');
 
-            $table->decimal('average_price', 20, 8)
+            $table->decimal('mark_price', 20, 8)
                 ->nullable()
                 ->comment('The order price where it was actually filled, or that will be');
 
@@ -330,9 +330,13 @@ return new class extends Migration
                 ->nullable()
                 ->comment('Trade configuration at the moment of the position creation');
 
-            $table->decimal('total_trade_amount', 20, 8)
+            $table->unsignedInteger('total_trade_amount')
                 ->nullable()
                 ->comment('The total trade amount available for this trade (meaning the sum of all the margins from all the orders except the limit sell)');
+
+            $table->unsignedTinyInteger('leverage')
+                ->nullable()
+                ->comment('The maximum possible leverage for this total trade amount');
 
             $table->text('comments')
                 ->nullable();

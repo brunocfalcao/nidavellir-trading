@@ -25,9 +25,4 @@ class Order extends AbstractModel
     {
         return $this->belongsTo(Position::class);
     }
-
-    public function exchange()
-    {
-        return $this->belongsTo(Exchange::class);
-    }
 }
