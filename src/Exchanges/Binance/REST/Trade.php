@@ -402,4 +402,10 @@ trait Trade
             ]
         ));
     }
+
+    // https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Change-Initial-Leverage
+    public function setLeverage(array $options = [])
+    {
+        return $this->signRequest('POST', '/fapi/v1/leverage', $options);
+    }
 }

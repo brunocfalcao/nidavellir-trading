@@ -11,8 +11,8 @@ class PlaceOrder extends AbstractCaller
 
     public function prepareRequest()
     {
-        if (! array_key_exists('timeInForce', $this->mapper->properties)) {
-            $this->mapper->properties['timeinforce'] = 'GTC';
+        if (! array_key_exists('timeInForce', $this->mapper->properties['options'])) {
+            $this->mapper->properties['options']['timeInForce'] = 'GTC';
         }
     }
 

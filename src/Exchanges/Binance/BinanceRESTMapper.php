@@ -8,7 +8,7 @@ use Nidavellir\Trading\Exchanges\Binance\Callers\GetExchangeInformation;
 use Nidavellir\Trading\Exchanges\Binance\Callers\GetLeverageBracket;
 use Nidavellir\Trading\Exchanges\Binance\Callers\GetMarkPrice;
 use Nidavellir\Trading\Exchanges\Binance\Callers\PlaceOrder;
-use Nidavellir\Trading\Exchanges\Binance\REST\Futures;
+use Nidavellir\Trading\Exchanges\Binance\Callers\SetDefaultLeverage;
 use Nidavellir\Trading\Models\Exchange;
 
 /**
@@ -37,22 +37,11 @@ class BinanceRESTMapper extends AbstractMapper
         return (new GetExchangeInformation($this))->result;
     }
 
-    /**
-     * Returns the Futures account balance, only for the
-     * ones that are not zero.
-     *
-     * Return:
-     * ['ETH' => 6.24,
-     *  'USDT' => 330.11]
-     */
     public function getAccountBalance()
     {
         return (new getAccountBalance($this))->result;
     }
 
-    /**
-     * Returns a mark price for a specific symbol.
-     */
     public function getMarkPrice()
     {
         return (new GetMarkPrice($this))->result;
@@ -61,6 +50,11 @@ class BinanceRESTMapper extends AbstractMapper
     public function getLeverageBracket()
     {
         return (new GetLeverageBracket($this))->result;
+    }
+
+    public function setDefaultLeverage()
+    {
+        return (new SetDefaultLeverage($this))->result;
     }
 
     /**
@@ -72,7 +66,7 @@ class BinanceRESTMapper extends AbstractMapper
      *  'quantity' => 500 quantity of token,
      *  'price' => 45.56 if it's limit order
      */
-    public function setOrder()
+    public function placeOrder()
     {
         return (new PlaceOrder($this))->result;
     }

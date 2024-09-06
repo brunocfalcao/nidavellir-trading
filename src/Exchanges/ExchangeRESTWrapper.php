@@ -6,6 +6,16 @@ use Nidavellir\Trading\Abstracts\AbstractRESTWrapper;
 
 class ExchangeRESTWrapper extends AbstractRESTWrapper
 {
+    public function placeSingleOrder()
+    {
+        return $this->mapper->placeOrder($this);
+    }
+
+    public function setDefaultLeverage()
+    {
+        return $this->mapper->setDefaultLeverage($this);
+    }
+
     public function getLeverageBracket()
     {
         return $this->mapper->getLeverageBracket($this);

@@ -23,7 +23,7 @@ class _OrderCreatedListener extends AbstractListener
          * For now, only for Binance.
          */
         $orderSymbol = "{$symbol->token}USDT";
-        $orderType = $order->price_percentage_ratio == 0 ? 'MARKET' : 'LIMIT';
+        $orderType = $order->price_ratio_percentage == 0 ? 'MARKET' : 'LIMIT';
 
         /**
          * Market order?
@@ -64,7 +64,7 @@ class _OrderCreatedListener extends AbstractListener
             'Position id ------------- : '.$order->position->id,
             'Trade total amount ------ : '.$tradeAmount,
             'Ratio (Quantity division) : '.$order->amount_divider, // Quantity ratio
-            'Ratio (Percentage) ------ : '.$order->price_percentage_ratio,
+            'Ratio (Percentage) ------ : '.$order->price_ratio_percentage,
             'Symbol ------------------ : '.$symbol->token,
             'Mark Price -------------- : '.$markPrice,
             'Quantity ---------------- : '.$orderQuantity,
@@ -85,7 +85,7 @@ class _OrderCreatedListener extends AbstractListener
 
         // Market order? Process immediately.
         /*
-        if ($order->price_percentage_ratio == 0) {
+        if ($order->price_ratio_percentage == 0) {
             $order->position->trader
                 ->withRESTApi()
                 ->withOptions($orderData)

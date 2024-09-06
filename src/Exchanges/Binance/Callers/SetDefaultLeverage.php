@@ -5,13 +5,15 @@ namespace Nidavellir\Trading\Exchanges\Binance\Callers;
 use Nidavellir\Trading\Abstracts\AbstractCaller;
 use Nidavellir\Trading\Exchanges\Binance\REST\Futures;
 
-class GetExchangeInformation extends AbstractCaller
+class SetDefaultLeverage extends AbstractCaller
 {
-    protected string $callerName = 'Get Exchange Information';
+    protected string $callerName = 'Set Default Leverage';
 
     public function call()
     {
         $futures = new Futures($this->mapper->connectionDetails());
-        $this->result = $futures->exchangeInfo($this->mapper->properties['options'])['symbols'];
+        $this->result = $futures->setLeverage(
+            $this->mapper->properties['options']
+        );
     }
 }

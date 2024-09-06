@@ -289,7 +289,7 @@ return new class extends Migration
             $table->string('type')
                 ->comment('Order type, limit-buy, market, etc');
 
-            $table->decimal('price_percentage_ratio', 6, 3)
+            $table->decimal('price_ratio_percentage', 6, 3)
                 ->comment('Price percentage ratio from the market order. Market order, the price ratio is zero');
 
             $table->unsignedTinyInteger('amount_divider')
@@ -325,6 +325,10 @@ return new class extends Migration
             $table->string('side')
                 ->nullable()
                 ->comment('Long (buy) or Short (sell)');
+
+            $table->decimal('initial_mark_price', 20, 8)
+                ->nullable()
+                ->comment('First mark price fetched from the exchange before triggering the orders');
 
             $table->longText('trade_configuration')
                 ->nullable()

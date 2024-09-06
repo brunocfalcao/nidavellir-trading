@@ -26,7 +26,7 @@ class PositionCreatedListener extends AbstractListener
              * but will be picked from the position by the
              * order on the moment the order is created.
              */
-            if ($type == 'MARKET' || $type == 'LIMIT-SELL') {
+            if ($type == 'MARKET' || $type == 'PROFIT') {
                 $this->createOrder(
                     $trader->exchange->id,
                     $position->id,
@@ -36,7 +36,7 @@ class PositionCreatedListener extends AbstractListener
                 );
             }
 
-            if ($type == 'LIMIT-BUY') {
+            if ($type == 'LIMIT') {
                 foreach ($ratio as $limitOrder) {
                     $this->createOrder(
                         $trader->exchange->id,
@@ -63,7 +63,7 @@ class PositionCreatedListener extends AbstractListener
         Order::create([
             'position_id' => $positionId,
             'type' => $type,
-            'price_percentage_ratio' => $pricePercentageRatio,
+            'price_ratio_percentage' => $pricePercentageRatio,
             'amount_divider' => $amountDivider,
         ]);
     }

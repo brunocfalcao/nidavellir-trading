@@ -2,26 +2,18 @@
 
 namespace Nidavellir\Trading\Jobs\Positions;
 
-use Illuminate\Bus\Batchable;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Bus;
+use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
+use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Nidavellir;
+use Throwable;
 
-class DispatchPositionJob implements ShouldQueue
+class DispatchPositionJob extends AbstractJob
 {
-    use Batchable;
-    use Dispatchable;
-    use InteractsWithQueue;
-    use Queueable;
-    use SerializesModels;
-
     public int $positionId;
 
     public function __construct(int $positionId)
@@ -144,12 +136,29 @@ class DispatchPositionJob implements ShouldQueue
              */
             $trader = $position->trader;
 
-            // Get the exchange_symbol_id from the trader's other positions
-            $toRemoveIds = $trader->positions->pluck('exchange_symbol_id')->toArray();
+            /**
+             * Remove exchange symbols that are part of the
+             * excluded coins on the config file.
+             */
+            $excludedTokensFromConfig = config('nidavellir.symbols.excluded.tokens');
 
-            // Remove those exchange_symbol_ids from the $eligibleSymbols collection
-            $eligibleSymbols = $eligibleSymbols->reject(function ($exchangeSymbol) use ($toRemoveIds) {
-                return in_array($exchangeSymbol->id, $toRemoveIds);
+            $eligibleSymbols = $eligibleSymbols->reject(function ($exchangeSymbol) use ($excludedTokensFromConfig) {
+                return in_array($exchangeSymbol->symbol->token, $excludedTokensFromConfig);
+            });
+
+            /**
+             * Get the exchange_symbol_id's from the
+             * trader's other positions.
+             */
+            $otherTradeSymbolIds = $trader->positions->pluck('exchange_symbol_id')->toArray();
+
+            //
+            /**
+             * Remove those exchange_symbol_ids from
+             * the $eligibleSymbols collection.
+             */
+            $eligibleSymbols = $eligibleSymbols->reject(function ($exchangeSymbol) use ($otherTradeSymbolIds) {
+                return in_array($exchangeSymbol->id, $otherTradeSymbolIds);
             });
 
             /**
@@ -216,6 +225,42 @@ class DispatchPositionJob implements ShouldQueue
         }
 
         /**
+         * Now that we know the leverage, we should set it
+         * on the token. This will guarantee that the
+         * leverage used will be the leveraged
+         * computed.
+         */
+        $result = $position
+            ->trader
+            ->withRESTApi()
+            ->withPosition($position)
+            ->withExchangeSymbol($exchangeSymbol)
+            ->withOptions([
+                'symbol' => $exchangeSymbol->symbol->token.'USDT',
+                'leverage' => $position->leverage])
+            ->setDefaultLeverage();
+
+        /**
+         * Obtain mark price just before triggering the orders
+         * this will be important for the limit orders since
+         * they will be priced accordingly to this mark
+         * price.
+         */
+        $markPrice = $position
+            ->trader
+            ->withRESTApi()
+            ->withExchangeSymbol($exchangeSymbol)
+            ->withPosition($position)
+            // TODO: Some exchanges might not like .USDT.
+            ->withSymbol($exchangeSymbol->symbol->token.'USDT')
+            ->getMarkPrice();
+
+        // Update position with the mark price.
+        $position->update([
+            'initial_mark_price' => $markPrice,
+        ]);
+
+        /**
          * Now that the position is configured, and so the
          * orders can start to be set via the current
          * trader api. The orders will be triggered via a
@@ -223,12 +268,59 @@ class DispatchPositionJob implements ShouldQueue
          * market order, and finally the limit-sell order
          * (in case we are making LONGs).
          *
-         * The orders are processed via the Bus::batch
+         * The orders are processed via the Bus::chain
          * and in case an order fails, we can cancel the
-         * orders that were already placed.
+         * orders that were already placed. They are
+         * processed in a specific order!
+         *
+         * Array of LIMIT (or PROFIT if shorting)
+         * then MARKET
+         * then PROFIT (or LIMIT if shorting).
          */
-        foreach ($position->orders as $order) {
-            dd($order);
+        $marketOrder = $position
+            ->orders()
+            ->firstWhere(
+                'orders.type',
+                'MARKET'
+            );
+
+        $limitOrders = $position
+            ->orders()
+            ->where(
+                'orders.type',
+                'LIMIT'
+            )->get();
+
+        $profitOrder = $position
+            ->orders()
+            ->firstWhere(
+                'orders.type',
+                'PROFIT'
+            );
+
+        $limitJobs = [];
+
+        foreach ($limitOrders as $limitOrder) {
+            $limitJobs[] = new DispatchOrderJob($limitOrder->id);
         }
+
+        Bus::chain([
+
+            // First the limit buy orders.
+            Bus::batch([
+                // Just a test for now, on 1 order.
+                $limitJobs[0],
+            ]),
+
+            // Then the market order.
+            //new DispatchOrderJob($marketOrder->id),
+
+            // Finally the take profit order.
+            //new DispatchOrderJob($profitOrder->id),
+        ])
+            ->catch(function (Throwable $e) {
+                // TODO: Send notification?
+            })
+            ->dispatch();
     }
 }

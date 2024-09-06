@@ -42,20 +42,26 @@ class UpsertExchangeAvailableTokens implements ShouldQueue
         }
 
         // Step 2 & 3: Sync or update the precision data for each symbol
-        foreach ($symbols as $symbolToken => $precisions) {
-            // Find the symbol by its token
+        foreach ($symbols as $symbolToken => $data) {
+            $tokenData = $this->extractTokenData($data);
+
+            // Find the Exchange Symbol for this token.
             $symbol = Symbol::where('token', $symbolToken)->first();
 
-            if ($symbol) {
-                $attributes = [
-                    'precision_price' => $precisions['precision']['price'],
-                    'precision_quantity' => $precisions['precision']['quantity'],
-                    'precision_quote' => $precisions['precision']['quote'],
-                ];
-
-                // Sync the pivot table with the new attributes
-                $exchange->symbols()->syncWithoutDetaching([$symbol->id => $attributes]);
-            }
+            // TODO. Too tired.
         }
+    }
+
+    private function extractTokenData($item)
+    {
+        $tickSize = collect($item['filters'])->firstWhere('filterType', 'PRICE_FILTER')['tickSize'] ?? null;
+
+        return [
+            'symbol' => $item['symbol'],
+            'precision_price' => $item['pricePrecision'],
+            'precision_quantity' => $item['quantityPrecision'],
+            'precision_quote' => $item['quotePrecision'],
+            'tick_size' => $tickSize,
+        ];
     }
 }

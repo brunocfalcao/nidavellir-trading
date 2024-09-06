@@ -188,7 +188,7 @@ class _PositionCreatedListener extends AbstractListener
             Order::create([
                 'exchange_id' => $trader->exchange->id,
                 'position_id' => $position->id,
-                'price_percentage_ratio' => $ratio[0],
+                'price_ratio_percentage' => $ratio[0],
                 'amount_divider' => $ratio[1],
             ]);
         }
