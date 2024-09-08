@@ -51,6 +51,9 @@ class TestCommand extends Command
 
         $position = Position::create([
             'trader_id' => Trader::find(1)->id,
+            //'exchange_symbol_id' => 11,
+            //'initial_mark_price' => 0.3271,
+            //'total_trade_amount' => 528.7
         ]);
 
         return;

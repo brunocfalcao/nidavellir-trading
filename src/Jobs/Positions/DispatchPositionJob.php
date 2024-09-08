@@ -48,6 +48,7 @@ class DispatchPositionJob extends AbstractJob
          * test the position with specific test data).
          */
         $position = Position::find($this->positionId);
+        $trader = $position->trader;
 
         /**
          * MANDATORY FIELDS
@@ -131,12 +132,6 @@ class DispatchPositionJob extends AbstractJob
                 ->get();
 
             /**
-             * Remove exchange symbols that are already being used
-             * by the trader positions.
-             */
-            $trader = $position->trader;
-
-            /**
              * Remove exchange symbols that are part of the
              * excluded coins on the config file.
              */
@@ -170,6 +165,8 @@ class DispatchPositionJob extends AbstractJob
             $position->update([
                 'exchange_symbol_id' => $exchangeSymbol->id,
             ]);
+        } else {
+            $exchangeSymbol = ExchangeSymbol::find($position->exchange_symbol_id);
         }
 
         /**
@@ -240,25 +237,27 @@ class DispatchPositionJob extends AbstractJob
                 'leverage' => $position->leverage])
             ->setDefaultLeverage();
 
-        /**
-         * Obtain mark price just before triggering the orders
-         * this will be important for the limit orders since
-         * they will be priced accordingly to this mark
-         * price.
-         */
-        $markPrice = $position
-            ->trader
-            ->withRESTApi()
-            ->withExchangeSymbol($exchangeSymbol)
-            ->withPosition($position)
+        if (blank($position->initial_mark_price)) {
+            /**
+             * Obtain mark price just before triggering the orders
+             * this will be important for the limit orders since
+             * they will be priced accordingly to this mark
+             * price.
+             */
+            $markPrice = $position
+                ->trader
+                ->withRESTApi()
+                ->withExchangeSymbol($exchangeSymbol)
+                ->withPosition($position)
             // TODO: Some exchanges might not like .USDT.
-            ->withSymbol($exchangeSymbol->symbol->token.'USDT')
-            ->getMarkPrice();
+                ->withSymbol($exchangeSymbol->symbol->token.'USDT')
+                ->getMarkPrice();
 
-        // Update position with the mark price.
-        $position->update([
-            'initial_mark_price' => $markPrice,
-        ]);
+            // Update position with the mark price.
+            $position->update([
+                'initial_mark_price' => $markPrice,
+            ]);
+        }
 
         /**
          * Now that the position is configured, and so the
@@ -309,14 +308,14 @@ class DispatchPositionJob extends AbstractJob
             // First the limit buy orders.
             Bus::batch([
                 // Just a test for now, on 1 order.
-                $limitJobs[0],
+                $limitJobs,
             ]),
 
             // Then the market order.
-            //new DispatchOrderJob($marketOrder->id),
+            new DispatchOrderJob($marketOrder->id),
 
             // Finally the take profit order.
-            //new DispatchOrderJob($profitOrder->id),
+            new DispatchOrderJob($profitOrder->id),
         ])
             ->catch(function (Throwable $e) {
                 // TODO: Send notification?

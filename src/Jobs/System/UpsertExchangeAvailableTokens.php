@@ -10,6 +10,7 @@ use Illuminate\Queue\SerializesModels;
 use Nidavellir\Trading\Abstracts\AbstractMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Exchange;
+use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Symbol;
 
 class UpsertExchangeAvailableTokens implements ShouldQueue
@@ -45,10 +46,39 @@ class UpsertExchangeAvailableTokens implements ShouldQueue
         foreach ($symbols as $symbolToken => $data) {
             $tokenData = $this->extractTokenData($data);
 
-            // Find the Exchange Symbol for this token.
-            $symbol = Symbol::where('token', $symbolToken)->first();
+            $token = str_replace(['USDT', 'USDC'], '', $tokenData['symbol']);
 
-            // TODO. Too tired.
+            // Find the Exchange Symbol for this token.
+            $exchangeSymbol = ExchangeSymbol::join('symbols', 'exchange_symbols.symbol_id', '=', 'symbols.id')
+                ->where('symbols.token', $token)
+                ->where('exchange_symbols.exchange_id', $exchange->id)
+                ->first();
+
+            $symbol = Symbol::firstWhere('token', $token);
+
+            if ($symbol) {
+                // Prepare the attributes for creation or update
+                $symbolData = [
+                    'symbol_id' => $symbol->id,
+                    'exchange_id' => $exchange->id,
+                    'precision_price' => $tokenData['precision_price'],
+                    'precision_quantity' => $tokenData['precision_quantity'],
+                    'precision_quote' => $tokenData['precision_quote'],
+                    'tick_size' => $tokenData['tick_size'],
+                ];
+
+                // If ExchangeSymbol doesn't exist, create it
+                if (! $exchangeSymbol) {
+                    ExchangeSymbol::updateOrCreate(
+                        ['symbol_id' => $symbolData['symbol_id'],
+                            'exchange_id' => $exchange->id], // Conditions
+                        $symbolData // Attributes to update or create
+                    );
+                } else {
+                    // If it exists, update the necessary fields
+                    $exchangeSymbol->update($symbolData);
+                }
+            }
         }
     }
 

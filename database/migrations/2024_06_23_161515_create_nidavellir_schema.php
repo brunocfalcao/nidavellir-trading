@@ -123,7 +123,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('exchange_symbol', function (Blueprint $table) {
+        Schema::create('exchange_symbols', function (Blueprint $table) {
             $table->id();
 
             $table->foreignId('symbol_id');
@@ -132,6 +132,7 @@ return new class extends Migration
             $table->unsignedInteger('precision_price');
             $table->unsignedInteger('precision_quantity');
             $table->unsignedInteger('precision_quote');
+            $table->decimal('tick_size', 20, 8);
 
             $table->boolean('is_active')
                 ->default(true)

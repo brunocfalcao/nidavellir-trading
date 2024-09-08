@@ -120,19 +120,29 @@ class DispatchOrderJob extends AbstractJob
                 $tradeAmount / $markPrice / $order->amount_divider,
                 $precisionQuantity
             );
+        } else {
+            $orderQuantity = 100;
         }
+
+        /**
+         * Finally, calculate the order amount.
+         */
+        $orderAmount = $order->position->leverage * $markPrice * $orderQuantity;
 
         info_multiple(
             '=== ORDER ID '.$order->id,
+            'Type: '.$order->type,
             'Token: '.$exchangeSymbol->symbol->token,
             'Total Trade Amount: '.$tradeAmount,
             'Token Price: '.$markPrice,
             'Amount Divider: '.$order->amount_divider,
             'Quantity: '.$orderQuantity,
             'Ratio: '.$order->price_ratio_percentage,
-            'Order Price:'.$this->getPriceByRatio($order, $markPrice),
-            'Margin amount: '.$markPrice * $orderQuantity,
-            '==='
+            'Order Price:'.$this->adjustPriceToTickSize($this->getPriceByRatio($order, $markPrice), $exchangeSymbol->tick_size),
+            'Tick Size: '.$exchangeSymbol->tick_size,
+            'Order amount: '.$orderAmount,
+            '===',
+            ''
         );
 
         switch ($order->type) {
@@ -140,11 +150,24 @@ class DispatchOrderJob extends AbstractJob
                 $orderData = [
                     'side' => strtoupper($orderSide),
                     'type' => 'LIMIT',
-                    'quantity' => $orderQuantity,
+                    'quantity' => round($orderQuantity * $order->position->leverage, $exchangeSymbol->precision_quantity),
                     // TODO. Change the value to other exchanges.
                     'symbol' => $exchangeSymbol->symbol->token.'USDT',
-                    'price' => $this->getPriceByRatio($order, $markPrice),
+                    'price' => $this->adjustPriceToTickSize($this->getPriceByRatio($order, $markPrice), $exchangeSymbol->tick_size),
                 ];
+
+                $order->position
+                    ->trader
+                    ->withRESTApi()
+                    ->withOptions($orderData)
+                    ->withPosition($order->position)
+                    ->withTrader($order->position->trader)
+                    ->withExchangeSymbol($exchangeSymbol)
+                    ->withOrder($order)
+                    ->placeSingleOrder();
+
+                $order->update(['status' => 'synced']);
+
                 break;
 
             case 'MARKET':
@@ -153,25 +176,31 @@ class DispatchOrderJob extends AbstractJob
             case 'PROFIT':
                 break;
         }
-
-        $order->position->trader
-            ->withRESTApi()
-            ->withOptions($orderData)
-            ->withPosition($order->position)
-            ->withTrader($order->position->trader)
-            ->withExchangeSymbol($exchangeSymbol)
-            ->withOrder($order)
-            ->placeSingleOrder();
-
-        dd($orderData);
     }
 
     private function getPriceByRatio(Order $order, float $markPrice)
     {
         $precision = $order->position->exchangeSymbol->precision_price;
 
-        return $order->position->side == 'BUY' ?
-            round($markPrice - ($markPrice * $order->price_ratio_percentage / 100), $precision) :
-            round($markPrice + ($markPrice * $order->price_ratio_percentage / 100), $precision);
+        if ($order->position->side == 'BUY') {
+            if ($order->type != 'PROFIT') {
+                return round($markPrice - ($markPrice * $order->price_ratio_percentage / 100), $precision);
+            } else {
+                return round($markPrice + ($markPrice * $order->price_ratio_percentage / 100), $precision);
+            }
+        }
+
+        if ($order->position->side == 'SELL') {
+            if ($order->type != 'PROFIT') {
+                return round($markPrice + ($markPrice * $order->price_ratio_percentage / 100), $precision);
+            } else {
+                return round($markPrice - ($markPrice * $order->price_ratio_percentage / 100), $precision);
+            }
+        }
+    }
+
+    private function adjustPriceToTickSize($price, $tickSize)
+    {
+        return floor($price / $tickSize) * $tickSize;
     }
 }
