@@ -2,8 +2,8 @@
 
 namespace Nidavellir\Trading\Jobs\Orders;
 
-use Nidavellir\Exceptions\MarketOrderNotCreatedException;
 use Nidavellir\Trading\Abstracts\AbstractJob;
+use Nidavellir\Trading\Exceptions\OrderNotCreatedException;
 use Nidavellir\Trading\Models\Order;
 use Throwable;
 
@@ -54,7 +54,7 @@ class DispatchOrderJob extends AbstractJob
             $this->processOrder($order);
         } catch (Throwable $e) {
             // Throw your custom exception, passing the order ID.
-            throw new MarketOrderNotCreatedException('Failed to create market order for order ID: '.$this->orderId, $this->orderId, 0, $e);
+            throw new OrderNotCreatedException('Failed to create market order for order ID: '.$this->orderId, $this->orderId, 0, $e);
         }
     }
 

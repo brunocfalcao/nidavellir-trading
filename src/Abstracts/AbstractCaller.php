@@ -2,7 +2,7 @@
 
 namespace Nidavellir\Trading\Abstracts;
 
-use Nidavellir\Exceptions\ApiCallException;
+use Nidavellir\Trading\Exceptions\ApiCallException;
 use Nidavellir\Trading\Models\ApiLog;
 
 abstract class AbstractCaller

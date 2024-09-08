@@ -317,8 +317,8 @@ class _DispatchPositionJob extends AbstractJob
             new DispatchOrderJob($profitOrder->id),
         ])
             ->catch(function (Throwable $e) {
-                if ($e instanceof \App\Exceptions\MarketOrderNotCreatedException) {
-                    info('MarketOrderNotCreatedException was thrown: '.$e->getMessage());
+                if ($e instanceof \App\Exceptions\OrderNotCreatedException) {
+                    info('OrderNotCreatedException was thrown: '.$e->getMessage());
                 } else {
                     info('There was an error: '.$e->getMessage());
                 }

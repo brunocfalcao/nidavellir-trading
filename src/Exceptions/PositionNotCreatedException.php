@@ -1,21 +1,28 @@
 <?php
 
-namespace Nidavellir\Exceptions;
+namespace Nidavellir\Trading\Exceptions;
 
-use Exception;
+use Throwable;
 
-class PositionNotCreatedException extends Exception
+class PositionNotCreatedException extends \Exception
 {
-    protected $positionId;
+    protected int $positionId;
 
-    public function __construct($message, $positionId, $code = 0, ?Exception $previous = null)
+    public function __construct($message, $positionId, $code = 0, Throwable $previous = null)
     {
         parent::__construct($message, $code, $previous);
         $this->positionId = $positionId;
     }
 
-    public function getPositionId()
+    public function getPositionId(): int
     {
         return $this->positionId;
+    }
+
+    public function context(): array
+    {
+        return [
+            'position_id' => $this->getPositionId(),
+        ];
     }
 }

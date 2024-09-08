@@ -1,26 +1,24 @@
 <?php
 
-namespace Nidavellir\Exceptions;
+namespace Nidavellir\Trading\Exceptions;
 
-use Exception;
+use Throwable;
 
-class MarketOrderNotCreatedException extends Exception
+class OrderNotCreatedException extends \Exception
 {
     protected int $orderId;
 
-    public function __construct($message, $orderId, $code = 0, ?Exception $previous = null)
+    public function __construct($message, $orderId, $code = 0, Throwable $previous = null)
     {
         parent::__construct($message, $code, $previous);
         $this->orderId = $orderId;
     }
 
-    // Return the order ID associated with the exception
     public function getOrderId(): int
     {
         return $this->orderId;
     }
 
-    // Context for logging or reporting
     public function context(): array
     {
         return [

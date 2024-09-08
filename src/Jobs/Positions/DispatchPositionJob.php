@@ -2,16 +2,17 @@
 
 namespace Nidavellir\Trading\Jobs\Positions;
 
-use Illuminate\Support\Facades\Bus;
-use Nidavellir\Exceptions\PositionNotCreatedException;
-use Nidavellir\Trading\Abstracts\AbstractJob;
-use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
-use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
-use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
-use Nidavellir\Trading\Models\ExchangeSymbol;
-use Nidavellir\Trading\Models\Position;
-use Nidavellir\Trading\Nidavellir;
 use Throwable;
+use Nidavellir\Trading\Nidavellir;
+use Illuminate\Support\Facades\Bus;
+use Nidavellir\Trading\Models\Position;
+use Nidavellir\Trading\Abstracts\AbstractJob;
+use Nidavellir\Trading\Models\ExchangeSymbol;
+use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
+use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
+use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
+use Nidavellir\Trading\Exceptions\PositionNotCreatedException;
+use Nidavellir\Trading\Exceptions\OrderNotCreatedException;
 
 class DispatchPositionJob extends AbstractJob
 {
@@ -111,7 +112,7 @@ class DispatchPositionJob extends AbstractJob
     {
         if (blank($position->leverage)) {
             $wrapper = new ExchangeRESTWrapper(
-                new BinanceRESTMapper(Nidavellir::getSystemCredentials('binance'))
+                new BinanceRESTMapper(credentials: Nidavellir::getSystemCredentials('binance'))
             );
 
             $leverageData = $wrapper
@@ -166,15 +167,7 @@ class DispatchPositionJob extends AbstractJob
             Bus::batch($limitJobs),
             new DispatchOrderJob($marketOrder->id),
             new DispatchOrderJob($profitOrder->id),
-        ])
-            ->catch(function (Throwable $e) {
-                if ($e instanceof \App\Exceptions\MarketOrderNotCreatedException) {
-                    info('MarketOrderNotCreatedException was thrown: '.$e->getMessage());
-                } else {
-                    info('There was an error: '.$e->getMessage());
-                }
-            })
-            ->dispatch();
+        ])->dispatch();
     }
 
     private function updatePositionError(Position $position, string $message)

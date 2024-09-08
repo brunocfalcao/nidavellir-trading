@@ -1,26 +1,24 @@
 <?php
 
-namespace Nidavellir\Exceptions;
+namespace Nidavellir\Trading\Exceptions;
 
-use Exception;
+use Throwable;
 
-class ApiCallException extends Exception
+class ApiCallException extends \Exception
 {
     protected int $apiLogId;
 
-    public function __construct($message, $apiLogId, $code = 0, ?Exception $previous = null)
+    public function __construct($message, $apiLogId, $code = 0, Throwable $previous = null)
     {
         parent::__construct($message, $code, $previous);
         $this->apiLogId = $apiLogId;
     }
 
-    // Return the apiLog ID associated with the exception
     public function getApiLogId(): int
     {
         return $this->apiLogId;
     }
 
-    // Context for logging or reporting
     public function context(): array
     {
         return [
