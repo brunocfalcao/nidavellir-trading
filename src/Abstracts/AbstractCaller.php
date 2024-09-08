@@ -2,6 +2,7 @@
 
 namespace Nidavellir\Trading\Abstracts;
 
+use Nidavellir\Exceptions\ApiCallException;
 use Nidavellir\Trading\Models\ApiLog;
 
 abstract class AbstractCaller
@@ -43,8 +44,9 @@ abstract class AbstractCaller
             ]);
 
             if (! $this->throwSilently) {
-                throw new \Exception(
-                    'Api error - '.$this->callerName.' ( '.$this->mapper->exchange()->name.' ) - '.$e->getMessage()
+                throw new ApiCallException(
+                    'Api error - '.$this->callerName.' ( '.$this->mapper->exchange()->name.' ) - '.$e->getMessage(),
+                    $apiLog->id
                 );
             }
         } finally {

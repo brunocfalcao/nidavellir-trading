@@ -21,6 +21,11 @@ class Order extends AbstractModel
         ];
     }
 
+    public function exceptionLogs()
+    {
+        return $this->morphMany(ExceptionLogger::class, 'loggable');
+    }
+
     public function position()
     {
         return $this->belongsTo(Position::class);

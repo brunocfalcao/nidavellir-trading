@@ -10,6 +10,11 @@ class Position extends AbstractModel
         'trade_configuration' => 'array',
     ];
 
+    public function exceptionLogs()
+    {
+        return $this->morphMany(ExceptionLogger::class, 'loggable');
+    }
+
     public function trader()
     {
         return $this->belongsTo(Trader::class);
