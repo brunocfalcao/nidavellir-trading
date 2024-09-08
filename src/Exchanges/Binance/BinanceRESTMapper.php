@@ -4,9 +4,11 @@ namespace Nidavellir\Trading\Exchanges\Binance;
 
 use Nidavellir\Trading\Abstracts\AbstractMapper;
 use Nidavellir\Trading\Exchanges\Binance\Callers\GetAccountBalance;
+use Nidavellir\Trading\Exchanges\Binance\Callers\GetAccountInformation;
 use Nidavellir\Trading\Exchanges\Binance\Callers\GetExchangeInformation;
 use Nidavellir\Trading\Exchanges\Binance\Callers\GetLeverageBracket;
 use Nidavellir\Trading\Exchanges\Binance\Callers\GetMarkPrice;
+use Nidavellir\Trading\Exchanges\Binance\Callers\GetOpenOrders;
 use Nidavellir\Trading\Exchanges\Binance\Callers\PlaceOrder;
 use Nidavellir\Trading\Exchanges\Binance\Callers\SetDefaultLeverage;
 use Nidavellir\Trading\Models\Exchange;
@@ -69,5 +71,15 @@ class BinanceRESTMapper extends AbstractMapper
     public function placeOrder()
     {
         return (new PlaceOrder($this))->result;
+    }
+
+    public function getOpenOrders()
+    {
+        return (new GetOpenOrders($this))->result;
+    }
+
+    public function getAccountInformation()
+    {
+        return (new GetAccountInformation($this))->result;
     }
 }

@@ -322,7 +322,7 @@ trait Trade
      */
     public function account(array $options = [])
     {
-        return $this->signRequest('GET', '/fapi/v1/account', $options);
+        return $this->signRequest('GET', '/fapi/v2/account', $options);
     }
 
     /**

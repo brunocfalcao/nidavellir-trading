@@ -4,6 +4,7 @@ namespace Nidavellir\Trading\Commands\System;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\ExchangeSymbol;
@@ -39,6 +40,33 @@ class TestCommand extends Command
         dd($wrapper
             ->withOptions(['symbol' => 'LTCUSDT'])
             ->getLeverageBracket());
+    }
+
+    private function getAccountBalance()
+    {
+        return Trader::find(1)
+            ->withRESTApi()
+            ->getAccountBalance();
+    }
+
+    private function getAccountInformation()
+    {
+        $accountInfo = Trader::find(1)
+            ->withRESTApi()
+            ->getAccountInformation();
+
+        // Convert the result to pretty-printed JSON
+        $json = json_encode($accountInfo, JSON_PRETTY_PRINT);
+
+        // Clean the file before writing by replacing its contents
+        Storage::put('public/account-information.json', $json);
+    }
+
+    private function getOpenOrders()
+    {
+        return Trader::find(1)
+            ->withRESTApi()
+            ->getOpenOrders();
     }
 
     /**

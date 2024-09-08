@@ -22,7 +22,7 @@ abstract class AbstractJob implements ShouldQueue
     // Define the backoff time in seconds
     public function backoff()
     {
-        return [10];
+        return [1];
     }
 
     // Define the retry time in seconds

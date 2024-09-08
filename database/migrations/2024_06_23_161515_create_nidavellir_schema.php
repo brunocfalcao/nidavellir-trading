@@ -146,6 +146,9 @@ return new class extends Migration
                 ->nullable()
                 ->comment('Last mark price fetched from the exchange');
 
+            $table->longText('api_data')
+                ->comment('The JSON api data returned from the exchange about the symbol information');
+
             $table->timestamp('price_last_synced_at')->nullable();
 
             $table->timestamps();
@@ -303,10 +306,6 @@ return new class extends Migration
             $table->string('system_order_id')
                 ->nullable()
                 ->comment('System generated order id for reference purposes, generated as P:xxx where P means position id on the database');
-
-            $table->longText('response')
-                ->nullable()
-                ->comment('The full exchange api response');
 
             $table->timestamps();
         });

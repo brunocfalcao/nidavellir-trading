@@ -17,38 +17,29 @@ class GetAccountBalance extends AbstractCaller
 
     public function parseResult()
     {
-        $this->result = array_reduce(
-            // The original array to reduce.
-            $this->result,
-            /**
-             * The callback function applied to each item in
-             * the array.
-             */
-            function ($carry, $item) {
+        /**
+         * The available balance gets the total balance
+         * from the futures wallet (not counting what's
+         * invested already on limit orders), and
+         * reduces that amount in case the unrealized PnL
+         * is negative.
+         */
+        $collection = collect($this->result);
 
-                // Cast the available balance to a float.
-                $balance = (float) $item['availableBalance'];
+        $usdt = $collection->firstWhere('asset', 'USDT');
 
-                /**
-                 * If the balance is not zero, add it to the
-                 * result array.
-                 */
-                if ($balance !== 0.0) {
+        if ($usdt) {
+            $balance = (float) $usdt['balance'];
+            $crossUnPnl = (float) $usdt['crossUnPnl'];
 
-                    /**
-                     * Set the asset name as the key and the
-                     * balance as the value.
-                     */
-                    $carry[$item['asset']] = $balance;
-                }
+            // Deduct if crossUnPnl is negative
+            if ($crossUnPnl < 0) {
+                $balance += $crossUnPnl;
+            }
 
-                // Return the accumulated result.
-                return $carry;
-            },
-            // Start with an empty array to accumulate results.
-            []
-        );
-
-        return $this->result;
+            $this->result = $balance;
+        } else {
+            $this->result = 0;  // Return 0 if USDT not found
+        }
     }
 }

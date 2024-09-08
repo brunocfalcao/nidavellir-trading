@@ -65,6 +65,7 @@ class UpsertExchangeAvailableTokens implements ShouldQueue
                     'precision_quantity' => $tokenData['precision_quantity'],
                     'precision_quote' => $tokenData['precision_quote'],
                     'tick_size' => $tokenData['tick_size'],
+                    'api_data' => $data,
                 ];
 
                 // If ExchangeSymbol doesn't exist, create it
