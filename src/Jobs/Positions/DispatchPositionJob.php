@@ -2,17 +2,16 @@
 
 namespace Nidavellir\Trading\Jobs\Positions;
 
-use Throwable;
-use Nidavellir\Trading\Nidavellir;
 use Illuminate\Support\Facades\Bus;
-use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Abstracts\AbstractJob;
-use Nidavellir\Trading\Models\ExchangeSymbol;
-use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
-use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
-use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exceptions\PositionNotCreatedException;
-use Nidavellir\Trading\Exceptions\OrderNotCreatedException;
+use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
+use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
+use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
+use Nidavellir\Trading\Models\ExchangeSymbol;
+use Nidavellir\Trading\Models\Position;
+use Nidavellir\Trading\Nidavellir;
+use Throwable;
 
 class DispatchPositionJob extends AbstractJob
 {
@@ -43,6 +42,17 @@ class DispatchPositionJob extends AbstractJob
             if (blank($position->initial_mark_price)) {
                 $this->fetchAndSetMarkPrice($position);
             }
+
+            info_multiple(
+                '=== POSITION ID '.$position->id,
+                'Initial Mark Price: '.$position->initial_mark_price,
+                'Leverage: '.$position->leverage,
+                'Symbol: '.$position->exchangeSymbol->symbol->token,
+                'Trader: '.$position->trader->name,
+                'Total Trade Amount: '.$position->total_trade_amount,
+                '===',
+                ' '
+            );
 
             $this->dispatchOrders($position);
         } catch (Throwable $e) {
@@ -145,12 +155,12 @@ class DispatchPositionJob extends AbstractJob
 
     private function fetchAndSetMarkPrice(Position $position)
     {
-        $markPrice = $position->trader
+        $markPrice = round($position->trader
             ->withRESTApi()
             ->withExchangeSymbol($position->exchangeSymbol)
             ->withPosition($position)
             ->withSymbol($position->exchangeSymbol->symbol->token.'USDT')
-            ->getMarkPrice();
+            ->getMarkPrice(), $position->exchangeSymbol->precision_price);
 
         $position->update(['initial_mark_price' => $markPrice]);
     }
@@ -165,8 +175,8 @@ class DispatchPositionJob extends AbstractJob
 
         Bus::chain([
             Bus::batch($limitJobs),
-            new DispatchOrderJob($marketOrder->id),
-            new DispatchOrderJob($profitOrder->id),
+            //new DispatchOrderJob($marketOrder->id),
+            //new DispatchOrderJob($profitOrder->id),
         ])->dispatch();
     }
 

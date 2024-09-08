@@ -8,7 +8,7 @@ class ApiCallException extends \Exception
 {
     protected int $apiLogId;
 
-    public function __construct($message, $apiLogId, $code = 0, Throwable $previous = null)
+    public function __construct($message, $apiLogId, $code = 0, ?Throwable $previous = null)
     {
         parent::__construct($message, $code, $previous);
         $this->apiLogId = $apiLogId;

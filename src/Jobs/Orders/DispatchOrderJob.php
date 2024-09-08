@@ -54,7 +54,7 @@ class DispatchOrderJob extends AbstractJob
             $this->processOrder($order);
         } catch (Throwable $e) {
             // Throw your custom exception, passing the order ID.
-            throw new OrderNotCreatedException('Failed to create market order for order ID: '.$this->orderId, $this->orderId, 0, $e);
+            throw new OrderNotCreatedException('Failed to create order on exchange, with ID: '.$this->orderId, $this->orderId, 0, $e);
         }
     }
 
@@ -92,8 +92,8 @@ class DispatchOrderJob extends AbstractJob
             ->withExchangeSymbol($order->position->exchangeSymbol)
             ->withOrder($order);
 
-        $orderAmount = $this->computeOrderAmount($order);
         $orderPrice = $this->computeOrderPrice($order);
+        $orderAmount = $this->computeOrderAmount($order, $orderPrice);
 
         // Log order details for debugging.
         $this->logOrderDetails($order, $orderAmount, $orderPrice);
@@ -102,15 +102,19 @@ class DispatchOrderJob extends AbstractJob
         $this->dispatchOrder($order, $orderPrice, $orderAmount, $sideDetails);
     }
 
-    private function computeOrderAmount($order)
+    private function computeOrderAmount($order, $price)
     {
         $exchangeSymbol = $order->position->exchangeSymbol;
 
         // If the order is a MARKET or LIMIT order.
         if (in_array($order->type, [self::ORDER_TYPE_MARKET, self::ORDER_TYPE_LIMIT])) {
+            $amountAfterDivider = $order->position->total_trade_amount / $order->amount_divider;
+            $amountAfterLeverage = $amountAfterDivider * $order->position->leverage;
+            $tokenAmountToBuy = $amountAfterLeverage / $price;
+
             return $this->adjustPriceToTickSize(
                 round(
-                    $order->position->total_trade_amount / $order->amount_divider * $order->position->leverage,
+                    $tokenAmountToBuy,
                     $exchangeSymbol->precision_quantity
                 ),
                 $exchangeSymbol->tick_size
@@ -136,12 +140,33 @@ class DispatchOrderJob extends AbstractJob
                 $this->placeLimitOrder($order, $orderPrice, $orderAmount, $sideDetails);
                 break;
             case self::ORDER_TYPE_MARKET:
-                // Handle market order here if needed.
+                $this->placeMarketOrder($order, $orderPrice, $orderAmount, $sideDetails);
                 break;
             case self::ORDER_TYPE_PROFIT:
                 // Handle profit order here if needed.
                 break;
         }
+    }
+
+    private function placeMarketOrder($order, $orderPrice, $orderAmount, $sideDetails)
+    {
+        $orderData = [
+            'side' => strtoupper($sideDetails['orderSide']),
+            'type' => 'MARKET',
+            'quantity' => $orderAmount,
+            'symbol' => $order->position->exchangeSymbol->symbol->token.'USDT',
+        ];
+
+        $order->position->trader
+            ->withRESTApi()
+            ->withOptions($orderData)
+            ->withPosition($order->position)
+            ->withTrader($order->position->trader)
+            ->withExchangeSymbol($order->position->exchangeSymbol)
+            ->withOrder($order)
+            ->placeSingleOrder();
+
+        $order->update(['status' => 'synced']);
     }
 
     private function placeLimitOrder($order, $orderPrice, $orderAmount, $sideDetails)
@@ -178,7 +203,8 @@ class DispatchOrderJob extends AbstractJob
             'Ratio: '.$order->price_ratio_percentage,
             'Order Price: '.$orderPrice,
             'Order amount: '.$orderAmount,
-            '==='
+            '===',
+            ' '
         );
     }
 

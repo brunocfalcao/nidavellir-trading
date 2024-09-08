@@ -8,7 +8,7 @@ class OrderNotCreatedException extends \Exception
 {
     protected int $orderId;
 
-    public function __construct($message, $orderId, $code = 0, Throwable $previous = null)
+    public function __construct($message, $orderId, $code = 0, ?Throwable $previous = null)
     {
         parent::__construct($message, $code, $previous);
         $this->orderId = $orderId;
