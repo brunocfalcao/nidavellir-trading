@@ -111,14 +111,6 @@ class DispatchOrderJob extends AbstractJob
         // Log order details for debugging.
         $this->logOrderDetails($order, $orderAmount, $orderPrice);
 
-        throw new OrderNotCreatedException(
-            'Failed to create order on exchange, with ID: '.
-            $this->orderId,
-            $this->orderId,
-            0,
-            $e
-        );
-
         return;
 
         // Place the order depending on its type.
