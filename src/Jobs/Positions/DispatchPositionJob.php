@@ -173,11 +173,24 @@ class DispatchPositionJob extends AbstractJob
 
         $limitJobs = $limitOrders->map(fn ($limitOrder) => new DispatchOrderJob($limitOrder->id))->toArray();
 
-        Bus::chain([
-            Bus::batch($limitJobs),
-            //new DispatchOrderJob($marketOrder->id),
-            //new DispatchOrderJob($profitOrder->id),
-        ])->dispatch();
+        /**
+         * The orders are triggered in a certain sequence,
+         * first the limit orders, then the market and
+         * finally the profit order.
+         */
+        try {
+            Bus::chain([
+                Bus::batch($limitJobs),
+                new DispatchOrderJob($marketOrder->id),
+                //new DispatchOrderJob($profitOrder->id),
+            ])->dispatch();
+        } catch (\Exception $e) {
+            info_multiple(
+                '!!== Error on the bus chain! ==!!',
+                $e->getMessage(),
+                '!!== ==========================!!'
+            );
+        }
     }
 
     private function updatePositionError(Position $position, string $message)

@@ -9,13 +9,6 @@ class PlaceOrder extends AbstractCaller
 {
     protected string $callerName = 'New Order';
 
-    public function prepareRequest()
-    {
-        if (! array_key_exists('timeInForce', $this->mapper->properties['options'])) {
-            $this->mapper->properties['options']['timeInForce'] = 'GTC';
-        }
-    }
-
     public function call()
     {
         $futures = new Futures(

@@ -36,6 +36,18 @@ class DispatchOrderJob extends AbstractJob
             $siblings = $order->position->orders->where('id', '<>', $order->id);
             $siblingsLimitOnly = $siblings->where('type', self::ORDER_TYPE_LIMIT);
 
+            if ($this->attempts() == 3) {
+                throw new OrderNotCreatedException(
+                    'Max attemps: Failed to create order on exchange, with ID: '.
+                    $this->orderId,
+                    $this->orderId,
+                    0,
+                    $e
+                );
+
+                return;
+            }
+
             // Check if any sibling has an error, if so, stop processing.
             if ($siblings->contains('status', 'error')) {
                 return;
@@ -92,11 +104,22 @@ class DispatchOrderJob extends AbstractJob
             ->withExchangeSymbol($order->position->exchangeSymbol)
             ->withOrder($order);
 
-        $orderPrice = $this->computeOrderPrice($order);
+        $orderPrice = $this->getPriceByRatio($order);
+
         $orderAmount = $this->computeOrderAmount($order, $orderPrice);
 
         // Log order details for debugging.
         $this->logOrderDetails($order, $orderAmount, $orderPrice);
+
+        throw new OrderNotCreatedException(
+            'Failed to create order on exchange, with ID: '.
+            $this->orderId,
+            $this->orderId,
+            0,
+            $e
+        );
+
+        return;
 
         // Place the order depending on its type.
         $this->dispatchOrder($order, $orderPrice, $orderAmount, $sideDetails);
@@ -108,29 +131,24 @@ class DispatchOrderJob extends AbstractJob
 
         // If the order is a MARKET or LIMIT order.
         if (in_array($order->type, [self::ORDER_TYPE_MARKET, self::ORDER_TYPE_LIMIT])) {
+
+            /**
+             * The amount to buy is a real amount of token that is then
+             * mutiplied by the price that is configured for this order.
+             */
             $amountAfterDivider = $order->position->total_trade_amount / $order->amount_divider;
             $amountAfterLeverage = $amountAfterDivider * $order->position->leverage;
             $tokenAmountToBuy = $amountAfterLeverage / $price;
 
-            return $this->adjustPriceToTickSize(
+            return
                 round(
                     $tokenAmountToBuy,
                     $exchangeSymbol->precision_quantity
-                ),
-                $exchangeSymbol->tick_size
-            );
+                );
         }
 
         // For PROFIT or other types, return a hardcoded value (can be refactored later).
         return 100;
-    }
-
-    private function computeOrderPrice($order)
-    {
-        $exchangeSymbol = $order->position->exchangeSymbol;
-        $markPrice = round($order->position->initial_mark_price, $exchangeSymbol->precision_price);
-
-        return round($this->getPriceByRatio($order, $markPrice), $exchangeSymbol->precision_price);
     }
 
     private function dispatchOrder($order, $orderPrice, $orderAmount, $sideDetails)
@@ -140,7 +158,7 @@ class DispatchOrderJob extends AbstractJob
                 $this->placeLimitOrder($order, $orderPrice, $orderAmount, $sideDetails);
                 break;
             case self::ORDER_TYPE_MARKET:
-                $this->placeMarketOrder($order, $orderPrice, $orderAmount, $sideDetails);
+                $this->placeMarketOrder($order, $orderAmount, $sideDetails);
                 break;
             case self::ORDER_TYPE_PROFIT:
                 // Handle profit order here if needed.
@@ -148,7 +166,7 @@ class DispatchOrderJob extends AbstractJob
         }
     }
 
-    private function placeMarketOrder($order, $orderPrice, $orderAmount, $sideDetails)
+    private function placeMarketOrder($order, $orderAmount, $sideDetails)
     {
         $orderData = [
             'side' => strtoupper($sideDetails['orderSide']),
@@ -172,6 +190,7 @@ class DispatchOrderJob extends AbstractJob
     private function placeLimitOrder($order, $orderPrice, $orderAmount, $sideDetails)
     {
         $orderData = [
+            'timeInForce' => 'GTC',
             'side' => strtoupper($sideDetails['orderSide']),
             'type' => 'LIMIT',
             'quantity' => $orderAmount,
@@ -203,6 +222,7 @@ class DispatchOrderJob extends AbstractJob
             'Ratio: '.$order->price_ratio_percentage,
             'Order Price: '.$orderPrice,
             'Order amount: '.$orderAmount,
+            'Order amount (USDT): '.$orderAmount * $orderPrice,
             '===',
             ' '
         );
@@ -225,23 +245,37 @@ class DispatchOrderJob extends AbstractJob
         ];
     }
 
-    private function getPriceByRatio(Order $order, float $markPrice)
+    private function getPriceByRatio(Order $order)
     {
+        $markPrice = $order->position->initial_mark_price;
         $precision = $order->position->exchangeSymbol->precision_price;
         $priceRatio = $order->price_ratio_percentage / 100;
         $side = $order->position->side;
 
+        $orderPrice = 0;
+
         if ($side === 'BUY') {
-            return $order->type !== self::ORDER_TYPE_PROFIT
+            $orderPrice = $order->type !== self::ORDER_TYPE_PROFIT
                 ? round($markPrice - ($markPrice * $priceRatio), $precision)
                 : round($markPrice + ($markPrice * $priceRatio), $precision);
         }
 
         if ($side === 'SELL') {
-            return $order->type !== self::ORDER_TYPE_PROFIT
+            $orderPrice = $order->type !== self::ORDER_TYPE_PROFIT
                 ? round($markPrice + ($markPrice * $priceRatio), $precision)
                 : round($markPrice - ($markPrice * $priceRatio), $precision);
         }
+
+        /**
+         * Adjust the computed price the correct price tick
+         * size, so the order doesn't get rejected.
+         */
+        $priceTickSizeAdjusted = $this->adjustPriceToTickSize(
+            $orderPrice,
+            $order->position->exchangeSymbol->tick_size
+        );
+
+        return $priceTickSizeAdjusted;
     }
 
     private function adjustPriceToTickSize($price, $tickSize)
