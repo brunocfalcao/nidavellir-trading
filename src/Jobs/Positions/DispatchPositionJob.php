@@ -8,6 +8,7 @@ use Nidavellir\Trading\Exceptions\PositionNotCreatedException;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
+use Nidavellir\Trading\Models\ApplicationLog;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Nidavellir;
@@ -29,6 +30,11 @@ class DispatchPositionJob extends AbstractJob
             if (! $position) {
                 throw new PositionNotCreatedException("Position ID {$this->positionId} not found", $this->positionId);
             }
+
+            ApplicationLog::withActionCanonical('Position.Dispatch')
+                ->withDescription('Job started')
+                ->withLoggable($position)
+                ->saveLog();
 
             $this->validateMandatoryFields($position);
 

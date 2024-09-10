@@ -5,6 +5,7 @@ namespace Nidavellir\Trading\Commands\System;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Nidavellir\Trading\Exceptions\PositionNotCreatedException;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Position;
@@ -25,7 +26,13 @@ class TestCommand extends Command
 
     public function handle()
     {
-        $this->testNewPosition();
+        $position = new Position;
+
+        throw new PositionNotCreatedException('Position ID 3 not found', [
+            'position_id' => 3, 'order_id' => 5,
+        ], $position);
+
+        //$this->testNewPosition();
 
         //$this->testTokenLeverage();
         //$this->getAccountBalance();

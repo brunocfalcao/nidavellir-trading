@@ -11,8 +11,14 @@ use Nidavellir\Trading\Abstracts\AbstractModel;
  * @property string $loggable_type
  * @property int $loggable_id
  */
-class ExceptionLog extends AbstractModel
+class ExceptionsLog extends AbstractModel
 {
+    protected $table = 'exceptions_log';
+
+    protected $casts = [
+        'attributes' => 'array',
+    ];
+
     public function loggable()
     {
         return $this->morphTo();

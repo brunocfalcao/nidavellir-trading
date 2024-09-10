@@ -12,13 +12,45 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('exception_logs', function (Blueprint $table) {
+        Schema::create('application_logs', function (Blueprint $table) {
             $table->id();
-            $table->string('exception_type');
-            $table->text('message');
-            $table->text('context')->nullable();
-            $table->longText('verbose_content')->nullable();
-            $table->morphs('loggable');
+
+            $table->string('loggable_type')
+                ->nullable();
+
+            $table->unsignedBigInteger('loggable_id')
+                ->nullable();
+
+            $table->string('action_canonical')
+                ->nullable();
+
+            $table->string('description')
+                ->nullable();
+
+            $table->string('return_value')
+                ->nullable();
+
+            $table->longText('return_data')
+                ->nullable();
+
+            $table->text('comments')
+                ->nullable();
+
+            $table->longText('debug_backtrace')
+                ->nullable();
+
+            $table->timestamps();
+        });
+
+        Schema::create('exceptions_log', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('loggable_id')->nullable(); // Polymorphic relationship
+            $table->string('loggable_type')->nullable(); // Polymorphic relationship
+            $table->string('message');
+            $table->string('exception_class');
+            $table->string('file');
+            $table->integer('line');
+            $table->json('attributes')->nullable();
             $table->timestamps();
         });
 

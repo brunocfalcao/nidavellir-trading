@@ -4,6 +4,7 @@ namespace Nidavellir\Trading\Jobs\Orders;
 
 use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\Exceptions\OrderNotCreatedException;
+use Nidavellir\Trading\Models\ApplicationLog;
 use Nidavellir\Trading\Models\Order;
 use Throwable;
 
@@ -41,6 +42,11 @@ class DispatchOrderJob extends AbstractJob
                 // If the order does not exist, exit without further action.
                 return;
             }
+
+            ApplicationLog::withActionCanonical('order.dispatch')
+                ->withDescription('Job started')
+                ->withLoggable($order)
+                ->saveLog();
 
             // Retrieve sibling orders associated with the same position,
             // excluding the current order. Filters for only limit orders.
@@ -123,8 +129,19 @@ class DispatchOrderJob extends AbstractJob
      */
     private function processOrder($order)
     {
+        ApplicationLog::withActionCanonical('order.dispatch')
+            ->withDescription('Process Order started')
+            ->withLoggable($order)
+            ->saveLog();
+
         // Determine the side of the order (buy/sell).
         $sideDetails = $this->getOrderSideDetails(config('nidavellir.positions.current_side'));
+
+        ApplicationLog::withActionCanonical('order.dispatch')
+            ->withDescription('Attribute $sideDetails')
+            ->withReturnValue($sideDetails)
+            ->withLoggable($order)
+            ->saveLog();
 
         // Build the payload for the API call.
         $payload = $order->position->trader
@@ -134,14 +151,24 @@ class DispatchOrderJob extends AbstractJob
             ->withExchangeSymbol($order->position->exchangeSymbol)
             ->withOrder($order);
 
+        ApplicationLog::withActionCanonical('order.dispatch')
+            ->withDescription('Attribute $payload')
+            ->withReturnData($payload)
+            ->withLoggable($order)
+            ->saveLog();
+
         // Calculate the price of the order based on its type and market conditions.
         $orderPrice = $this->getPriceByRatio($order);
 
         // Compute the amount of the asset to be traded in the order.
         $orderAmount = $this->computeOrderAmount($order, $orderPrice);
 
+        $orderAmount = 0;
+
         // Log the order details for debugging purposes.
         $this->logOrderDetails($order, $orderAmount, $orderPrice);
+
+        return;
 
         // Dispatch the order based on its type (Market, Limit, Profit).
         $this->dispatchOrder($order, $orderPrice, $orderAmount, $sideDetails);

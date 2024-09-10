@@ -33,7 +33,7 @@ class Order extends AbstractModel
 
     public function exceptionLogs()
     {
-        return $this->morphMany(ExceptionLogger::class, 'loggable');
+        return $this->morphMany(ExceptionsLog::class, 'loggable');
     }
 
     public function position()
