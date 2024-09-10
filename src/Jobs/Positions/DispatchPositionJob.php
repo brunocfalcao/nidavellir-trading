@@ -28,7 +28,7 @@ class DispatchPositionJob extends AbstractJob
         try {
             $position = Position::find($this->positionId);
             if (! $position) {
-                throw new PositionNotCreatedException("Position ID {$this->positionId} not found", $this->positionId);
+                throw new PositionNotCreatedException("Position ID {$this->positionId} not found", ['position_id'=> $this->positionId]);
             }
 
             ApplicationLog::withActionCanonical('Position.Dispatch')
@@ -63,7 +63,12 @@ class DispatchPositionJob extends AbstractJob
 
             $this->dispatchOrders($position);
         } catch (Throwable $e) {
-            throw new PositionNotCreatedException($e->getMessage(), $this->positionId, 0, $e);
+            throw new PositionNotCreatedException(
+                $e->getMessage(),
+                ['position_id' => $this->positionId],
+                0,
+                $e
+            );
         }
     }
 

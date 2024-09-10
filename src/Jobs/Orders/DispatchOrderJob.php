@@ -58,7 +58,7 @@ class DispatchOrderJob extends AbstractJob
                 throw new OrderNotCreatedException(
                     'Max attempts: Failed to create order on exchange, with ID: '.
                     $this->orderId,
-                    $this->orderId
+                    ['order_id'=> $this->orderId]
                 );
 
                 return;
@@ -84,9 +84,7 @@ class DispatchOrderJob extends AbstractJob
             // Handle any exceptions by throwing a custom OrderNotCreatedException.
             throw new OrderNotCreatedException(
                 $e->getMessage(),
-                $this->orderId,
-                0,
-                $e
+                ['order_id' => $this->orderId],
             );
         }
     }
