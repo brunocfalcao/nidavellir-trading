@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Exceptions;
+namespace Nidavellir\Trading\Abstracts;
 
 use Exception;
 use Nidavellir\Trading\Models\ExceptionsLog;

@@ -28,8 +28,6 @@ class TestCommand extends Command
     {
         $position = new Position;
 
-        throw new \Exception('Okay.');
-
         throw new PositionNotCreatedException('Position ID 3 not found', [
             'position_id' => 3, 'order_id' => 5,
         ], $position);
