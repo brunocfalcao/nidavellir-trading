@@ -13,11 +13,30 @@ abstract class AbstractException extends Exception
 
     public function __construct($message, $attributes = [], $loggable = null)
     {
-        $this->attributes = $attributes;
+        $this->attributes = $this->serializeAttributes($attributes);
         $this->loggable = $loggable;
         parent::__construct($message);
 
         $this->logException();
+    }
+
+    // Serialize attributes, handling objects like Eloquent models
+    protected function serializeAttributes($attributes)
+    {
+        foreach ($attributes as $key => $value) {
+            // Check if the value is an object, such as an Eloquent model
+            if (is_object($value)) {
+                // If it's an Eloquent model, convert to an array
+                if (method_exists($value, 'toArray')) {
+                    $attributes[$key] = $value->toArray();
+                } else {
+                    // Otherwise, attempt a simple serialization
+                    $attributes[$key] = (string) $value;
+                }
+            }
+        }
+
+        return $attributes;
     }
 
     public function report()
