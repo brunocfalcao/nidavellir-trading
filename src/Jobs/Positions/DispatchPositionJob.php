@@ -33,6 +33,7 @@ class DispatchPositionJob extends AbstractJob
             $this->validateMandatoryFields($position);
 
             $configuration = $position->trade_configuration;
+
             $this->computeTotalTradeAmount($position, $configuration);
             $this->selectEligibleSymbol($position);
             $this->updatePositionSide($position);
@@ -56,7 +57,7 @@ class DispatchPositionJob extends AbstractJob
 
             $this->dispatchOrders($position);
         } catch (Throwable $e) {
-            throw new PositionNotCreatedException("Failed to create position with ID: {$this->positionId}", $this->positionId, 0, $e);
+            throw new PositionNotCreatedException($e->getMessage(), $this->positionId, 0, $e);
         }
     }
 
@@ -70,7 +71,12 @@ class DispatchPositionJob extends AbstractJob
     private function computeTotalTradeAmount(Position $position, array $configuration)
     {
         if (blank($position->total_trade_amount)) {
-            $availableBalance = $position->trader->withRESTApi()->withPosition($position)->getAccountBalance();
+            $availableBalance =
+                $position->trader
+                    ->withRESTApi()
+                    ->withPosition($position)
+                    ->getAccountBalance();
+
             $minimumTradeAmount = config('nidavellir.positions.minimum_trade_amount');
 
             if ($availableBalance == 0) {
@@ -180,7 +186,7 @@ class DispatchPositionJob extends AbstractJob
          */
         Bus::chain([
             Bus::batch($limitJobs),
-            new DispatchOrderJob($marketOrder->id),
+            //new DispatchOrderJob($marketOrder->id),
             //new DispatchOrderJob($profitOrder->id),
         ])->dispatch();
     }

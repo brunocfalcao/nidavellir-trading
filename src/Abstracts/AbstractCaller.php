@@ -16,10 +16,11 @@ abstract class AbstractCaller
     public $result;
 
     public function __construct(
-        AbstractMapper $mapper
+        AbstractMapper $mapper,
+        $throwSilently = false
     ) {
         $this->mapper = $mapper;
-        $this->throwSilently = false;
+        $this->throwSilently = $throwSilently;
 
         $this->prepareRequest();
 

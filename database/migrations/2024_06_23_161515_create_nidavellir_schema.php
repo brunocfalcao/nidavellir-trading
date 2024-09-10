@@ -12,11 +12,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('exception_loggers', function (Blueprint $table) {
+        Schema::create('exception_logs', function (Blueprint $table) {
             $table->id();
             $table->string('exception_type');
             $table->text('message');
             $table->text('context')->nullable();
+            $table->longText('verbose_content')->nullable();
             $table->morphs('loggable');
             $table->timestamps();
         });

@@ -6,7 +6,6 @@ use Brunocfalcao\LaravelHelpers\Traits\ForServiceProviders\HasAutoLoaders;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
-use Nidavellir\Trading\Commands\System\CycleCommand;
 use Nidavellir\Trading\Commands\System\TestCommand;
 use Nidavellir\Trading\Commands\System\UpsertBinanceMarkPricesCommand;
 use Nidavellir\Trading\Events\Orders\OrderCreatedEvent;
@@ -60,7 +59,6 @@ class TradingServiceProvider extends ServiceProvider
     {
         $this->commands([
             TestCommand::class,
-            CycleCommand::class,
             UpsertBinanceMarkPricesCommand::class,
         ]);
     }

@@ -28,7 +28,6 @@ class PositionCreatedListener extends AbstractListener
              */
             if ($type == 'MARKET' || $type == 'PROFIT') {
                 $this->createOrder(
-                    $trader->exchange->id,
                     $position->id,
                     $type,
                     $ratio[0],
@@ -39,7 +38,6 @@ class PositionCreatedListener extends AbstractListener
             if ($type == 'LIMIT') {
                 foreach ($ratio as $limitOrder) {
                     $this->createOrder(
-                        $trader->exchange->id,
                         $position->id,
                         $type,
                         $limitOrder[0],
@@ -58,7 +56,7 @@ class PositionCreatedListener extends AbstractListener
         DispatchPositionJob::dispatch($position->id);
     }
 
-    private function createOrder($exchangeId, $positionId, $type, $pricePercentageRatio, $amountDivider)
+    private function createOrder($positionId, $type, $pricePercentageRatio, $amountDivider)
     {
         Order::create([
             'position_id' => $positionId,

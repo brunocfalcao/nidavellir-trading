@@ -4,7 +4,6 @@ namespace Nidavellir\Trading\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Bus;
-use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Jobs\Symbols\UpsertEligibleSymbolsJob;
 use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolMetadataJob;
 use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsJob;
@@ -14,7 +13,6 @@ use Nidavellir\Trading\Jobs\System\UpsertFearGreedIndexJob;
 use Nidavellir\Trading\Models\Exchange;
 use Nidavellir\Trading\Models\System;
 use Nidavellir\Trading\Models\Trader;
-use Nidavellir\Trading\Nidavellir;
 
 class TradingGenesisSeeder extends Seeder
 {
@@ -56,10 +54,8 @@ class TradingGenesisSeeder extends Seeder
             new UpsertSymbolMetadataJob,
             new UpsertSymbolsRankingJob,
 
-            // Exchange-based jobs.
-            new UpsertExchangeAvailableSymbolsJob(new BinanceRESTMapper(
-                credentials: Nidavellir::getSystemCredentials('binance')
-            )),
+            // Exchange-based jobs (Binance)
+            new UpsertExchangeAvailableSymbolsJob,
 
             // Disable non-elligible & non-ranked symbols.
             new UpsertEligibleSymbolsJob,
