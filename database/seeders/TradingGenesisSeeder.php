@@ -6,10 +6,10 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Bus;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Jobs\Symbols\UpsertEligibleSymbolsJob;
-use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolMetadata;
-use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolRankings;
-use Nidavellir\Trading\Jobs\Symbols\UpsertSymbols;
-use Nidavellir\Trading\Jobs\System\UpsertExchangeAvailableTokens;
+use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolMetadataJob;
+use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsJob;
+use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsRankingJob;
+use Nidavellir\Trading\Jobs\System\Binance\UpsertExchangeAvailableSymbolsJob;
 use Nidavellir\Trading\Jobs\System\UpsertFearGreedIndexJob;
 use Nidavellir\Trading\Models\Exchange;
 use Nidavellir\Trading\Models\System;
@@ -52,12 +52,12 @@ class TradingGenesisSeeder extends Seeder
 
         Bus::chain([
             // System jobs.
-            new UpsertSymbols(200),
-            new UpsertSymbolMetadata,
-            new UpsertSymbolRankings,
+            new UpsertSymbolsJob(200),
+            new UpsertSymbolMetadataJob,
+            new UpsertSymbolsRankingJob,
 
             // Exchange-based jobs.
-            new UpsertExchangeAvailableTokens(new BinanceRESTMapper(
+            new UpsertExchangeAvailableSymbolsJob(new BinanceRESTMapper(
                 credentials: Nidavellir::getSystemCredentials('binance')
             )),
 

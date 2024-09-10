@@ -6,55 +6,21 @@ use Nidavellir\Trading\Abstracts\AbstractRESTWrapper;
 
 class ExchangeRESTWrapper extends AbstractRESTWrapper
 {
-    public function getAccountInformation()
+    // Get symbols rankings.
+    public function getSymbolsRanking()
     {
-        return $this->mapper->getAccountInformation($this);
+        return $this->mapper->getSymbolsRanking($this);
     }
 
-    public function getOpenOrders()
+    // Get additional information from a symbol(s).
+    public function getSymbolsMetadata()
     {
-        return $this->mapper->getOpenOrders($this);
-    }
-
-    public function placeSingleOrder()
-    {
-        return $this->mapper->placeOrder($this);
-    }
-
-    public function setDefaultLeverage()
-    {
-        return $this->mapper->setDefaultLeverage($this);
-    }
-
-    public function getLeverageBracket()
-    {
-        return $this->mapper->getLeverageBracket($this);
+        return $this->mapper->getSymbolsMetadata($this);
     }
 
     // CoinmarketCap getSymbols(), populates Symbols.
     public function getSymbols()
     {
         return $this->mapper->getSymbols($this);
-    }
-
-    public function getExchangeInformation()
-    {
-        return $this->mapper->getExchangeInformation($this);
-    }
-
-    public function getAccountBalance()
-    {
-        return $this->mapper->getAccountBalance($this);
-    }
-
-    public function getMarkPrice()
-    {
-        return $this->mapper->getMarkPrice($this);
-    }
-
-    // TODO / Testing.
-    public function setOrder()
-    {
-        return $this->mapper->setOrder($this);
     }
 }

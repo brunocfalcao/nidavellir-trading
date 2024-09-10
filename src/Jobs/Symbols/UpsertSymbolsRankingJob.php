@@ -13,7 +13,7 @@ use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Nidavellir;
 
-class UpsertSymbols implements ShouldQueue
+class UpsertSymbolsRankingJob implements ShouldQueue
 {
     use Batchable,
         Dispatchable,
@@ -21,12 +21,7 @@ class UpsertSymbols implements ShouldQueue
         Queueable,
         SerializesModels;
 
-    private ?int $limit;
-
-    public function __construct(?int $limit = null)
-    {
-        $this->limit = $limit;
-    }
+    public function __construct() {}
 
     public function handle()
     {
@@ -36,18 +31,22 @@ class UpsertSymbols implements ShouldQueue
             )
         );
 
-        $api->withOptions(['limit' => $this->limit]);
+        $symbolsRanking = (array) $api->getSymbolsRanking();
 
-        $data = $api->getSymbols();
+        // Fetch all symbols from the database indexed by coinmarketcap_id for quick lookup
+        $symbols = Symbol::all()->keyBy('coinmarketcap_id');
 
-        foreach ($data as $item) {
-            $symbol = Symbol::updateOrCreate(
-                ['coinmarketcap_id' => $item['id']],
-                [
-                    'name' => $item['name'],
-                    'token' => $item['symbol'],
-                ]
-            );
+        // Iterate over fetched data and update symbols if necessary
+        foreach ($symbolsRanking as $item) {
+            if (isset($symbols[$item['id']])) {
+                $symbol = $symbols[$item['id']];
+
+                // Update the symbol's rank if it's different
+                if ($symbol->rank != $item['rank']) {
+                    $symbol->rank = $item['rank'];
+                    $symbol->save();
+                }
+            }
         }
     }
 }

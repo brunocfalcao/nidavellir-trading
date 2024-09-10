@@ -1,46 +1,47 @@
 <?php
 
-namespace Nidavellir\Trading\Jobs\System;
+namespace Nidavellir\Trading\Jobs\System\Binance;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Nidavellir\Trading\Abstracts\AbstractMapper;
+use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Exchange;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Symbol;
+use Nidavellir\Trading\Nidavellir;
 
-class UpsertExchangeAvailableTokens implements ShouldQueue
+class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public AbstractMapper $mapper;
+    public ExchangeRESTWrapper $wrapper;
 
-    public function __construct(AbstractMapper $mapper)
+    public function __construct()
     {
-        $this->mapper = $mapper;
+        $this->wrapper = new ExchangeRESTWrapper(
+            new BinanceRESTMapper(
+                credentials: Nidavellir::getSystemCredentials('binance')
+            )
+        );
     }
 
     public function handle()
     {
-        $exchangeMapper = new ExchangeRESTWrapper($this->mapper);
+        $mapper = $this->wrapper->mapper;
 
-        $data = $exchangeMapper->getExchangeInformation();
+        $symbols = $mapper->getExchangeInformation();
 
-        $this->syncExchangeSymbols($this->mapper->exchange()->id, $data);
+        $this->syncExchangeSymbols($symbols);
     }
 
-    protected function syncExchangeSymbols($exchangeId, $symbols)
+    protected function syncExchangeSymbols($symbols)
     {
-        // Step 1: Mark existing entries for the given exchange as not synced
-        $exchange = Exchange::find($exchangeId);
 
-        if (! $exchange) {
-            return; // Handle case where exchange does not exist
-        }
+        $exchange = $this->wrapper->mapper->exchange();
 
         // Step 2 & 3: Sync or update the precision data for each symbol
         foreach ($symbols as $symbolToken => $data) {

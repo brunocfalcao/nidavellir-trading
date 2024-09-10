@@ -28,4 +28,21 @@ class API
             'X-CMC_PRO_API_KEY' => $this->api_key,
         ])->get($url)->json('data');
     }
+
+    public function getSymbolsMetadata(array $properties)
+    {
+        return Http::withHeaders([
+            'X-CMC_PRO_API_KEY' => $this->api_key,
+        ])->get('https://pro-api.coinmarketcap.com/v1/cryptocurrency/info', [
+            'id' => $properties['options']['ids'],
+        ])->json('data');
+    }
+
+    public function getSymbolsRanking(array $properties)
+    {
+        return Http::withHeaders([
+            'X-CMC_PRO_API_KEY' => $this->api_key,
+        ])->get('https://pro-api.coinmarketcap.com/v1/cryptocurrency/map?sort=cmc_rank')
+            ->json('data');
+    }
 }

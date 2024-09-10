@@ -7,16 +7,23 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Http;
+use Nidavellir\Trading\Exchanges\CoinmarketCap\CoinmarketCapRESTMapper;
+use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Symbol;
+use Nidavellir\Trading\Nidavellir;
 
-class UpsertSymbolMetadata implements ShouldQueue
+class UpsertSymbolMetadataJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public function handle()
     {
-        $apiKey = env('COINMARKETCAP_API_KEY');
+        $api = new ExchangeRESTWrapper(
+            new CoinmarketCapRESTMapper(
+                credentials: Nidavellir::getSystemCredentials('coinmarketcap')
+            )
+        );
+
         $symbols = Symbol::whereNull('image_url')
             ->orWhereNull('description')
             ->pluck('coinmarketcap_id')
@@ -25,17 +32,8 @@ class UpsertSymbolMetadata implements ShouldQueue
         foreach (array_chunk($symbols, 100) as $chunk) {
             $symbolList = implode(',', $chunk);
 
-            $response = Http::withHeaders([
-                'X-CMC_PRO_API_KEY' => $apiKey,
-            ])->get('https://pro-api.coinmarketcap.com/v1/cryptocurrency/info', [
-                'id' => $symbolList,
-            ]);
-
-            if ($response->failed()) {
-                throw new \Exception('Failed to fetch the crypto images and descriptions.');
-            }
-
-            $cryptoDataList = $response->json('data');
+            $cryptoDataList = (array) $api->withOptions(['ids' => $symbolList])
+                ->getSymbolsMetadata();
 
             foreach ($cryptoDataList as $cryptoId => $cryptoData) {
                 $imageUrl = $cryptoData['logo'] ?? null;
