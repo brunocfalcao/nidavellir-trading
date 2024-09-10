@@ -46,7 +46,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('loggable_id')->nullable(); // Polymorphic relationship
             $table->string('loggable_type')->nullable(); // Polymorphic relationship
-            $table->string('message');
+            $table->longText('message');
             $table->string('exception_class');
             $table->string('file');
             $table->integer('line');

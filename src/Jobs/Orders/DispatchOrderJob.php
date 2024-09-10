@@ -3,7 +3,7 @@
 namespace Nidavellir\Trading\Jobs\Orders;
 
 use Nidavellir\Trading\Abstracts\AbstractJob;
-use Nidavellir\Trading\Exceptions\OrderNotCreatedException;
+use Nidavellir\Trading\Exceptions\OrderNotSyncedException;
 use Nidavellir\Trading\Models\ApplicationLog;
 use Nidavellir\Trading\Models\Order;
 use Throwable;
@@ -55,10 +55,11 @@ class DispatchOrderJob extends AbstractJob
 
             // Retry logic: if attempts reach 3, throw an exception.
             if ($this->attempts() == 3) {
-                throw new OrderNotCreatedException(
+                throw new OrderNotSyncedException(
                     'Max attempts: Failed to create order on exchange, with ID: '.
                     $this->orderId,
-                    ['order_id'=> $this->orderId]
+                    ['order_id'=> $this->orderId],
+                    $order
                 );
 
                 return;
@@ -81,10 +82,11 @@ class DispatchOrderJob extends AbstractJob
             // Process the order if all checks pass.
             $this->processOrder($order);
         } catch (Throwable $e) {
-            // Handle any exceptions by throwing a custom OrderNotCreatedException.
-            throw new OrderNotCreatedException(
+            // Handle any exceptions by throwing a custom OrderNotSyncedException.
+            throw new OrderNotSyncedException(
                 $e->getMessage(),
                 ['order_id' => $this->orderId],
+                $order
             );
         }
     }
@@ -137,7 +139,7 @@ class DispatchOrderJob extends AbstractJob
 
         ApplicationLog::withActionCanonical('order.dispatch')
             ->withDescription('Attribute $sideDetails')
-            ->withReturnValue($sideDetails)
+            ->withReturnData($sideDetails)
             ->withLoggable($order)
             ->saveLog();
 
@@ -160,8 +162,6 @@ class DispatchOrderJob extends AbstractJob
 
         // Compute the amount of the asset to be traded in the order.
         $orderAmount = $this->computeOrderAmount($order, $orderPrice);
-
-        $orderAmount = 0;
 
         // Log the order details for debugging purposes.
         $this->logOrderDetails($order, $orderAmount, $orderPrice);

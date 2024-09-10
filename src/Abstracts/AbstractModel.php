@@ -2,9 +2,10 @@
 
 namespace Nidavellir\Trading\Abstracts;
 
-use Brunocfalcao\LaravelHelpers\Traits\ForModels\HasCustomQueryBuilder;
-use Brunocfalcao\LaravelHelpers\Traits\ForModels\HasValidations;
 use Illuminate\Database\Eloquent\Model;
+use Nidavellir\Trading\Models\ExceptionsLog;
+use Brunocfalcao\LaravelHelpers\Traits\ForModels\HasValidations;
+use Brunocfalcao\LaravelHelpers\Traits\ForModels\HasCustomQueryBuilder;
 
 abstract class AbstractModel extends Model
 {
@@ -15,5 +16,10 @@ abstract class AbstractModel extends Model
     public function canBeDeleted()
     {
         return true;
+    }
+
+    public function exceptionsLogs()
+    {
+        return $this->morphMany(ExceptionsLog::class, 'loggable');
     }
 }

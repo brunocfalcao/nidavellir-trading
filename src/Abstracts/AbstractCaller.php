@@ -46,8 +46,8 @@ abstract class AbstractCaller
 
             if (! $this->throwSilently) {
                 throw new ApiCallException(
-                    'Api error - '.$this->callerName.' ( '.$this->mapper->exchange()->name.' ) - '.$e->getMessage(),
-                    $apiLog->id
+                    $e->getMessage(),
+                    ['api_log_id' => $apiLog->id]
                 );
             }
         } finally {

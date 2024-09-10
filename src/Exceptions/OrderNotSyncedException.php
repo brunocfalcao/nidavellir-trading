@@ -4,4 +4,6 @@ namespace Nidavellir\Trading\Exceptions;
 
 use Nidavellir\Trading\Abstracts\AbstractException;
 
-class OrderNotCreatedException extends AbstractException {}
+class OrderNotSyncedException extends AbstractException
+{
+}

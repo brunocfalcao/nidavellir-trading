@@ -6,7 +6,9 @@ use Nidavellir\Trading\Abstracts\AbstractException;
 
 /**
  * Usage:
- * throw new PositionNotCreatedException('Position not created', [
+ * throw new PositionNotSyncedException('Position not created', [
  * 'position' => $position])
  */
-class PositionNotCreatedException extends AbstractException {}
+class PositionNotSyncedException extends AbstractException
+{
+}

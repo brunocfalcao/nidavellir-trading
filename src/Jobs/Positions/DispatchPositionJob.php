@@ -4,7 +4,7 @@ namespace Nidavellir\Trading\Jobs\Positions;
 
 use Illuminate\Support\Facades\Bus;
 use Nidavellir\Trading\Abstracts\AbstractJob;
-use Nidavellir\Trading\Exceptions\PositionNotCreatedException;
+use Nidavellir\Trading\Exceptions\PositionNotSyncedException;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
@@ -28,7 +28,7 @@ class DispatchPositionJob extends AbstractJob
         try {
             $position = Position::find($this->positionId);
             if (! $position) {
-                throw new PositionNotCreatedException("Position ID {$this->positionId} not found", ['position_id'=> $this->positionId]);
+                throw new PositionNotSyncedException("Position ID {$this->positionId} not found", ['position_id'=> $this->positionId]);
             }
 
             ApplicationLog::withActionCanonical('Position.Dispatch')
@@ -63,7 +63,7 @@ class DispatchPositionJob extends AbstractJob
 
             $this->dispatchOrders($position);
         } catch (Throwable $e) {
-            throw new PositionNotCreatedException(
+            throw new PositionNotSyncedException(
                 $e->getMessage(),
                 ['position_id' => $this->positionId],
                 0,
@@ -75,7 +75,7 @@ class DispatchPositionJob extends AbstractJob
     private function validateMandatoryFields(Position $position)
     {
         if (blank($position->trader_id) || blank($position->status) || blank($position->trade_configuration)) {
-            throw new PositionNotCreatedException("Position ID {$position->id} missing mandatory fields", $position->id);
+            throw new PositionNotSyncedException("Position ID {$position->id} missing mandatory fields", $position->id);
         }
     }
 
@@ -197,7 +197,7 @@ class DispatchPositionJob extends AbstractJob
          */
         Bus::chain([
             Bus::batch($limitJobs),
-            //new DispatchOrderJob($marketOrder->id),
+            new DispatchOrderJob($marketOrder->id),
             //new DispatchOrderJob($profitOrder->id),
         ])->dispatch();
     }
