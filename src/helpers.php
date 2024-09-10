@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Log;
+use Nidavellir\Trading\Models\ExceptionsLog;
 
 if (! function_exists('logFallbackException')) {
     function logFallbackException(Throwable $e)
@@ -18,5 +19,14 @@ if (! function_exists('logFallbackException')) {
 
         // Log the message using Laravel's default log mechanism
         Log::error($logMessage);
+
+        // Save the exception in the exceptions_log table
+        ExceptionsLog::create([
+            'message' => $e->getMessage(),
+            'exception_class' => class_basename(get_class($e)),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'attributes' => [], // You can pass additional attributes if needed
+        ]);
     }
 }
