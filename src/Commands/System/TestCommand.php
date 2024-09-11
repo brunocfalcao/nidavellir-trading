@@ -5,7 +5,6 @@ namespace Nidavellir\Trading\Commands\System;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Nidavellir\Trading\Exceptions\PositionNotSyncedException;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Position;
@@ -26,10 +25,26 @@ class TestCommand extends Command
 
     public function handle()
     {
+        //$this->queryOpenOrders();
         $this->testNewPosition();
-
         //$this->testTokenLeverage();
         //$this->getAccountBalance();
+    }
+
+    private function queryOpenOrders()
+    {
+        /**
+         * Obtain all open orders. If we are missing orders, we
+         * will need to query those missing orders and
+         * understand what happened to them. If they
+         * are filled, or cancelled.
+         */
+        $trader = Trader::find(1);
+
+        $openOrders = $trader->withRESTApi()
+            ->getOpenOrders();
+
+        dd($openOrders);
     }
 
     private function testTokenLeverage()

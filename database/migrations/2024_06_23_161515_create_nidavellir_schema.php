@@ -246,78 +246,6 @@ return new class extends Migration
 
         Schema::rename('users', 'traders');
 
-        Schema::create('orders_log_binance', function (Blueprint $table) {
-            $table->id();
-
-            $table->string('order_id')
-                ->comment('Exchange system generated order id');
-
-            $table->string('client_order_id')
-                ->comment('Generated order id for reference purposes, generated as P:xxx where P means position id on the database');
-
-            $table->string('status')
-                ->comment('Order current status. E.g.: NEW, FILLED, EXPIRED');
-
-            $table->decimal('market_mark_price', 15, 8)
-                ->comment('The token targeted price when the position market order was created');
-
-            $table->decimal('avg_price', 15, 8)
-                ->comment('The actually filled average price for this order, most of the cases is the same as the targetted price');
-
-            $table->unsignedBigInteger('requested_quantity')
-                ->comment('The token order quantity that was requested or filled');
-
-            $table->unsignedBigInteger('filled_quantity')
-                ->comment('The actually filled quantity, most of the case the same as the requested quantity');
-
-            $table->unsignedBigInteger('cumulative_quantity')
-                ->comment('The cumulative quantity that was filled for this token until now');
-
-            $table->unsignedBigInteger('cumulative_quote')
-                ->comment('The cumulative quote that was filled for this token until now');
-
-            $table->string('time_in_force')
-                ->comment('Time in force for the order, GTC (good till cancelled) or GTD (good till date)');
-
-            $table->string('type')
-                ->comment('Order type, MARKET or LIMIT');
-
-            $table->boolean('reduce_only')
-                ->comment('In case the position can only be reduced. On the DCA this parameter needs to be set to false since we will increase the position size in case more entries are filled');
-
-            $table->boolean('close_position')
-                ->comment('Meaning if this order, when filled, will close the position');
-
-            $table->string('side')
-                ->comment('Order side: BUY, SELL');
-
-            $table->string('position_side')
-                ->comment('Used in case of hedge mode, most of the case will be the same as the position side');
-
-            $table->decimal('stop_price', 15, 8)
-                ->comment('If the order is type STOP LIMIT, then a stop price needs to be applied. Most of the case the nidavellir will not use this');
-
-            $table->string('working_type')
-                ->comment('Different from futures and spot, CONTRACT_PRICE');
-
-            $table->boolean('price_protected')
-                ->comment('In case the order has a price protection, specifically from market manipulations');
-
-            $table->string('original_type')
-                ->comment('Same as the order type since nidavellir doesnt allow hedge mode');
-
-            $table->string('price_match')
-                ->comment('In case the price was matched or not, indicating how the system will match prices for this order');
-
-            $table->timestamp('good_till_date')
-                ->comment('In case there is a order date for the order to be cancelled');
-
-            $table->timestamp('exchange_updated_at')
-                ->comment('System returned timestamp for the order creation. Nidavellir should use this date and not any other custom/user/system generated date');
-
-            $table->timestamps();
-        });
-
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
 
@@ -341,13 +269,17 @@ return new class extends Migration
             $table->unsignedTinyInteger('amount_divider')
                 ->comment('How much the total trade amount will be divided for this trade. The take profit is one because we sell the total position');
 
-            $table->decimal('mark_price', 20, 8)
+            $table->decimal('price', 20, 8)
                 ->nullable()
                 ->comment('The order price where it was actually filled, or that will be');
 
-            $table->string('system_order_id')
+            $table->string('api_order_id')
                 ->nullable()
-                ->comment('System generated order id for reference purposes, generated as P:xxx where P means position id on the database');
+                ->comment('API generated order id for reference purposes, generated as P:xxx where P means position id on the database');
+
+            $table->longText('api_result')
+                ->nullable()
+                ->comment('The exchange api json complete response');
 
             $table->timestamps();
         });

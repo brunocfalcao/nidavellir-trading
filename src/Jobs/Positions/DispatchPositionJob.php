@@ -28,7 +28,7 @@ class DispatchPositionJob extends AbstractJob
         try {
             $position = Position::find($this->positionId);
             if (! $position) {
-                throw new PositionNotSyncedException("Position ID {$this->positionId} not found", ['position_id'=> $this->positionId]);
+                throw new PositionNotSyncedException("Position ID {$this->positionId} not found", ['position_id' => $this->positionId]);
             }
 
             ApplicationLog::withActionCanonical('Position.Dispatch')
@@ -196,8 +196,8 @@ class DispatchPositionJob extends AbstractJob
          * finally the profit order.
          */
         Bus::chain([
-            Bus::batch($limitJobs),
-            new DispatchOrderJob($marketOrder->id),
+            Bus::batch($limitJobs[0]),
+            //new DispatchOrderJob($marketOrder->id),
             //new DispatchOrderJob($profitOrder->id),
         ])->dispatch();
     }

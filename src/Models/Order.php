@@ -20,6 +20,10 @@ class Order extends AbstractModel
 {
     use HasCustomQueryBuilder, HasValidations;
 
+    protected $casts = [
+        'api_result' => 'array',
+    ];
+
     public $rules = [
         //'name' => ['required'],
     ];

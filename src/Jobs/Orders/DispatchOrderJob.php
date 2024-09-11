@@ -58,7 +58,7 @@ class DispatchOrderJob extends AbstractJob
                 throw new OrderNotSyncedException(
                     'Max attempts: Failed to create order on exchange, with ID: '.
                     $this->orderId,
-                    ['order_id'=> $this->orderId],
+                    ['order_id' => $this->orderId],
                     $order
                 );
 
@@ -166,8 +166,6 @@ class DispatchOrderJob extends AbstractJob
         // Log the order details for debugging purposes.
         $this->logOrderDetails($order, $orderAmount, $orderPrice);
 
-        return;
-
         // Dispatch the order based on its type (Market, Limit, Profit).
         $this->dispatchOrder($order, $orderPrice, $orderAmount, $sideDetails);
     }
@@ -231,7 +229,7 @@ class DispatchOrderJob extends AbstractJob
         ];
 
         // Dispatch the order via the trader's API.
-        $order->position->trader
+        $data = $order->position->trader
             ->withRESTApi()
             ->withOptions($orderData)
             ->withPosition($order->position)
@@ -260,7 +258,7 @@ class DispatchOrderJob extends AbstractJob
         ];
 
         // Dispatch the order via the trader's API.
-        $order->position->trader
+        $result = $order->position->trader
             ->withRESTApi()
             ->withOptions($orderData)
             ->withPosition($order->position)
@@ -269,8 +267,32 @@ class DispatchOrderJob extends AbstractJob
             ->withOrder($order)
             ->placeSingleOrder();
 
-        // Update the order status to indicate it has been synced with the exchange.
-        $order->update(['status' => 'synced']);
+        $this->updateOrderWithExchangeResult($order, $result);
+    }
+
+    private function updateOrderWithExchangeResult(Order $order, array $result)
+    {
+        // Update order with the order system id and result payload.
+        $order->update([
+            'api_order_id' => $result['orderId'],
+            /* FUTURE TODO:
+                                 $order->position
+                                       ->trader
+                                       ->withApiGetter() <----
+                                       ->withOrder($order)
+                                       ->getOrderId($result),
+                                */
+            'price' => $result['price'],
+            /* FUTURE TODO:
+                                 $order->position
+                                       ->trader
+                                       ->withApiGetter() <----
+                                       ->withOrder($order)
+                                       ->getPrice($result),
+                                */
+            'api_result' => $result,
+            'status' => 'synced',
+        ]);
     }
 
     /**
