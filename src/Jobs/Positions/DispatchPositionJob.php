@@ -63,6 +63,8 @@ class DispatchPositionJob extends AbstractJob
 
             $this->dispatchOrders($position);
         } catch (Throwable $e) {
+            $position->update(['status' => 'error']);
+
             throw new PositionNotSyncedException(
                 $e->getMessage(),
                 ['position_id' => $this->positionId],
@@ -197,7 +199,7 @@ class DispatchPositionJob extends AbstractJob
          */
         Bus::chain([
             Bus::batch($limitJobs[0]),
-            //new DispatchOrderJob($marketOrder->id),
+            new DispatchOrderJob($marketOrder->id),
             //new DispatchOrderJob($profitOrder->id),
         ])->dispatch();
     }

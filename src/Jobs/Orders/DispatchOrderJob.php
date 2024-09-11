@@ -55,6 +55,7 @@ class DispatchOrderJob extends AbstractJob
 
             // Retry logic: if attempts reach 3, throw an exception.
             if ($this->attempts() == 3) {
+                $order->update(['status' => 'error']);
                 throw new OrderNotSyncedException(
                     'Max attempts: Failed to create order on exchange, with ID: '.
                     $this->orderId,
@@ -82,6 +83,8 @@ class DispatchOrderJob extends AbstractJob
             // Process the order if all checks pass.
             $this->processOrder($order);
         } catch (Throwable $e) {
+            $order->update(['status' => 'error']);
+
             // Handle any exceptions by throwing a custom OrderNotSyncedException.
             throw new OrderNotSyncedException(
                 $e->getMessage(),
