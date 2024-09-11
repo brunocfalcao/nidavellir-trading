@@ -2,17 +2,18 @@
 
 namespace Nidavellir\Trading\Jobs\Positions;
 
+use Throwable;
+use Nidavellir\Trading\Nidavellir;
 use Illuminate\Support\Facades\Bus;
+use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Abstracts\AbstractJob;
-use Nidavellir\Trading\Exceptions\PositionNotSyncedException;
-use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
-use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
-use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
 use Nidavellir\Trading\Models\ApplicationLog;
 use Nidavellir\Trading\Models\ExchangeSymbol;
-use Nidavellir\Trading\Models\Position;
-use Nidavellir\Trading\Nidavellir;
-use Throwable;
+use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
+use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
+use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
+use Nidavellir\Trading\Exceptions\PositionNotSyncedException;
+use Nidavellir\Trading\Jobs\Positions\ChangePositionToSyncedStatusJob;
 
 class DispatchPositionJob extends AbstractJob
 {
@@ -68,8 +69,7 @@ class DispatchPositionJob extends AbstractJob
             throw new PositionNotSyncedException(
                 $e->getMessage(),
                 ['position_id' => $this->positionId],
-                0,
-                $e
+                $position
             );
         }
     }
@@ -201,6 +201,7 @@ class DispatchPositionJob extends AbstractJob
             Bus::batch($limitJobs[0]),
             new DispatchOrderJob($marketOrder->id),
             //new DispatchOrderJob($profitOrder->id),
+            new ChangePositionToSyncedStatusJob($position->id)
         ])->dispatch();
     }
 
