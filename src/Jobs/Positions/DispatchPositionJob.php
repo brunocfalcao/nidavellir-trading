@@ -17,11 +17,11 @@ use Throwable;
 
 class DispatchPositionJob extends AbstractJob
 {
-    public Position $this->position;
+    public Position $position;
 
-    public function __construct(int $this->positionId)
+    public function __construct(int $positionId)
     {
-        $this->position = Position::find($this->positionId);
+        $this->position = Position::find($positionId);
     }
 
     public function handle()
@@ -32,18 +32,15 @@ class DispatchPositionJob extends AbstractJob
                 ->withLoggable($this->position)
                 ->saveLog();
 
-            $this->validateMandatoryFields($this->position);
-
-            $configuration = $this->position->trade_configuration;
-
-            $this->computeTotalTradeAmount($this->position, $configuration);
-            $this->selectEligibleSymbol($this->position);
-            $this->updatePositionSide($this->position);
-            $this->setLeverage($this->position, $configuration);
-            $this->setLeverageOnToken($this->position);
+            $this->validateMandatoryFields();
+            $this->computeTotalTradeAmount();
+            $this->selectEligibleSymbol();
+            $this->updatePositionSide();
+            $this->setLeverage();
+            $this->setLeverageOnToken();
 
             if (blank($this->position->initial_mark_price)) {
-                $this->fetchAndSetMarkPrice($this->position);
+                $this->fetchAndSetMarkPrice();
             }
 
             info_multiple(
@@ -59,9 +56,6 @@ class DispatchPositionJob extends AbstractJob
 
             $this->dispatchOrders($this->position);
         } catch (Throwable $e) {
-            // Update position to error.
-            $this->position->update(['status' => 'error']);
-
             throw new PositionNotSyncedException(
                 $e,
                 $this->position,
@@ -70,15 +64,17 @@ class DispatchPositionJob extends AbstractJob
         }
     }
 
-    private function validateMandatoryFields(Position $this->position)
+    private function validateMandatoryFields()
     {
         if (blank($this->position->trader_id) || blank($this->position->status) || blank($this->position->trade_configuration)) {
             throw new PositionNotSyncedException("Position ID {$this->position->id} missing mandatory fields", $this->position->id);
         }
     }
 
-    private function computeTotalTradeAmount(Position $this->position, array $configuration)
+    private function computeTotalTradeAmount()
     {
+        $configuration = $this->position->trade_configuration;
+
         if (blank($this->position->total_trade_amount)) {
             $availableBalance =
                 $this->position->trader
@@ -107,7 +103,7 @@ class DispatchPositionJob extends AbstractJob
         }
     }
 
-    private function selectEligibleSymbol(Position $this->position)
+    private function selectEligibleSymbol()
     {
         if (blank($this->position->exchange_symbol_id)) {
             $eligibleSymbols = ExchangeSymbol::where('is_active', true)
@@ -126,15 +122,17 @@ class DispatchPositionJob extends AbstractJob
         }
     }
 
-    private function updatePositionSide(Position $this->position)
+    private function updatePositionSide()
     {
         $this->position->update([
             'side' => $this->position->trade_configuration['positions']['current_side'],
         ]);
     }
 
-    private function setLeverage(Position $this->position, array $configuration)
+    private function setLeverage()
     {
+        $configuration = $this->position->trade_configuration;
+
         if (blank($this->position->leverage)) {
             $wrapper = new ExchangeRESTWrapper(
                 new BinanceRESTMapper(credentials: Nidavellir::getSystemCredentials('binance'))
@@ -148,8 +146,10 @@ class DispatchPositionJob extends AbstractJob
                 ->withTrader($this->position->trader)
                 ->getLeverageBrackets();
             */
-            $leverageData = $this->position->exchangeSymbol
-                                     ->api_notional_and_leverage_symbol_information;
+
+            $leverageData = $this->position
+                                 ->exchangeSymbol
+                                 ->api_notional_and_leverage_symbol_information;
 
             $possibleLeverage = Nidavellir::getMaximumLeverage(
                 $leverageData,
@@ -162,7 +162,7 @@ class DispatchPositionJob extends AbstractJob
         }
     }
 
-    private function setLeverageOnToken(Position $this->position)
+    private function setLeverageOnToken()
     {
         $this->position->trader
             ->withRESTApi()
@@ -172,7 +172,7 @@ class DispatchPositionJob extends AbstractJob
             ->setDefaultLeverage();
     }
 
-    private function fetchAndSetMarkPrice(Position $this->position)
+    private function fetchAndSetMarkPrice()
     {
         $markPrice = round($this->position->trader
             ->withRESTApi()
@@ -184,11 +184,11 @@ class DispatchPositionJob extends AbstractJob
         $this->position->update(['initial_mark_price' => $markPrice]);
     }
 
-    private function dispatchOrders(Position $this->position)
+    private function dispatchOrders()
     {
-        $marketOrder = $this->position->orders()->firstWhere('orders.type', 'MARKET');
-        $limitOrders = $this->position->orders()->where('orders.type', 'LIMIT')->get();
-        $profitOrder = $this->position->orders()->firstWhere('orders.type', 'PROFIT');
+        $marketOrder = $this->position->orders->firstWhere('type', 'MARKET');
+        $limitOrders = $this->position->orders->where('type', 'LIMIT');
+        $profitOrder = $this->position->orders->firstWhere('type', 'PROFIT');
 
         $limitJobs = $limitOrders->map(fn ($limitOrder) => new DispatchOrderJob($limitOrder->id))->toArray();
 
@@ -214,7 +214,7 @@ class DispatchPositionJob extends AbstractJob
         ])->dispatch();
     }
 
-    private function updatePositionError(Position $this->position, string $message)
+    private function updatePositionError(string $message)
     {
         $this->position->update(['status' => 'error', 'comments' => $message]);
     }
