@@ -99,13 +99,13 @@ abstract class AbstractException extends Exception
         $trace = $this->originalException ? $this->originalException->getTrace() : $this->getTrace();
         $traceLog = $this->processTrace($trace); // Process trace to exclude internal functions
 
-        // Format the log message with a newline at the start
+        // Format the log message with a newline at the start and aligned colons
         $logMessage = implode("\n", [
-            '',  // Ensure there is a newline before the exception log
+            "\n",  // Ensure there is a newline before the exception log
             "========= ".class_basename(static::class)." =========", // Exception class name at the top
             'Message      : '.$this->formatMessage($this->getMessage()), // Formatted message
             '',
-            "File          : {$this->primaryFile} [{$this->primaryLine}]", // File and line combined
+            "File         : {$this->primaryFile} [{$this->primaryLine}]", // File and line combined
             '', // Add a newline before the trace
             'Trace        :',  // Add label for trace
             implode("\n", $traceLog),  // Add the trace entries
