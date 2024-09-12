@@ -70,30 +70,45 @@ abstract class AbstractException extends Exception
         return $formatted;
     }
 
+    // Process the trace to filter out internal functions and keep the first 10 valid entries
+    protected function processTrace($trace)
+    {
+        $traceLog = [];
+        $index = 0;
+
+        foreach ($trace as $frame) {
+            if (isset($frame['file']) && isset($frame['line'])) {
+                $file = basename($frame['file']);
+                $line = $frame['line'];
+                $traceLog[] = "#{$index} {$file}:{$line}";
+                $index++;
+
+                // Limit the trace to the first 10 entries
+                if ($index >= 10) {
+                    break;
+                }
+            }
+        }
+
+        return $traceLog;
+    }
+
     public function report()
     {
         // Use the trace from the original exception if available
         $trace = $this->originalException ? $this->originalException->getTrace() : $this->getTrace();
-        $traceLog = [];
+        $traceLog = $this->processTrace($trace); // Process trace to exclude internal functions
 
-        // Dump the first 10 entries in the trace with file and line info
-        foreach (array_slice($trace, 0, 10) as $i => $frame) {
-            $file = isset($frame['file']) ? basename($frame['file']) : '[internal function]';
-            $line = $frame['line'] ?? '[no line]';
-            $traceLog[] = "#{$i} {$file}:{$line}";
-        }
-
-        // Format the log message
+        // Format the log message with a newline at the start
         $logMessage = implode("\n", [
-            '',
+            '',  // Ensure there is a newline before the exception log
             "========= ".class_basename(static::class)." =========", // Exception class name at the top
             'Message      : '.$this->formatMessage($this->getMessage()), // Formatted message
             '',
-            "File         : {$this->primaryFile}",
-            "Line number  : {$this->primaryLine}",
+            "File          : {$this->primaryFile} [{$this->primaryLine}]", // File and line combined
             '', // Add a newline before the trace
             'Trace        :',  // Add label for trace
-            implode("\n", $traceLog),  // Add the first 10 trace entries starting on a new line
+            implode("\n", $traceLog),  // Add the trace entries
             '=====================================',
         ]);
 
@@ -105,14 +120,7 @@ abstract class AbstractException extends Exception
     {
         // Use the trace from the original exception if available
         $trace = $this->originalException ? $this->originalException->getTrace() : $this->getTrace();
-        $traceLog = [];
-
-        // Dump the first 10 entries in the trace with file and line info
-        foreach (array_slice($trace, 0, 10) as $i => $frame) {
-            $file = isset($frame['file']) ? basename($frame['file']) : '[internal function]';
-            $line = $frame['line'] ?? '[no line]';
-            $traceLog[] = "#{$i} {$file}:{$line}";
-        }
+        $traceLog = $this->processTrace($trace); // Process trace to exclude internal functions
 
         // Log to the exceptions_log table, including attributes as JSON and the polymorphic model
         $log = new ExceptionsLog;
@@ -121,7 +129,7 @@ abstract class AbstractException extends Exception
         $log->file = $this->primaryFile; // Use the primary file from the trace
         $log->line = $this->primaryLine; // Use the primary line from the trace
         $log->attributes = $this->attributes;
-        $log->trace = implode("\n", $traceLog); // Save the first 10 trace entries
+        $log->trace = implode("\n", $traceLog); // Save the first 10 trace entries (skipping internal functions)
 
         if ($this->loggable) {
             $this->loggable->exceptionsLogs()->save($log);
