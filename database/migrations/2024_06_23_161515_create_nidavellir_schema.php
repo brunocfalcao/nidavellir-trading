@@ -51,6 +51,7 @@ return new class extends Migration
             $table->string('file');
             $table->integer('line');
             $table->json('attributes')->nullable();
+            $table->longText('trace')->nullable();
             $table->timestamps();
         });
 
@@ -176,6 +177,14 @@ return new class extends Migration
             $table->unsignedInteger('precision_quote');
             $table->decimal('tick_size', 20, 8);
 
+            $table->longText('api_symbol_information')
+                ->nullable()
+                ->comment('The raw api data symbol information from this symbol data');
+
+            $table->longText('api_notional_and_leverage_symbol_information')
+                ->nullable()
+                ->comment('The raw exchange api data from this symbol notional and leverage data');
+
             $table->boolean('is_active')
                 ->default(true)
                 ->comment('Active means the symbol will be syncronized with the exchange (price, precision, etc)');
@@ -187,9 +196,6 @@ return new class extends Migration
             $table->decimal('last_mark_price', 20, 8)
                 ->nullable()
                 ->comment('Last mark price fetched from the exchange');
-
-            $table->longText('api_data')
-                ->comment('The JSON api data returned from the exchange about the symbol information');
 
             $table->timestamp('price_last_synced_at')->nullable();
 
@@ -269,11 +275,23 @@ return new class extends Migration
             $table->unsignedTinyInteger('amount_divider')
                 ->comment('How much the total trade amount will be divided for this trade. The take profit is one because we sell the total position');
 
-            $table->decimal('price', 20, 8)
+            $table->decimal('entry_average_price', 20, 8)
                 ->nullable()
-                ->comment('The order price where it was actually filled, or that will be');
+                ->comment('The order price where when the order was placed (but not filled yet)');
 
-            $table->string('api_order_id')
+            $table->decimal('entry_quantity', 20, 8)
+                ->nullable()
+                ->comment('The order entry amount that will be filled');
+
+            $table->decimal('filled_average_price', 20, 8)
+                ->nullable()
+                ->comment('The order price where it was actually filled');
+
+            $table->decimal('filled_quantity', 20, 8)
+                ->nullable()
+                ->comment('The order entry amount that wsa actually filled');
+
+            $table->string('order_exchange_id')
                 ->nullable()
                 ->comment('API generated order id for reference purposes, generated as P:xxx where P means position id on the database');
 

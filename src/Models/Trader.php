@@ -36,6 +36,11 @@ class Trader extends Authenticatable
         'binance_secret_key',
     ];
 
+    protected $casts = [
+        'binance_api_key' => 'encrypted',
+        'binance_secret_key' => 'encrypted',
+    ];
+
     protected function casts(): array
     {
         return [

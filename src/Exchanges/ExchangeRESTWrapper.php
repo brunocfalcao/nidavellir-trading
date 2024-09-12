@@ -16,6 +16,11 @@ class ExchangeRESTWrapper extends AbstractRESTWrapper
         return $this->mapper->getOpenOrders($this);
     }
 
+    public function getAllOrders()
+    {
+        return $this->mapper->getAllOrders($this);
+    }
+
     public function placeSingleOrder()
     {
         return $this->mapper->placeOrder($this);
@@ -26,9 +31,9 @@ class ExchangeRESTWrapper extends AbstractRESTWrapper
         return $this->mapper->setDefaultLeverage($this);
     }
 
-    public function getLeverageBracket()
+    public function getLeverageBrackets()
     {
-        return $this->mapper->getLeverageBracket($this);
+        return $this->mapper->getLeverageBrackets($this);
     }
 
     // CoinmarketCap getSymbols(), populates Symbols.

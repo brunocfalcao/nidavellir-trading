@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
+use Nidavellir\Trading\Jobs\Tests\HardcodeMarketOrderJob;
 use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Models\Trader;
@@ -25,10 +26,25 @@ class TestCommand extends Command
 
     public function handle()
     {
+        //$this->getNotionalAndLeverageBrackets();
+
+        //HardcodeMarketOrderJob::dispatchSync(Position::find(1)->id);
         //$this->queryOpenOrders();
+        //$this->queryAllOrders();
         $this->testNewPosition();
         //$this->testTokenLeverage();
         //$this->getAccountBalance();
+    }
+
+    protected function getNotionalAndLeverageBrackets()
+    {
+        $mapper = (new ExchangeRESTWrapper(
+            new BinanceRESTMapper(
+                credentials: Nidavellir::getSystemCredentials('binance')
+            )
+        ))->mapper;
+
+        dd($mapper->getLeverageBrackets()[0]);
     }
 
     private function queryOpenOrders()
@@ -47,12 +63,18 @@ class TestCommand extends Command
         dd($openOrders);
     }
 
-    private function testTokenLeverage()
+    private function queryAllOrders()
     {
-        $wrapper = new ExchangeRESTWrapper(
-            new BinanceRESTMapper(
-                credentials: Nidavellir::getSystemCredentials('binance')
-            )
+        $trader = Trader::find(1);
+
+        $allOrders = collect($trader->withRESTApi()
+            ->withOptions(['symbol' => 'SUNUSDT'])
+            ->getAllOrders());
+
+        dd(
+            $allOrders->where('status', 'NEW')->pluck('origQty')->sum()
+            //->where('side', 'BUY')
+            //->sum('executedQty')
         );
     }
 

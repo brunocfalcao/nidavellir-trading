@@ -20,6 +20,8 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
 
     public ExchangeRESTWrapper $wrapper;
 
+    protected array $symbols;
+
     public function __construct()
     {
         $this->wrapper = new ExchangeRESTWrapper(
@@ -33,26 +35,32 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
     {
         $mapper = $this->wrapper->mapper;
 
-        $symbols = $mapper->getExchangeInformation();
+        // Get symbols from Binance API
+        $this->symbols = $mapper->getExchangeInformation();
 
-        $this->syncExchangeSymbols($symbols);
+        // Remove non-USD symbols and filter out symbols where 'marginAsset' is not 'USDT'
+        $this->symbols = $this->filterSymbolsWithUSDTMargin();
+
+        $this->syncExchangeSymbols();
     }
 
-    protected function syncExchangeSymbols($symbols)
+    protected function syncExchangeSymbols()
     {
+        $exchange = Exchange::firstWhere('canonical', 'binance');
 
-        $exchange = $this->wrapper->mapper->exchange();
-
-        // Step 2 & 3: Sync or update the precision data for each symbol
-        foreach ($symbols as $symbolToken => $data) {
+        // Sync or update the precision data for each symbol
+        foreach ($this->symbols as $symbolToken => $data) {
             $tokenData = $this->extractTokenData($data);
 
-            $token = str_replace(['USDT', 'USDC'], '', $tokenData['symbol']);
+            // Fetch token name
+            $token = $tokenData['symbol'];
 
-            // Find the Exchange Symbol for this token.
-            $exchangeSymbol = ExchangeSymbol::join('symbols', 'exchange_symbols.symbol_id', '=', 'symbols.id')
-                ->where('symbols.token', $token)
-                ->where('exchange_symbols.exchange_id', $exchange->id)
+            // Find the Exchange Symbol for this token
+            $exchangeSymbol = ExchangeSymbol::with('symbol')
+                ->whereHas('symbol', function ($query) use ($token) {
+                    $query->where('token', $token);
+                })
+                ->where('exchange_id', $exchange->id)
                 ->first();
 
             $symbol = Symbol::firstWhere('token', $token);
@@ -66,14 +74,16 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
                     'precision_quantity' => $tokenData['precision_quantity'],
                     'precision_quote' => $tokenData['precision_quote'],
                     'tick_size' => $tokenData['tick_size'],
-                    'api_data' => $data,
+                    'api_symbol_information' => $data,
                 ];
 
                 // If ExchangeSymbol doesn't exist, create it
                 if (! $exchangeSymbol) {
                     ExchangeSymbol::updateOrCreate(
-                        ['symbol_id' => $symbolData['symbol_id'],
-                            'exchange_id' => $exchange->id], // Conditions
+                        [
+                            'symbol_id' => $symbolData['symbol_id'],
+                            'exchange_id' => $exchange->id,
+                        ], // Conditions
                         $symbolData // Attributes to update or create
                     );
                 } else {
@@ -86,14 +96,22 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
 
     private function extractTokenData($item)
     {
-        $tickSize = collect($item['filters'])->firstWhere('filterType', 'PRICE_FILTER')['tickSize'] ?? null;
+        $tickSize = collect($item['filters'])
+            ->firstWhere('filterType', 'PRICE_FILTER')['tickSize'] ?? null;
 
         return [
-            'symbol' => $item['symbol'],
+            'symbol' => $item['baseAsset'],
             'precision_price' => $item['pricePrecision'],
             'precision_quantity' => $item['quantityPrecision'],
             'precision_quote' => $item['quotePrecision'],
             'tick_size' => $tickSize,
         ];
+    }
+
+    private function filterSymbolsWithUSDTMargin()
+    {
+        return array_filter($this->symbols, function ($symbol) {
+            return $symbol['marginAsset'] === 'USDT';
+        });
     }
 }

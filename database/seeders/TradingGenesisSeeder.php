@@ -9,6 +9,7 @@ use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolMetadataJob;
 use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsJob;
 use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsRankingJob;
 use Nidavellir\Trading\Jobs\System\Binance\UpsertExchangeAvailableSymbolsJob;
+use Nidavellir\Trading\Jobs\System\Binance\UpsertNotionalAndLeverageJob;
 use Nidavellir\Trading\Jobs\System\UpsertFearGreedIndexJob;
 use Nidavellir\Trading\Models\Exchange;
 use Nidavellir\Trading\Models\System;
@@ -50,15 +51,18 @@ class TradingGenesisSeeder extends Seeder
 
         Bus::chain([
             // System jobs.
-            new UpsertSymbolsJob(200),
+            new UpsertSymbolsJob(500),
             new UpsertSymbolMetadataJob,
             new UpsertSymbolsRankingJob,
 
             // Exchange-based jobs (Binance)
             new UpsertExchangeAvailableSymbolsJob,
 
-            // Disable non-elligible & non-ranked symbols.
+            // Disable non-eligible & non-ranked symbols.
             new UpsertEligibleSymbolsJob,
+
+            // Upsert notional and leverage data.
+            new UpsertNotionalAndLeverageJob,
 
             // Update fear and greed index.
             new UpsertFearGreedIndexJob,

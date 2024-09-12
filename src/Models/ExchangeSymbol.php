@@ -16,7 +16,8 @@ use Nidavellir\Trading\Abstracts\AbstractModel;
 class ExchangeSymbol extends AbstractModel
 {
     protected $casts = [
-        'api_data' => 'array',
+        'api_symbol_information' => 'array',
+        'api_notional_and_leverage_symbol_information' => 'array',
     ];
 
     public function symbol()

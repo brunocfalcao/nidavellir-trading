@@ -14,27 +14,22 @@ class Nidavellir
      * Later needs to change to an universal data when
      * we have more exchanges.
      */
-    public static function getMaximumLeverage(array $leverageData, string $symbol, float $totalTradeAmount): int
+    public static function getMaximumLeverage(array $data, string $symbol, float $totalTradeAmount): int
     {
-        foreach ($leverageData as $data) {
-            if ($data['symbol'] === $symbol) {
-                $maxLeverage = 1; // Default to the minimum leverage
+        if ($data['symbol'] === $symbol) {
+            $maxLeverage = 1; // Default to the minimum leverage
 
-                foreach ($data['brackets'] as $bracket) {
-                    $potentialTradeAmount = $totalTradeAmount * $bracket['initialLeverage'];
+            foreach ($data['brackets'] as $bracket) {
+                $potentialTradeAmount = $totalTradeAmount * $bracket['initialLeverage'];
 
-                    // Check if the potential trade amount does not exceed the notionalCap
-                    if ($potentialTradeAmount <= $bracket['notionalCap'] && $bracket['initialLeverage'] > $maxLeverage) {
-                        $maxLeverage = $bracket['initialLeverage'];
-                    }
+                // Check if the potential trade amount does not exceed the notionalCap
+                if ($potentialTradeAmount <= $bracket['notionalCap'] && $bracket['initialLeverage'] > $maxLeverage) {
+                    $maxLeverage = $bracket['initialLeverage'];
                 }
-
-                return $maxLeverage;
             }
-        }
 
-        // If symbol is not found, throw an exception
-        throw new Exception("Symbol '$symbol' not found in leverage data.");
+            return $maxLeverage;
+        }
     }
 
     public static function getSystemCredentials(string $exchangeConfigCanonical)
