@@ -190,7 +190,9 @@ class DispatchPositionJob extends AbstractJob
         $limitOrders = $this->position->orders->where('type', 'LIMIT');
         $profitOrder = $this->position->orders->firstWhere('type', 'PROFIT');
 
-        $limitJobs = $limitOrders->map(fn ($limitOrder) => new DispatchOrderJob($limitOrder->id))->toArray();
+        $limitJobs = $limitOrders->map(
+            fn ($limitOrder) => new DispatchOrderJob($limitOrder->id)
+        )->toArray();
 
         /**
          * The orders are triggered in a certain sequence,

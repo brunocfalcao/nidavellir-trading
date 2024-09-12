@@ -49,7 +49,7 @@ class DispatchOrderJob extends AbstractJob
         $this->position = $this->order->position;
         $this->exchangeSymbol = $this->order->position->exchangeSymbol;
         $this->symbol = $this->exchangeSymbol->symbol;
-        $this->exchange = $this->order->position->exchange;
+        $this->exchange = $this->order->position->trader->exchange;
     }
 
     /**
