@@ -13,6 +13,21 @@ use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Models\Trader;
 use Throwable;
 
+/**
+ * Class: DispatchOrderJob
+ *
+ * This class handles the dispatching of trading orders (Market, Limit, Profit).
+ * It processes the order based on its type, manages retry logic, handles sibling
+ * orders, and logs key information for debugging purposes. This class ensures
+ * that orders are correctly processed and dispatched to the exchange, adjusting
+ * order parameters and price according to market conditions and configuration.
+ *
+ * Important points:
+ * - Processes Market, Limit, and Profit orders.
+ * - Manages retry logic and sibling order dependencies.
+ * - Logs all significant actions and data points for debugging.
+ * - Updates the order status and records relevant results.
+ */
 class DispatchOrderJob extends AbstractJob
 {
     // Constants for different order types: Market, Limit, and Profit.
@@ -41,8 +56,8 @@ class DispatchOrderJob extends AbstractJob
     public function __construct(int $orderId)
     {
         /**
-         * Set variables that will be used everywhere, to avoid
-         * queries being generated again
+         * Preload necessary entities to avoid repeated
+         * database queries during processing.
          */
         $this->order = Order::find($orderId);
         $this->trader = $this->order->position->trader;
@@ -60,17 +75,22 @@ class DispatchOrderJob extends AbstractJob
     public function handle()
     {
         try {
+            /**
+             * Log the initiation of the order dispatch process.
+             */
             ApplicationLog::withActionCanonical('order.dispatch')
                 ->withDescription('Job started')
                 ->withLoggable($this->order)
                 ->saveLog();
 
-            // Retrieve sibling orders associated with the same position,
-            // excluding the current order. Filters for only limit orders.
+            // Retrieve sibling orders excluding the current one.
             $siblings = $this->position->orders->where('id', '<>', $this->order->id);
             $siblingsLimitOnly = $siblings->where('type', self::ORDER_TYPE_LIMIT);
 
-            // Retry logic: if attempts reach 3, throw an exception.
+            /**
+             * Handle retries: if the job has reached 3 attempts,
+             * update the order to "error" and throw an exception.
+             */
             if ($this->attempts() == 3) {
                 $this->order->update(['status' => 'error']);
                 throw new OrderNotSyncedException(
@@ -78,33 +98,35 @@ class DispatchOrderJob extends AbstractJob
                     ['order_id' => $this->order->id],
                     $this->order
                 );
-
-                return;
             }
 
-            // If any sibling order has an error, stop further processing.
+            /**
+             * Stop processing if any sibling orders have errors.
+             */
             if ($siblings->contains('status', 'error')) {
                 return;
             }
 
-            // Check conditions specific to Market or Profit orders before proceeding.
-            if ($this->shouldWaitForLimitOrdersToFinish(
-                $this->order,
-                $siblingsLimitOnly
-            )) {
+            /**
+             * For Market orders, wait for all Limit orders to be processed.
+             */
+            if ($this->shouldWaitForLimitOrdersToFinish($siblingsLimitOnly)) {
                 return;
             }
 
-            if ($this->shouldWaitForAllOrdersExceptProfit(
-                $this->order,
-                $siblings
-            )) {
+            /**
+             * For Profit orders, wait for other orders to be processed.
+             */
+            if ($this->shouldWaitForAllOrdersExceptProfit($siblings)) {
                 return;
             }
 
-            // Process the order if all checks pass.
+            // Proceed to process the order if all checks are passed.
             $this->processOrder();
         } catch (Throwable $e) {
+            /**
+             * Handle any errors by throwing a custom exception.
+             */
             throw new OrderNotSyncedException(
                 $e,
                 $this->order
@@ -120,7 +142,7 @@ class DispatchOrderJob extends AbstractJob
     {
         if ($this->order->type === self::ORDER_TYPE_MARKET &&
             $siblingsLimitOnly->contains('status', 'new')) {
-            // If any Limit orders are still in "new" status, pause processing.
+            // If any Limit orders are still in "new" status, delay the processing.
             $this->release(5);
 
             return true;
@@ -136,7 +158,7 @@ class DispatchOrderJob extends AbstractJob
     private function shouldWaitForAllOrdersExceptProfit($siblings)
     {
         if ($this->order->type === self::ORDER_TYPE_PROFIT && $siblings->contains('status', 'new')) {
-            // If any sibling orders are still in "new" status, pause processing.
+            // If any sibling orders are still in "new" status, delay the processing.
             $this->release(5);
 
             return true;
@@ -156,18 +178,23 @@ class DispatchOrderJob extends AbstractJob
             ->withLoggable($this->order)
             ->saveLog();
 
-        // Determine the side of the order (buy/sell).
+        /**
+         * Determine the side of the order (buy/sell).
+         */
         $sideDetails = $this->getOrderSideDetails(
             config('nidavellir.positions.current_side')
         );
 
+        // Log the side details of the order.
         ApplicationLog::withActionCanonical('order.dispatch')
             ->withDescription('Attribute $sideDetails')
             ->withReturnData($sideDetails)
             ->withLoggable($this->order)
             ->saveLog();
 
-        // Build the payload for the API call.
+        /**
+         * Build the payload that will be used to dispatch the order.
+         */
         $payload = $this->trader
             ->withRESTApi()
             ->withPosition($this->position)
@@ -175,22 +202,25 @@ class DispatchOrderJob extends AbstractJob
             ->withExchangeSymbol($this->exchangeSymbol)
             ->withOrder($this->order);
 
+        // Log the payload details for debugging.
         ApplicationLog::withActionCanonical('order.dispatch')
             ->withDescription('Attribute $payload')
             ->withReturnData($payload)
             ->withLoggable($this->order)
             ->saveLog();
 
-        // Calculate the price of the order based on its type and market conditions.
+        /**
+         * Determine the price and quantity for the order.
+         */
         $orderPrice = $this->getPriceByRatio($this->position->initial_mark_price);
-
-        // Compute the amount of the asset to be traded in the order.
         $orderQuantity = $this->computeOrderAmount($orderPrice);
 
-        // Log the order details for debugging purposes.
+        /**
+         * Log the order details (price, quantity, etc.) for debugging.
+         */
         $this->logOrderDetails($orderQuantity, $orderPrice);
 
-        // Dispatch the order based on its type (Market, Limit, Profit).
+        // Dispatch the order to the exchange based on the order type.
         $this->dispatchOrder($orderPrice, $orderQuantity, $sideDetails);
     }
 
@@ -218,17 +248,12 @@ class DispatchOrderJob extends AbstractJob
             /**
              * If it's a profit order, since we are creating it for the first
              * time, the amount is the same as the one from the market order.
-             * That's the orders[type=MARKET].filled_amount.
-             *
-             * For the price, we need to get the new price given the
-             * profit price ration, and then use that to calculate the
-             * new amount (with this trade leverage).
              */
             $marketOrder = $this->position
                 ->orders
                 ->firstWhere('type', 'MARKET');
 
-            return 100;
+            return 100;  // Example hardcoded value, adjust as necessary.
         }
     }
 
@@ -257,16 +282,8 @@ class DispatchOrderJob extends AbstractJob
      */
     private function placeMarketOrder($orderQuantity, $sideDetails)
     {
+        // Build the necessary API order data for a Market order.
         $this->orderData = [
-            /**
-             * Composition of the different id's related to this order.
-             * Trader Id (T)
-             * Exchange Id (EX)
-             * Position Id (P)
-             * Order Id (O)
-             *
-             * We can split it by the '-' and get the different values.
-             */
             'newClientOrderId' => 'T:'.$this->trader.
                 '-EX:'.$this->exchange->id.
                 '-P:'.$this->position->id.
@@ -274,7 +291,6 @@ class DispatchOrderJob extends AbstractJob
             'side' => strtoupper($sideDetails['orderSide']),
             'type' => 'MARKET',
             'quantity' => $orderQuantity,
-            // TODO: For another exchange is not like this.
             'symbol' => $this->symbol->token.'USDT',
         ];
 
@@ -297,19 +313,21 @@ class DispatchOrderJob extends AbstractJob
      */
     private function placeLimitOrder($orderPrice, $orderQuantity, $sideDetails)
     {
-        // Lets update the order with the final computed entry data.
+        // Update the order with the computed entry data.
         $this->order->update([
             'entry_average_price' => $orderPrice,
             'entry_quantity' => $orderQuantity,
         ]);
 
-        // Create the api order data to be sent to the exchange.
+        // Build the necessary API order data for a Limit order.
         $this->orderData = [
             'timeInForce' => 'GTC',
             'side' => strtoupper($sideDetails['orderSide']),
             'type' => 'LIMIT',
             'quantity' => $orderQuantity,
-            'newClientOrderId' => 'EX:'.$this->exchangeSymbol->exchange->id.'-P:'.$this->order->position->id.'-O:'.$this->order->id,
+            'newClientOrderId' => 'EX:'.$this->exchangeSymbol->exchange->id.
+                '-P:'.$this->order->position->id.
+                '-O:'.$this->order->id,
             'symbol' => $this->exchangeSymbol->symbol->token.'USDT',
             'price' => $orderPrice,
         ];
@@ -327,9 +345,12 @@ class DispatchOrderJob extends AbstractJob
         $this->updateOrderWithExchangeResult($result);
     }
 
+    /**
+     * Updates the order in the system with the result from the exchange.
+     */
     private function updateOrderWithExchangeResult(array $result)
     {
-        // Update order with the order system id and result payload.
+        // Update order with the order system ID and result payload.
         $this->order->update([
             'order_exchange_id' => $result['orderId'],
             'filled_quantity' => $result['executedQty'],

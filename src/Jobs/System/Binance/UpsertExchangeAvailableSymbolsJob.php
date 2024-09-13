@@ -14,6 +14,19 @@ use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Nidavellir;
 
+/**
+ * Class: UpsertExchangeAvailableSymbolsJob
+ *
+ * This class is responsible for fetching symbol information from Binance
+ * and syncing that data with the local `ExchangeSymbol` model. It filters
+ * symbols by USDT margin, updates symbol precision data, and ensures
+ * that all relevant information is stored in the system.
+ *
+ * Important points:
+ * - Fetches symbol data from the Binance API.
+ * - Filters only symbols where 'marginAsset' is 'USDT'.
+ * - Updates or creates ExchangeSymbol records with precision and tick size.
+ */
 class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
@@ -22,6 +35,10 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
 
     protected array $symbols;
 
+    /**
+     * Initializes the job by setting up the API wrapper
+     * with Binance credentials.
+     */
     public function __construct()
     {
         $this->wrapper = new ExchangeRESTWrapper(
@@ -31,6 +48,10 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
         );
     }
 
+    /**
+     * Main function that handles fetching symbols from Binance,
+     * filtering for USDT margin symbols, and syncing them with the database.
+     */
     public function handle()
     {
         $mapper = $this->wrapper->mapper;
@@ -38,24 +59,34 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
         // Get symbols from Binance API
         $this->symbols = $mapper->getExchangeInformation();
 
-        // Remove non-USD symbols and filter out symbols where 'marginAsset' is not 'USDT'
+        /**
+         * Filters out non-USDT margin symbols before syncing.
+         */
         $this->symbols = $this->filterSymbolsWithUSDTMargin();
 
+        // Sync or update the exchange symbols in the database
         $this->syncExchangeSymbols();
     }
 
+    /**
+     * Syncs the fetched symbols with the database by either updating
+     * or creating new ExchangeSymbol records.
+     */
     protected function syncExchangeSymbols()
     {
         $exchange = Exchange::firstWhere('canonical', 'binance');
 
-        // Sync or update the precision data for each symbol
+        /**
+         * Iterates through each symbol to update or create the relevant data
+         * in the ExchangeSymbol model.
+         */
         foreach ($this->symbols as $symbolToken => $data) {
             $tokenData = $this->extractTokenData($data);
 
-            // Fetch token name
+            // Get the base asset (token) from the symbol data
             $token = $tokenData['symbol'];
 
-            // Find the Exchange Symbol for this token
+            // Find the corresponding ExchangeSymbol for the token
             $exchangeSymbol = ExchangeSymbol::with('symbol')
                 ->whereHas('symbol', function ($query) use ($token) {
                     $query->where('token', $token);
@@ -63,10 +94,11 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
                 ->where('exchange_id', $exchange->id)
                 ->first();
 
+            // Fetch the corresponding Symbol record
             $symbol = Symbol::firstWhere('token', $token);
 
             if ($symbol) {
-                // Prepare the attributes for creation or update
+                // Prepare the attributes for updating or creating the symbol data
                 $symbolData = [
                     'symbol_id' => $symbol->id,
                     'exchange_id' => $exchange->id,
@@ -83,19 +115,24 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
                         [
                             'symbol_id' => $symbolData['symbol_id'],
                             'exchange_id' => $exchange->id,
-                        ], // Conditions
-                        $symbolData // Attributes to update or create
+                        ],
+                        $symbolData
                     );
                 } else {
-                    // If it exists, update the necessary fields
+                    // If it exists, update the existing record
                     $exchangeSymbol->update($symbolData);
                 }
             }
         }
     }
 
+    /**
+     * Extracts relevant token data (such as precision and tick size)
+     * from the symbol information provided by the Binance API.
+     */
     private function extractTokenData($item)
     {
+        // Get tick size from the filters array
         $tickSize = collect($item['filters'])
             ->firstWhere('filterType', 'PRICE_FILTER')['tickSize'] ?? null;
 
@@ -108,6 +145,10 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
         ];
     }
 
+    /**
+     * Filters the symbols fetched from Binance to only include
+     * those with a 'marginAsset' of 'USDT'.
+     */
     private function filterSymbolsWithUSDTMargin()
     {
         return array_filter($this->symbols, function ($symbol) {

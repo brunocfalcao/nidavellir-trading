@@ -13,6 +13,22 @@ use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Symbol;
 use Throwable;
 
+/**
+ * Class: UpsertEligibleSymbolsJob
+ *
+ * This class is responsible for determining and updating
+ * eligible cryptocurrency symbols based on certain criteria.
+ * It resets the eligibility status for all symbols, then
+ * identifies and updates the top 20 eligible symbols, excluding
+ * those in the configured exclusion list.
+ *
+ * Important points:
+ * - Resets `is_eligible` to false for all symbols before processing.
+ * - Excludes tokens based on the exclusion list from configuration.
+ * - Only considers active symbols and marks up to 20 as eligible.
+ * - Throws a custom exception (UpsertEligibleSymbolException)
+ *   if no eligible symbols are updated.
+ */
 class UpsertEligibleSymbolsJob implements ShouldQueue
 {
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
@@ -25,36 +41,62 @@ class UpsertEligibleSymbolsJob implements ShouldQueue
     public function handle()
     {
         try {
-            // Get the excluded tokens from the configuration.
+            /**
+             * Fetch the list of excluded tokens from
+             * the Nidavellir configuration file.
+             */
             $excludedTokens = config('nidavellir.symbols.excluded.tokens');
 
-            // Reset is_eligible for all symbols before processing.
+            /**
+             * Reset the `is_eligible` flag to false
+             * for all symbols before starting the process.
+             */
             ExchangeSymbol::query()->update(['is_eligible' => false]);
 
-            // Initialize counter for eligible symbols
+            /**
+             * Initialize a counter to track the number
+             * of eligible symbols being updated.
+             */
             $eligibleCount = 0;
 
-            // Fetch exchange symbols that are active and not excluded
+            /**
+             * Perform a query that joins `exchange_symbols`
+             * and `symbols` tables. It filters for active
+             * symbols and excludes those in the exclusion list.
+             * The result is sorted by rank.
+             *
+             * The query iterates over the results, updating up to
+             * 20 eligible symbols, marking them as `is_eligible = true`.
+             */
             ExchangeSymbol::query()
                 ->join('symbols', 'exchange_symbols.symbol_id', '=', 'symbols.id')
-                ->where('exchange_symbols.is_active', true)                  // Only consider active symbols
-                ->whereNotIn('symbols.token', $excludedTokens)               // Exclude tokens in the exclusion list
-                ->orderBy('symbols.rank', 'asc')                             // Order by symbol rank ascending
-                ->select('exchange_symbols.*', 'symbols.rank')               // Select necessary columns
+                ->where('exchange_symbols.is_active', true)  // Only active symbols
+                ->whereNotIn('symbols.token', $excludedTokens) // Excluded tokens
+                ->orderBy('symbols.rank', 'asc')  // Sort by rank (ascending)
+                ->select('exchange_symbols.*', 'symbols.rank')  // Select necessary columns
                 ->each(function ($exchangeSymbol) use (&$eligibleCount) {
                     if ($eligibleCount < 20) {
-                        // Mark symbol as eligible
+                        /**
+                         * Mark the symbol as eligible
+                         * by setting `is_eligible` to true.
+                         */
                         $exchangeSymbol->update(['is_eligible' => true]);
                         $eligibleCount++;
                     }
                 });
 
-            // If we failed to update at least one eligible symbol
+            /**
+             * If no eligible symbols are updated, throw a custom
+             * exception to handle this scenario.
+             */
             if ($eligibleCount === 0) {
                 throw new UpsertEligibleSymbolException(message: 'No eligible symbols updated.');
             }
         } catch (Throwable $e) {
-            // Handle the exception and pass it to our custom exception
+            /**
+             * Handle any exceptions that occur during the process
+             * and throw a custom exception (UpsertEligibleSymbolException).
+             */
             throw new UpsertEligibleSymbolException($e);
         }
     }
