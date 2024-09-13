@@ -35,7 +35,7 @@ class UpsertSymbolMetadataJob implements ShouldQueue
                 ->toArray();
 
             if (empty($symbols)) {
-                throw new SymbolsMetadataNotUpdatedException('No symbols with missing metadata found.');
+                throw new SymbolsMetadataNotUpdatedException(message: 'No symbols with missing metadata found.');
             }
 
             // Process symbols in chunks of 100 to avoid large requests
@@ -47,7 +47,7 @@ class UpsertSymbolMetadataJob implements ShouldQueue
                     ->getSymbolsMetadata();
 
                 if (empty($cryptoDataList)) {
-                    throw new SymbolsMetadataNotUpdatedException('No metadata returned from the API.');
+                    throw new SymbolsMetadataNotUpdatedException(message: 'No metadata returned from the API.');
                 }
 
                 // Update each symbol in the chunk with the fetched metadata

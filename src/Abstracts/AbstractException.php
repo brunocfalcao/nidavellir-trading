@@ -18,10 +18,22 @@ abstract class AbstractException extends Exception
 
     protected $primaryLine;
 
-    public function __construct(Throwable $originalException, $loggable = null, array $additionalData = [])
-    {
+    protected $message;
+
+    public function __construct(
+        Throwable $originalException = null,
+        $loggable = null,
+        array $additionalData = [],
+        ?string $message = null
+    ) {
+        // If no original exception is provided, we need to ensure a custom message is passed
+        if (!$originalException && !$message) {
+            throw new \InvalidArgumentException('A message must be provided if no exception is passed.');
+        }
+
         $this->originalException = $originalException;
         $this->loggable = $loggable;
+        $this->customMessage = $message;
 
         // Collect model data if a loggable model is passed
         $modelAttributes = $this->getModelAttributes($loggable);
@@ -32,8 +44,10 @@ abstract class AbstractException extends Exception
         // Capture the primary file and line from the trace
         $this->capturePrimaryFileAndLine();
 
-        // Set the message from the original exception
-        parent::__construct($originalException->getMessage());
+        // Use custom message if provided, otherwise use the original exception's message
+        $message = $message ?? ($originalException ? $originalException->getMessage() : 'An error occurred.');
+
+        parent::__construct($message);
 
         $this->logException();
     }
@@ -41,9 +55,13 @@ abstract class AbstractException extends Exception
     // Capture the first relevant file and line from the trace
     protected function capturePrimaryFileAndLine()
     {
-        $trace = $this->originalException->getTrace();
+        if ($this->originalException) {
+            $trace = $this->originalException->getTrace();
+        } else {
+            $trace = $this->getTrace();
+        }
 
-        if (! empty($trace) && isset($trace[0]['file'], $trace[0]['line'])) {
+        if (!empty($trace) && isset($trace[0]['file'], $trace[0]['line'])) {
             $this->primaryFile = basename($trace[0]['file']);
             $this->primaryLine = $trace[0]['line'];
         } else {
@@ -70,9 +88,7 @@ abstract class AbstractException extends Exception
     // Format the message to be limited to 80 characters per line
     protected function formatMessage($message)
     {
-        $formatted = wordwrap($message, 80, "\n               "); // Indentation for continuation
-
-        return $formatted;
+        return wordwrap($message, 80, "\n               "); // Indentation for continuation
     }
 
     // Process the trace to filter out internal functions and keep the first 10 valid entries
@@ -107,8 +123,8 @@ abstract class AbstractException extends Exception
         // Format the log message with aligned colons and no extra newlines
         $logMessage = implode("\n", [
             "\n",  // Ensure there is a newline before the exception log
-            '========= '.class_basename(static::class).' =========', // Exception class name at the top
-            'Message      : '.$this->formatMessage($this->getMessage()), // Formatted message
+            '========= ' . class_basename(static::class) . ' =========', // Exception class name at the top
+            'Message      : ' . $this->formatMessage($this->getMessage()), // Formatted message
             "File         : {$this->primaryFile} [{$this->primaryLine}]", // File and line combined
             'Trace        :',  // Add label for trace
             implode("\n", $traceLog),  // Add the trace entries

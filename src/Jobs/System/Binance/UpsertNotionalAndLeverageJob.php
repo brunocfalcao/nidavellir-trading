@@ -38,14 +38,14 @@ class UpsertNotionalAndLeverageJob implements ShouldQueue
             $exchange = Exchange::firstWhere('canonical', 'binance');
 
             if (! $exchange) {
-                throw new NotionalAndLeverageNotUpdatedException('Binance exchange not found.');
+                throw new NotionalAndLeverageNotUpdatedException(message: 'Binance exchange not found.');
             }
 
             // Obtain all notional and leverage data for the symbols
             $symbols = $this->wrapper->getLeverageBrackets();
 
             if (! $symbols) {
-                throw new NotionalAndLeverageNotUpdatedException('No notional and leverage data received.');
+                throw new NotionalAndLeverageNotUpdatedException(message: 'No notional and leverage data received.');
             }
 
             // Update each symbol with the notional and leverage data

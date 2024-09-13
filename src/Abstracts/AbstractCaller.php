@@ -46,8 +46,8 @@ abstract class AbstractCaller
 
             if (! $this->throwSilently) {
                 throw new ApiCallException(
-                    $e->getMessage(),
-                    ['api_log_id' => $apiLog->id]
+                    $e,
+                    $apiLog
                 );
             }
         } finally {

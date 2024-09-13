@@ -43,7 +43,7 @@ class UpsertSymbolsJob implements ShouldQueue
             $data = $api->getSymbols();
 
             if (! $data) {
-                throw new SymbolsNotUpdatedException('No symbols fetched from CoinMarketCap API.');
+                throw new SymbolsNotUpdatedException(message: 'No symbols fetched from CoinMarketCap API.');
             }
 
             // Prepare for bulk update/create in the database
