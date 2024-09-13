@@ -8,9 +8,9 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Nidavellir\Trading\Exceptions\UpsertEligibleSymbolException;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Symbol;
-use Nidavellir\Trading\Exceptions\UpsertEligibleSymbolException;
 use Throwable;
 
 class UpsertEligibleSymbolsJob implements ShouldQueue
