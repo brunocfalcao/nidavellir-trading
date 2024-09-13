@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
+use Nidavellir\Trading\Jobs\Symbols\UpsertEligibleSymbolsJob;
+use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsRankingJob;
 use Nidavellir\Trading\Jobs\Tests\HardcodeMarketOrderJob;
 use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Models\Symbol;
@@ -26,12 +28,16 @@ class TestCommand extends Command
 
     public function handle()
     {
-        //$this->getNotionalAndLeverageBrackets();
 
+        //UpsertEligibleSymbolsJob::dispatchSync();
+
+        UpsertSymbolsRankingJob::dispatchSync();
+
+        //$this->getNotionalAndLeverageBrackets();
         //HardcodeMarketOrderJob::dispatchSync(Position::find(1)->id);
         //$this->queryOpenOrders();
         //$this->queryAllOrders();
-        $this->testNewPosition();
+        //$this->testNewPosition();
         //$this->testTokenLeverage();
         //$this->getAccountBalance();
     }

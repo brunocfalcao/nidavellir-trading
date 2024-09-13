@@ -42,6 +42,17 @@ class ExchangeRESTWrapper extends AbstractRESTWrapper
         return $this->mapper->getSymbols($this);
     }
 
+    // CoinmarketCap get symbols ranking.
+    public function getSymbolsRanking()
+    {
+        return $this->mapper->getSymbolsRanking($this);
+    }
+
+    public function getSymbolsMetadata()
+    {
+        return $this->mapper->getSymbolsMetadata($this);
+    }
+
     public function getExchangeInformation()
     {
         return $this->mapper->getExchangeInformation($this);

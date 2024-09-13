@@ -58,11 +58,11 @@ class TradingGenesisSeeder extends Seeder
             // Exchange-based jobs (Binance)
             new UpsertExchangeAvailableSymbolsJob,
 
-            // Disable non-eligible & non-ranked symbols.
-            new UpsertEligibleSymbolsJob,
-
             // Upsert notional and leverage data.
             new UpsertNotionalAndLeverageJob,
+
+            // Disable non-eligible & non-ranked symbols.
+            new UpsertEligibleSymbolsJob,
 
             // Update fear and greed index.
             new UpsertFearGreedIndexJob,

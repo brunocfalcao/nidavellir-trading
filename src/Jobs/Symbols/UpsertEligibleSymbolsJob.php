@@ -13,11 +13,7 @@ use Nidavellir\Trading\Models\Symbol;
 
 class UpsertEligibleSymbolsJob implements ShouldQueue
 {
-    use Batchable,
-        Dispatchable,
-        InteractsWithQueue,
-        Queueable,
-        SerializesModels;
+    use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public function __construct()
     {
@@ -26,33 +22,28 @@ class UpsertEligibleSymbolsJob implements ShouldQueue
 
     public function handle()
     {
-        // Get non-elligible symbols from the configuration.
+        // Get the excluded tokens from the configuration.
         $excludedTokens = config('nidavellir.symbols.excluded.tokens');
 
-        // Get min coinmarketcap rank defined on configuration.
-        $rank = config('nidavellir.symbols.excluded.max_rank');
+        // Reset is_eligible for all symbols before processing.
+        ExchangeSymbol::query()->update(['is_eligible' => false]);
 
-        // All symbols deserve a new chance.
-        ExchangeSymbol::query()->update([
-            'is_active' => true,
-            'is_eligible' => true,
-        ]);
+        // Initialize counter for eligible symbols
+        $eligibleCount = 0;
 
-        // Iterate exchange symbols and disable/eligible them.
-        ExchangeSymbol::all()->each(function ($exchangeSymbol) use ($excludedTokens, $rank) {
-
-            // Symbol in exclusions config? -- Disable it.
-            if (in_array($exchangeSymbol->symbol->token, $excludedTokens)) {
-                $exchangeSymbol->update([
-                    'is_active' => false,
-                    'is_eligible' => false]);
-            }
-
-            // Symbol not in 25th rank? -- Not eligible.
-            elseif ($exchangeSymbol->symbol->rank > $rank) {
-                $exchangeSymbol->update([
-                    'is_eligible' => false]);
-            }
-        });
+        // Fetch exchange symbols that are active and not excluded
+        ExchangeSymbol::query()
+            ->join('symbols', 'exchange_symbols.symbol_id', '=', 'symbols.id')
+            ->where('exchange_symbols.is_active', true)                  // Only consider active symbols
+            ->whereNotIn('symbols.token', $excludedTokens)               // Exclude tokens in the exclusion list
+            ->orderBy('symbols.rank', 'asc')                             // Order by symbol rank ascending
+            ->select('exchange_symbols.*', 'symbols.rank')               // Select necessary columns
+            ->each(function ($exchangeSymbol) use (&$eligibleCount) {
+                if ($eligibleCount < 20) {
+                    // Mark symbol as eligible
+                    $exchangeSymbol->update(['is_eligible' => true]);
+                    $eligibleCount++;
+                }
+            });
     }
 }

@@ -105,12 +105,8 @@ class DispatchOrderJob extends AbstractJob
             // Process the order if all checks pass.
             $this->processOrder();
         } catch (Throwable $e) {
-            $this->order->update(['status' => 'error']);
-
-            // Handle any exceptions by throwing a custom OrderNotSyncedException.
             throw new OrderNotSyncedException(
-                $e->getMessage(),
-                ['order_id' => $this->order->id],
+                $e,
                 $this->order
             );
         }
@@ -215,7 +211,7 @@ class DispatchOrderJob extends AbstractJob
             $amountAfterLeverage = $amountAfterDivider * $this->position->leverage;
             $tokenAmountToBuy = $amountAfterLeverage / $price;
 
-            return round($tokenAmountToBuy, $exchangeSymbol->precision_quantity);
+            return round($tokenAmountToBuy, $this->exchangeSymbol->precision_quantity);
         }
 
         if ($this->order->type == self::ORDER_TYPE_PROFIT) {

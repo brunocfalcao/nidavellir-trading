@@ -3,15 +3,19 @@
 namespace Nidavellir\Trading\Abstracts;
 
 use Exception;
-use Throwable;
 use Nidavellir\Trading\Models\ExceptionsLog;
+use Throwable;
 
 abstract class AbstractException extends Exception
 {
     protected $attributes;
+
     protected $loggable;
+
     protected $originalException;
+
     protected $primaryFile;
+
     protected $primaryLine;
 
     public function __construct(Throwable $originalException, $loggable = null, array $additionalData = [])
@@ -39,7 +43,7 @@ abstract class AbstractException extends Exception
     {
         $trace = $this->originalException->getTrace();
 
-        if (!empty($trace) && isset($trace[0]['file'], $trace[0]['line'])) {
+        if (! empty($trace) && isset($trace[0]['file'], $trace[0]['line'])) {
             $this->primaryFile = basename($trace[0]['file']);
             $this->primaryLine = $trace[0]['line'];
         } else {
@@ -67,6 +71,7 @@ abstract class AbstractException extends Exception
     protected function formatMessage($message)
     {
         $formatted = wordwrap($message, 80, "\n               "); // Indentation for continuation
+
         return $formatted;
     }
 
@@ -102,7 +107,7 @@ abstract class AbstractException extends Exception
         // Format the log message with aligned colons and no extra newlines
         $logMessage = implode("\n", [
             "\n",  // Ensure there is a newline before the exception log
-            "========= ".class_basename(static::class)." =========", // Exception class name at the top
+            '========= '.class_basename(static::class).' =========', // Exception class name at the top
             'Message      : '.$this->formatMessage($this->getMessage()), // Formatted message
             "File         : {$this->primaryFile} [{$this->primaryLine}]", // File and line combined
             'Trace        :',  // Add label for trace

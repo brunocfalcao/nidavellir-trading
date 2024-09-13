@@ -58,8 +58,7 @@ class DispatchPositionJob extends AbstractJob
         } catch (Throwable $e) {
             throw new PositionNotSyncedException(
                 $e,
-                $this->position,
-                ['life' => 'is good']
+                $this->position
             );
         }
     }
