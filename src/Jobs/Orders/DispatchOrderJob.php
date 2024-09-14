@@ -3,7 +3,7 @@
 namespace Nidavellir\Trading\Jobs\Orders;
 
 use Nidavellir\Trading\Abstracts\AbstractJob;
-use Nidavellir\Trading\Exceptions\OrderNotSyncedException;
+use Nidavellir\Trading\Exceptions\NidavellirException;
 use Nidavellir\Trading\Models\ApplicationLog;
 use Nidavellir\Trading\Models\Exchange;
 use Nidavellir\Trading\Models\ExchangeSymbol;
@@ -93,10 +93,10 @@ class DispatchOrderJob extends AbstractJob
              */
             if ($this->attempts() == 3) {
                 $this->order->update(['status' => 'error']);
-                throw new OrderNotSyncedException(
-                    'Max attempts: Failed to create order on exchange, with ID: '.
-                    ['order_id' => $this->order->id],
-                    $this->order
+                throw new NidavellirException(
+                    title: 'Max attempts: Failed to create order on exchange',
+                    additionalData: ['order_id' => $this->order->id],
+                    loggable: $this->order
                 );
             }
 
@@ -127,9 +127,10 @@ class DispatchOrderJob extends AbstractJob
             /**
              * Handle any errors by throwing a custom exception.
              */
-            throw new OrderNotSyncedException(
-                $e,
-                $this->order
+            throw new NidavellirException(
+                originalException: $e,
+                title: 'Error occurred during order dispatching',
+                loggable: $this->order
             );
         }
     }

@@ -6,22 +6,22 @@ use Illuminate\Auth\Events\Login;
 use Nidavellir\Trading\Abstracts\AbstractListener;
 
 /**
-* Class: LoggedInListener
-*
-* This listener handles the actions to be performed when a trader logs in.
-* It updates the `last_logged_in_at` timestamp and records the previous login time.
-*
-* Important points:
-* - Tracks the trader's last and previous login timestamps.
-* - Updates the user's information upon login.
-*/
+ * Class: LoggedInListener
+ *
+ * This listener handles the actions to be performed when a trader logs in.
+ * It updates the `last_logged_in_at` timestamp and records the previous login time.
+ *
+ * Important points:
+ * - Tracks the trader's last and previous login timestamps.
+ * - Updates the user's information upon login.
+ */
 class LoggedInListener extends AbstractListener
 {
     /**
-    * Handles the login event by updating the user's login timestamps.
-    *
-    * @param Login $event The login event containing the user data.
-    */
+     * Handles the login event by updating the user's login timestamps.
+     *
+     * @param  Login  $event  The login event containing the user data.
+     */
     public function handle(Login $event)
     {
         // Store the previous login time before updating to the current login time.

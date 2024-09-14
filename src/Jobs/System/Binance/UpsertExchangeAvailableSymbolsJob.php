@@ -7,12 +7,14 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Nidavellir\Trading\Exceptions\NidavellirException;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Exchange;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Nidavellir;
+use Throwable;
 
 /**
  * Class: UpsertExchangeAvailableSymbolsJob
@@ -54,18 +56,43 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
      */
     public function handle()
     {
-        $mapper = $this->wrapper->mapper;
+        try {
+            $mapper = $this->wrapper->mapper;
 
-        // Get symbols from Binance API
-        $this->symbols = $mapper->getExchangeInformation();
+            // Get symbols from Binance API
+            $this->symbols = $mapper->getExchangeInformation();
 
-        /**
-         * Filters out non-USDT margin symbols before syncing.
-         */
-        $this->symbols = $this->filterSymbolsWithUSDTMargin();
+            if (empty($this->symbols)) {
+                throw new NidavellirException(
+                    title: 'No symbols fetched from Binance',
+                    additionalData: ['exchange' => 'binance']
+                );
+            }
 
-        // Sync or update the exchange symbols in the database
-        $this->syncExchangeSymbols();
+            /**
+             * Filters out non-USDT margin symbols before syncing.
+             */
+            $this->symbols = $this->filterSymbolsWithUSDTMargin();
+
+            if (empty($this->symbols)) {
+                throw new NidavellirException(
+                    title: 'No USDT margin symbols found from Binance data',
+                    additionalData: ['exchange' => 'binance']
+                );
+            }
+
+            // Sync or update the exchange symbols in the database
+            $this->syncExchangeSymbols();
+        } catch (Throwable $e) {
+            /**
+             * Handle any errors by raising a custom exception with the relevant data.
+             */
+            throw new NidavellirException(
+                originalException: $e,
+                title: 'Error occurred during syncing Binance symbols',
+                additionalData: ['exchange' => 'binance']
+            );
+        }
     }
 
     /**
@@ -76,52 +103,74 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
     {
         $exchange = Exchange::firstWhere('canonical', 'binance');
 
+        if (! $exchange) {
+            throw new NidavellirException(
+                title: 'Binance exchange record not found',
+                additionalData: ['exchange' => 'binance']
+            );
+        }
+
         /**
          * Iterates through each symbol to update or create the relevant data
          * in the ExchangeSymbol model.
          */
         foreach ($this->symbols as $symbolToken => $data) {
-            $tokenData = $this->extractTokenData($data);
+            try {
+                $tokenData = $this->extractTokenData($data);
 
-            // Get the base asset (token) from the symbol data
-            $token = $tokenData['symbol'];
+                // Get the base asset (token) from the symbol data
+                $token = $tokenData['symbol'];
 
-            // Find the corresponding ExchangeSymbol for the token
-            $exchangeSymbol = ExchangeSymbol::with('symbol')
-                ->whereHas('symbol', function ($query) use ($token) {
-                    $query->where('token', $token);
-                })
-                ->where('exchange_id', $exchange->id)
-                ->first();
+                // Find the corresponding ExchangeSymbol for the token
+                $exchangeSymbol = ExchangeSymbol::with('symbol')
+                    ->whereHas('symbol', function ($query) use ($token) {
+                        $query->where('token', $token);
+                    })
+                    ->where('exchange_id', $exchange->id)
+                    ->first();
 
-            // Fetch the corresponding Symbol record
-            $symbol = Symbol::firstWhere('token', $token);
+                // Fetch the corresponding Symbol record
+                $symbol = Symbol::firstWhere('token', $token);
 
-            if ($symbol) {
-                // Prepare the attributes for updating or creating the symbol data
-                $symbolData = [
-                    'symbol_id' => $symbol->id,
-                    'exchange_id' => $exchange->id,
-                    'precision_price' => $tokenData['precision_price'],
-                    'precision_quantity' => $tokenData['precision_quantity'],
-                    'precision_quote' => $tokenData['precision_quote'],
-                    'tick_size' => $tokenData['tick_size'],
-                    'api_symbol_information' => $data,
-                ];
+                if ($symbol) {
+                    // Prepare the attributes for updating or creating the symbol data
+                    $symbolData = [
+                        'symbol_id' => $symbol->id,
+                        'exchange_id' => $exchange->id,
+                        'precision_price' => $tokenData['precision_price'],
+                        'precision_quantity' => $tokenData['precision_quantity'],
+                        'precision_quote' => $tokenData['precision_quote'],
+                        'tick_size' => $tokenData['tick_size'],
+                        'api_symbol_information' => $data,
+                    ];
 
-                // If ExchangeSymbol doesn't exist, create it
-                if (! $exchangeSymbol) {
-                    ExchangeSymbol::updateOrCreate(
-                        [
-                            'symbol_id' => $symbolData['symbol_id'],
-                            'exchange_id' => $exchange->id,
-                        ],
-                        $symbolData
-                    );
+                    // If ExchangeSymbol doesn't exist, create it
+                    if (! $exchangeSymbol) {
+                        ExchangeSymbol::updateOrCreate(
+                            [
+                                'symbol_id' => $symbolData['symbol_id'],
+                                'exchange_id' => $exchange->id,
+                            ],
+                            $symbolData
+                        );
+                    } else {
+                        // If it exists, update the existing record
+                        $exchangeSymbol->update($symbolData);
+                    }
                 } else {
-                    // If it exists, update the existing record
-                    $exchangeSymbol->update($symbolData);
+                    throw new NidavellirException(
+                        title: 'Symbol not found for token: '.$token,
+                        additionalData: ['token' => $token, 'symbolData' => $data],
+                        loggable: $exchange
+                    );
                 }
+            } catch (Throwable $e) {
+                throw new NidavellirException(
+                    originalException: $e,
+                    title: 'Error occurred while syncing symbol: '.$symbolToken,
+                    additionalData: ['token' => $tokenData['symbol'], 'symbolData' => $data],
+                    loggable: $exchange
+                );
             }
         }
     }

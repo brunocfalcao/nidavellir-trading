@@ -10,6 +10,7 @@ use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsJob;
 use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsRankingJob;
 use Nidavellir\Trading\Jobs\System\Binance\UpsertExchangeAvailableSymbolsJob;
 use Nidavellir\Trading\Jobs\System\Binance\UpsertNotionalAndLeverageJob;
+use Nidavellir\Trading\Jobs\System\Taapi\UpsertSymbolIndicatorValuesJob;
 use Nidavellir\Trading\Jobs\System\UpsertFearGreedIndexJob;
 use Nidavellir\Trading\Models\Exchange;
 use Nidavellir\Trading\Models\System;
@@ -66,6 +67,9 @@ class TradingGenesisSeeder extends Seeder
 
             // Update fear and greed index.
             new UpsertFearGreedIndexJob,
+
+            // Update some symbols indicators.
+            new UpsertSymbolIndicatorValuesJob,
         ])->dispatch();
     }
 }

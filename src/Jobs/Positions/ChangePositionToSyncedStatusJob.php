@@ -3,7 +3,7 @@
 namespace Nidavellir\Trading\Jobs\Positions;
 
 use Nidavellir\Trading\Abstracts\AbstractJob;
-use Nidavellir\Trading\Exceptions\PositionNotSyncedException;
+use Nidavellir\Trading\Exceptions\NidavellirException;
 use Nidavellir\Trading\Models\Position;
 use Throwable;
 
@@ -46,17 +46,18 @@ class ChangePositionToSyncedStatusJob extends AbstractJob
              * Find the position by its ID and update its
              * status to 'synced'.
              */
-            Position::find($this->positionId)
-                ->update(['status' => 'synced']);
+            $position = Position::findOrFail($this->positionId);
+            $position->update(['status' => 'synced']);
         } catch (Throwable $e) {
             /**
              * If an error occurs, update the status to 'error'
              * and throw a custom exception with relevant details.
              */
             $position->update(['status' => 'error']);
-            throw new PositionNotSyncedException(
-                $e,
-                $position
+            throw new NidavellirException(
+                originalException: $e,
+                title: 'Error updating position status to synced for position ID: '.$this->positionId,
+                loggable: $position
             );
         }
     }

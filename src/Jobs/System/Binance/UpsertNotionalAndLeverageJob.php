@@ -7,7 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Nidavellir\Trading\Exceptions\NotionalAndLeverageNotUpdatedException;
+use Nidavellir\Trading\Exceptions\NidavellirException;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Exchange;
@@ -61,7 +61,10 @@ class UpsertNotionalAndLeverageJob implements ShouldQueue
             $exchange = Exchange::firstWhere('canonical', 'binance');
 
             if (! $exchange) {
-                throw new NotionalAndLeverageNotUpdatedException(message: 'Binance exchange not found.');
+                throw new NidavellirException(
+                    title: 'Binance exchange not found',
+                    additionalData: ['exchange' => 'binance']
+                );
             }
 
             /**
@@ -70,7 +73,10 @@ class UpsertNotionalAndLeverageJob implements ShouldQueue
             $symbols = $this->wrapper->getLeverageBrackets();
 
             if (! $symbols) {
-                throw new NotionalAndLeverageNotUpdatedException(message: 'No notional and leverage data received.');
+                throw new NidavellirException(
+                    title: 'No notional and leverage data received',
+                    additionalData: ['exchange' => 'binance']
+                );
             }
 
             /**
@@ -98,6 +104,11 @@ class UpsertNotionalAndLeverageJob implements ShouldQueue
                             ->update([
                                 'api_notional_and_leverage_symbol_information' => $symbolData,
                             ]);
+                    } else {
+                        throw new NidavellirException(
+                            title: 'Symbol not found for token: '.$token,
+                            additionalData: ['symbol' => $symbolData['symbol']]
+                        );
                     }
                 }
             }
@@ -105,8 +116,10 @@ class UpsertNotionalAndLeverageJob implements ShouldQueue
             /**
              * Handle any errors by raising a custom exception.
              */
-            throw new NotionalAndLeverageNotUpdatedException(
-                $e
+            throw new NidavellirException(
+                originalException: $e,
+                title: 'Error occurred while updating notional and leverage data for Binance symbols',
+                loggable: $exchange ?? null // Pass $exchange if available
             );
         }
     }

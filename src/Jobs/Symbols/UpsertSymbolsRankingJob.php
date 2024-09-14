@@ -8,7 +8,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Nidavellir\Trading\Exceptions\SymbolRanksNotUpdatedException;
+use Nidavellir\Trading\Exceptions\NidavellirException;
 use Nidavellir\Trading\Exchanges\CoinmarketCap\CoinmarketCapRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Symbol;
@@ -99,8 +99,12 @@ class UpsertSymbolsRankingJob implements ShouldQueue
              * If an error occurs, throw a custom exception
              * to indicate that symbol ranks were not updated.
              */
-            throw new SymbolRanksNotUpdatedException(
-                $e
+            throw new NidavellirException(
+                originalException: $e,
+                title: 'Error occurred while updating symbol ranks',
+                additionalData: [
+                    'source' => 'CoinmarketCap API',
+                ]
             );
         }
     }

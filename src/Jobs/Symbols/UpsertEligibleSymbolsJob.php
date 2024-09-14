@@ -8,7 +8,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Nidavellir\Trading\Exceptions\UpsertEligibleSymbolException;
+use Nidavellir\Trading\Exceptions\NidavellirException;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Symbol;
 use Throwable;
@@ -26,8 +26,6 @@ use Throwable;
  * - Resets `is_eligible` to false for all symbols before processing.
  * - Excludes tokens based on the exclusion list from configuration.
  * - Only considers active symbols and marks up to 20 as eligible.
- * - Throws a custom exception (UpsertEligibleSymbolException)
- *   if no eligible symbols are updated.
  */
 class UpsertEligibleSymbolsJob implements ShouldQueue
 {
@@ -90,14 +88,21 @@ class UpsertEligibleSymbolsJob implements ShouldQueue
              * exception to handle this scenario.
              */
             if ($eligibleCount === 0) {
-                throw new UpsertEligibleSymbolException(message: 'No eligible symbols updated.');
+                throw new NidavellirException(
+                    title: 'No eligible symbols updated.',
+                    additionalData: ['excludedTokens' => $excludedTokens]
+                );
             }
         } catch (Throwable $e) {
             /**
              * Handle any exceptions that occur during the process
-             * and throw a custom exception (UpsertEligibleSymbolException).
+             * and throw a custom exception.
              */
-            throw new UpsertEligibleSymbolException($e);
+            throw new NidavellirException(
+                originalException: $e,
+                title: 'Error occurred while updating eligible symbols.',
+                additionalData: []
+            );
         }
     }
 }

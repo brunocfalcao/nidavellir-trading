@@ -7,7 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Nidavellir\Trading\Exceptions\SymbolsMetadataNotUpdatedException;
+use Nidavellir\Trading\Exceptions\NidavellirException;
 use Nidavellir\Trading\Exchanges\CoinmarketCap\CoinmarketCapRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Symbol;
@@ -73,8 +73,9 @@ class UpsertSymbolMetadataJob implements ShouldQueue
              * If no symbols are found, throw an exception.
              */
             if (empty($symbols)) {
-                throw new SymbolsMetadataNotUpdatedException(
-                    message: 'No symbols with missing metadata found.'
+                throw new NidavellirException(
+                    title: 'No symbols with missing metadata found.',
+                    additionalData: []
                 );
             }
 
@@ -99,8 +100,9 @@ class UpsertSymbolMetadataJob implements ShouldQueue
                  * Throw an exception if no metadata is returned.
                  */
                 if (empty($cryptoDataList)) {
-                    throw new SymbolsMetadataNotUpdatedException(
-                        message: 'No metadata returned from the API.'
+                    throw new NidavellirException(
+                        title: 'No metadata returned from the API.',
+                        additionalData: ['symbols_chunk' => $chunk]
                     );
                 }
 
@@ -138,11 +140,12 @@ class UpsertSymbolMetadataJob implements ShouldQueue
             /**
              * Catch any exceptions and rethrow a custom exception.
              *
-             * This handles all errors during the process
-             * and throws a SymbolsMetadataNotUpdatedException.
+             * This handles all errors during the process.
              */
-            throw new SymbolsMetadataNotUpdatedException(
-                $e
+            throw new NidavellirException(
+                originalException: $e,
+                title: 'Error occurred while updating symbol metadata.',
+                additionalData: []
             );
         }
     }

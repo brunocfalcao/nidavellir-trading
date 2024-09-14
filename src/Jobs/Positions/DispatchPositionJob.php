@@ -4,7 +4,7 @@ namespace Nidavellir\Trading\Jobs\Positions;
 
 use Illuminate\Support\Facades\Bus;
 use Nidavellir\Trading\Abstracts\AbstractJob;
-use Nidavellir\Trading\Exceptions\PositionNotSyncedException;
+use Nidavellir\Trading\Exceptions\NidavellirException;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
@@ -95,9 +95,10 @@ class DispatchPositionJob extends AbstractJob
              * Catch any errors and throw a custom exception for
              * synchronization failures.
              */
-            throw new PositionNotSyncedException(
-                $e,
-                $this->position
+            throw new NidavellirException(
+                originalException: $e,
+                title: 'Error during dispatching position ID: '.$this->position->id,
+                loggable: $this->position
             );
         }
     }
@@ -110,9 +111,9 @@ class DispatchPositionJob extends AbstractJob
         if (blank($this->position->trader_id) ||
             blank($this->position->status) ||
             blank($this->position->trade_configuration)) {
-            throw new PositionNotSyncedException(
-                "Position ID {$this->position->id} missing mandatory fields",
-                $this->position->id
+            throw new NidavellirException(
+                title: "Position ID {$this->position->id} missing mandatory fields",
+                loggable: $this->position
             );
         }
     }
@@ -134,13 +135,13 @@ class DispatchPositionJob extends AbstractJob
             $minimumTradeAmount = config('nidavellir.positions.minimum_trade_amount');
 
             if ($availableBalance == 0) {
-                $this->updatePositionError($this->position, 'No USDT on Futures available balance.');
+                $this->updatePositionError('No USDT on Futures available balance.');
 
                 return;
             }
 
             if ($availableBalance < $minimumTradeAmount) {
-                $this->updatePositionError($this->position, "Less than {$minimumTradeAmount} USDT on Futures available balance (current: {$availableBalance}).");
+                $this->updatePositionError("Less than {$minimumTradeAmount} USDT on Futures available balance (current: {$availableBalance}).");
 
                 return;
             }

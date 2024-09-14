@@ -44,9 +44,10 @@ return new class extends Migration
 
         Schema::create('exceptions_log', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('loggable_id')->nullable(); // Polymorphic relationship
-            $table->string('loggable_type')->nullable(); // Polymorphic relationship
-            $table->longText('message');
+            $table->unsignedBigInteger('loggable_id')->nullable();
+            $table->string('loggable_type')->nullable();
+            $table->longText('title');
+            $table->longText('error_message');
             $table->string('exception_class');
             $table->string('file');
             $table->integer('line');
@@ -162,6 +163,52 @@ return new class extends Migration
 
             $table->string('image_url')
                 ->nullable();
+
+            // New indicator columns
+            $table->decimal('indicator_atr', 20, 8)
+                ->nullable()
+                ->comment('Average True Range (ATR) value for the symbol');
+
+            $table->decimal('indicator_bbands_upper', 20, 8)
+                ->nullable()
+                ->comment('Bollinger Bands upper value for the symbol');
+
+            $table->decimal('indicator_bbands_middle', 20, 8)
+                ->nullable()
+                ->comment('Bollinger Bands middle value for the symbol');
+
+            $table->decimal('indicator_bbands_lower', 20, 8)
+                ->nullable()
+                ->comment('Bollinger Bands lower value for the symbol');
+
+            $table->decimal('indicator_rsi', 20, 8)
+                ->nullable()
+                ->comment('Relative Strength Index (RSI) value for the symbol');
+
+            $table->decimal('indicator_stochastic_k', 20, 8)
+                ->nullable()
+                ->comment('Stochastic Oscillator %K value for the symbol');
+
+            $table->decimal('indicator_stochastic_d', 20, 8)
+                ->nullable()
+                ->comment('Stochastic Oscillator %D value for the symbol');
+
+            // MACD values
+            $table->decimal('indicator_macd', 20, 8)
+                ->nullable()
+                ->comment('MACD value for the symbol');
+
+            $table->decimal('indicator_macd_signal', 20, 8)
+                ->nullable()
+                ->comment('MACD Signal value for the symbol');
+
+            $table->decimal('indicator_macd_hist', 20, 8)
+                ->nullable()
+                ->comment('MACD Histogram value for the symbol');
+
+            $table->decimal('price_amplitude', 10, 4)
+                ->nullable()
+                ->comment('Price amplitude percentage (high - low / low * 100) for the symbol on the day');
 
             $table->timestamps();
         });

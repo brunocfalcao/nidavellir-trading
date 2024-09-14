@@ -8,7 +8,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Nidavellir\Trading\Exceptions\SymbolsNotUpdatedException;
+use Nidavellir\Trading\Exceptions\NidavellirException;
 use Nidavellir\Trading\Exchanges\CoinmarketCap\CoinmarketCapRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Symbol;
@@ -83,7 +83,10 @@ class UpsertSymbolsJob implements ShouldQueue
              * If no data is returned, throw an exception.
              */
             if (! $data) {
-                throw new SymbolsNotUpdatedException(message: 'No symbols fetched from CoinMarketCap API.');
+                throw new NidavellirException(
+                    title: 'No symbols fetched from CoinMarketCap API',
+                    additionalData: ['limit' => $this->limit]
+                );
             }
 
             /**
@@ -123,8 +126,10 @@ class UpsertSymbolsJob implements ShouldQueue
              * If an error occurs, throw a custom exception
              * with the relevant error message.
              */
-            throw new SymbolsNotUpdatedException(
-                $e
+            throw new NidavellirException(
+                originalException: $e,
+                title: 'Error occurred during upsert of symbols',
+                additionalData: ['limit' => $this->limit]
             );
         }
     }
