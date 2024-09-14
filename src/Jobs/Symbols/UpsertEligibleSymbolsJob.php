@@ -43,7 +43,7 @@ class UpsertEligibleSymbolsJob implements ShouldQueue
     {
         try {
             // Fetch the list of excluded tokens from the configuration file.
-            $excludedTokens = config('nidavellir.symbols.excluded.tokens');
+            $excludedTokens = Symbol::where('is_active', false)->pluck('id');
 
             // Reset the `is_eligible` flag to false for all symbols.
             ExchangeSymbol::query()->update(['is_eligible' => false]);

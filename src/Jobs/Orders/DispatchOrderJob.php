@@ -252,10 +252,10 @@ class DispatchOrderJob extends AbstractJob
     {
         // Build the API order data for a Market order.
         $this->orderData = [
-            'newClientOrderId' => 'T:'.$this->trader.
-                '-EX:'.$this->exchange->id.
-                '-P:'.$this->position->id.
-                '-O:'.$this->order->id,
+            'newClientOrderId' => 'Trader:'.$this->trader.
+                '-Exchange:'.$this->exchange->id.
+                '-Position:'.$this->position->id.
+                '-Order:'.$this->order->id,
             'side' => strtoupper($sideDetails['orderSide']),
             'type' => 'MARKET',
             'quantity' => $orderQuantity,
@@ -293,9 +293,10 @@ class DispatchOrderJob extends AbstractJob
             'side' => strtoupper($sideDetails['orderSide']),
             'type' => 'LIMIT',
             'quantity' => $orderQuantity,
-            'newClientOrderId' => 'EX:'.$this->exchangeSymbol->exchange->id.
-                '-P:'.$this->order->position->id.
-                '-O:'.$this->order->id,
+            'newClientOrderId' => 'Trader:'.$this->trader.
+                '-Exchange:'.$this->exchangeSymbol->exchange->id.
+                '-Position:'.$this->order->position->id.
+                '-Order:'.$this->order->id,
             'symbol' => $this->exchangeSymbol->symbol->token.'USDT',
             'price' => $orderPrice,
         ];

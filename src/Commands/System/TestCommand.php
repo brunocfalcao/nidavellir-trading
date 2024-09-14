@@ -4,18 +4,18 @@ namespace Nidavellir\Trading\Commands\System;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use Nidavellir\Trading\Nidavellir;
-use Nidavellir\Trading\Models\Symbol;
-use Nidavellir\Trading\Models\Trader;
 use Illuminate\Support\Facades\Storage;
-use Nidavellir\Trading\Models\Position;
-use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
-use Nidavellir\Trading\Jobs\Tests\HardcodeMarketOrderJob;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
-use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsRankingJob;
+use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Jobs\Symbols\UpsertEligibleSymbolsJob;
+use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsRankingJob;
 use Nidavellir\Trading\Jobs\System\Binance\UpsertNotionalAndLeverageJob;
 use Nidavellir\Trading\Jobs\System\Taapi\UpsertSymbolIndicatorValuesJob;
+use Nidavellir\Trading\Jobs\Tests\HardcodeMarketOrderJob;
+use Nidavellir\Trading\Models\Position;
+use Nidavellir\Trading\Models\Symbol;
+use Nidavellir\Trading\Models\Trader;
+use Nidavellir\Trading\Nidavellir;
 
 class TestCommand extends Command
 {

@@ -87,12 +87,12 @@ class UpsertNotionalAndLeverageJob implements ShouldQueue
 
                     // Check if the symbol was found.
                     if ($symbol) {
-                    // Update the `ExchangeSymbol` record with notional and leverage data.
+                        // Update the `ExchangeSymbol` record with notional and leverage data.
                         ExchangeSymbol::where('exchange_id', $exchange->id)
-                        ->where('symbol_id', $symbol->id)
-                        ->update([
-                            'api_notional_and_leverage_symbol_information' => $symbolData,
-                        ]);
+                            ->where('symbol_id', $symbol->id)
+                            ->update([
+                                'api_notional_and_leverage_symbol_information' => $symbolData,
+                            ]);
                     }
                 }
             }

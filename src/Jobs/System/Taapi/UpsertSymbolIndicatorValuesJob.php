@@ -9,6 +9,8 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
+use Nidavellir\Trading\Models\ApplicationLog;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\NidavellirException;
 
@@ -23,54 +25,68 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    // Job timeout extended since we have +10.000 tokens to sync.
     public $timeout = 180;
 
-    // Base endpoint for the Taapi API.
     private $taapiEndpoint = 'https://api.taapi.io';
 
-    // Taapi API key from configuration.
     private $taapiApiKey;
 
-    // Limit for the number of symbols to fetch in each job.
     private $constructLimit;
 
-    // Maximum rank of symbols to be processed.
     private $maxRank;
 
-    /**
-     * Constructor to initialize API credentials and limits
-     * from configuration.
-     */
+    private $logBlock;
+
     public function __construct()
     {
-        // Fetch the API key and limits from configuration.
         $this->taapiApiKey = config('nidavellir.system.api.credentials.taapi.api_key');
         $this->constructLimit = config('nidavellir.system.api.params.taapi.max_symbols_per_job');
         $this->maxRank = config('nidavellir.system.api.params.taapi.max_rank');
+        $this->logBlock = Str::uuid();
     }
 
-    /**
-     * Main function to handle fetching and updating indicators
-     * and price data for symbols.
-     */
     public function handle()
     {
+        ApplicationLog::withActionCanonical('UpsertSymbolIndicatorValuesJob.Start')
+            ->withDescription('Starting job to update symbol indicators')
+            ->withBlock($this->logBlock)
+            ->saveLog();
+
         try {
-            // Fetch symbols that are within the rank limit, ordered by the oldest update.
             $symbols = $this->fetchOldestSymbols();
 
+            ApplicationLog::withActionCanonical('UpsertSymbolIndicatorValuesJob.SymbolsFetched')
+                ->withDescription('Fetched symbols to update')
+                ->withReturnData(['symbols' => $symbols->pluck('token')->toArray()])
+                ->withBlock($this->logBlock)
+                ->saveLog();
+
             if ($symbols->isEmpty()) {
-                return; // Exit if no symbols to update.
+                ApplicationLog::withActionCanonical('UpsertSymbolIndicatorValuesJob.NoSymbols')
+                    ->withDescription('No symbols found for update')
+                    ->withBlock($this->logBlock)
+                    ->saveLog();
+
+                return;
             }
 
-            // Loop through each symbol and update its indicators and candle data.
             foreach ($symbols as $symbol) {
-                $this->fetchAndUpdateIndicators($symbol); // Update indicator data.
-                $this->fetchAndUpdateCandle($symbol); // Update candle data.
+                $this->fetchAndUpdateIndicators($symbol);
+                $this->fetchAndUpdateCandle($symbol);
             }
+
+            ApplicationLog::withActionCanonical('UpsertSymbolIndicatorValuesJob.End')
+                ->withDescription('Successfully completed updating symbols')
+                ->withBlock($this->logBlock)
+                ->saveLog();
         } catch (\Throwable $e) {
-            // Handle exceptions by throwing a custom NidavellirException.
+            ApplicationLog::withActionCanonical('UpsertSymbolIndicatorValuesJob.Error')
+                ->withDescription('Error occurred during symbol updates')
+                ->withReturnData(['error' => $e->getMessage()])
+                ->withSymbolId($symbols->first()->id ?? null)  // Use 'symbol_id'
+                ->withBlock($this->logBlock)
+                ->saveLog();
+
             throw new NidavellirException(
                 originalException: $e,
                 title: 'Error occurred while updating indicators or candles for symbol: '.($symbols->first()->token ?? 'Unknown Symbol'),
@@ -79,58 +95,56 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
         }
     }
 
-    /**
-     * Fetches the oldest symbols that need to be updated,
-     * within the rank limit.
-     */
     private function fetchOldestSymbols()
     {
         return Symbol::where('rank', '<=', $this->maxRank)
-                     ->where('is_active', true)
-                     ->orderBy('updated_at', 'asc')
-                     ->limit($this->constructLimit)
-                     ->get();
+            ->where('is_active', true)
+            ->orderBy('updated_at', 'asc')
+            ->limit($this->constructLimit)
+            ->get();
     }
 
-    /**
-     * Fetches indicator data from Taapi.io for a symbol and
-     * updates the symbol's indicators accordingly.
-     */
     private function fetchAndUpdateIndicators(Symbol $symbol)
     {
-        // List of indicators to fetch from Taapi.io.
         $indicators = ['atr', 'bbands', 'rsi', 'stoch', 'macd'];
 
-        // Loop through each indicator and fetch the data.
         foreach ($indicators as $indicator) {
             $url = "{$this->taapiEndpoint}/{$indicator}";
-
-            // Set the parameters for the API request.
             $params = [
                 'secret' => $this->taapiApiKey,
                 'exchange' => 'binance',
                 'symbol' => $symbol->token.'/USDT',
-                'interval' => '1d', // Daily data
+                'interval' => '1d',
             ];
 
-            // Send the request to Taapi.io.
             $response = Http::get($url, $params);
 
             if ($response->successful()) {
-                // Parse the response and update the indicators.
                 $responseData = $response->json();
                 $this->updateIndicators($symbol, $indicator, $responseData);
-            } else {
-                // Capture the error response from Taapi.io
-                $errorMessage = $response->body(); // Get the full error response body
 
-                // Throw an exception if the API call fails.
+                ApplicationLog::withActionCanonical('UpsertSymbolIndicatorValuesJob.IndicatorUpdated')
+                    ->withDescription("Updated $indicator for symbol: {$symbol->token}")
+                    ->withReturnData(['symbol' => $symbol->token, 'indicator' => $indicator, 'response' => $responseData])
+                    ->withSymbolId($symbol->id)  // Use 'symbol_id'
+                    ->withBlock($this->logBlock)
+                    ->saveLog();
+            } else {
+                $errorMessage = $response->body();
+
+                ApplicationLog::withActionCanonical('UpsertSymbolIndicatorValuesJob.IndicatorFetchFailed')
+                    ->withDescription("Failed to fetch $indicator for symbol: {$symbol->token}")
+                    ->withReturnData(['symbol' => $symbol->token, 'error' => $errorMessage])
+                    ->withSymbolId($symbol->id)  // Use 'symbol_id'
+                    ->withBlock($this->logBlock)
+                    ->saveLog();
+
                 throw new NidavellirException(
-                    title: 'Failed to fetch indicator from Taapi.io for symbol: ' . $symbol->token,
+                    title: 'Failed to fetch indicator from Taapi.io for symbol: '.$symbol->token,
                     additionalData: [
                         'symbol' => $symbol->token,
                         'indicator' => $indicator,
-                        'api_error' => $errorMessage
+                        'api_error' => $errorMessage,
                     ],
                     loggable: $symbol
                 );
@@ -138,16 +152,9 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
         }
     }
 
-    /**
-     * Fetches candle data for a symbol and updates the
-     * price amplitude and other candle values.
-     */
     private function fetchAndUpdateCandle(Symbol $symbol)
     {
-        // API endpoint for fetching candle data.
         $url = "{$this->taapiEndpoint}/candle";
-
-        // Parameters for fetching candle data.
         $params = [
             'secret' => $this->taapiApiKey,
             'exchange' => 'binance',
@@ -156,29 +163,38 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
             'backtrack' => 1,
         ];
 
-        // Send the request to Taapi.io.
         $response = Http::get($url, $params);
 
         if ($response->successful()) {
-            // Parse the response data.
             $data = $response->json();
             $high = $data['high'] ?? null;
             $low = $data['low'] ?? null;
 
-            // Calculate and update price amplitude and intraday values if data is valid.
             if ($high !== null && $low !== null && $low > 0) {
                 $priceAmplitudePercentage = (($high - $low) / $low) * 100;
 
-                // Update the symbol with the calculated price amplitude and intraday high/low.
                 $symbol->update([
                     'price_amplitude_highest' => $high,
                     'price_amplitude_lowest' => $low,
                     'price_amplitude_percentage' => $priceAmplitudePercentage,
                     'updated_at' => Carbon::now(),
                 ]);
+
+                ApplicationLog::withActionCanonical('UpsertSymbolIndicatorValuesJob.CandleUpdated')
+                    ->withDescription("Updated candle data for symbol: {$symbol->token}")
+                    ->withReturnData(['symbol' => $symbol->token, 'high' => $high, 'low' => $low])
+                    ->withSymbolId($symbol->id)  // Use 'symbol_id'
+                    ->withBlock($this->logBlock)
+                    ->saveLog();
             }
         } else {
-            // Throw an exception if the API call fails.
+            ApplicationLog::withActionCanonical('UpsertSymbolIndicatorValuesJob.CandleFetchFailed')
+                ->withDescription("Failed to fetch candle data for symbol: {$symbol->token}")
+                ->withReturnData(['symbol' => $symbol->token, 'error' => $response->body()])
+                ->withSymbolId($symbol->id)  // Use 'symbol_id'
+                ->withBlock($this->logBlock)
+                ->saveLog();
+
             throw new NidavellirException(
                 title: 'Failed to fetch candle data from Taapi.io for symbol: '.$symbol->token,
                 additionalData: ['symbol' => $symbol->token],
@@ -187,9 +203,6 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
         }
     }
 
-    /**
-     * Updates the symbol with the fetched indicator data.
-     */
     private function updateIndicators(Symbol $symbol, $indicator, $data)
     {
         if ($indicator === 'bbands') {
@@ -201,7 +214,6 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
         } elseif ($indicator === 'macd') {
             $this->updateMACD($symbol, $data);
         } else {
-            // Generic update for indicators like ATR.
             $value = $data['value'] ?? null;
             if ($value !== null) {
                 $column = $this->getIndicatorColumnName($indicator);
@@ -210,7 +222,6 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
         }
     }
 
-    // Updates the symbol with RSI data.
     private function updateRSI(Symbol $symbol, $data)
     {
         $rsi = $data['value'] ?? null;
@@ -222,7 +233,6 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
         }
     }
 
-    // Updates the symbol with Bollinger Bands data.
     private function updateBollingerBands(Symbol $symbol, $data)
     {
         $upperBand = $data['valueUpperBand'] ?? null;
@@ -237,7 +247,6 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
         ]);
     }
 
-    // Updates the symbol with Stochastic indicator data.
     private function updateStochastic(Symbol $symbol, $data)
     {
         $valueK = $data['valueK'] ?? null;
@@ -250,7 +259,6 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
         ]);
     }
 
-    // Updates the symbol with MACD indicator data.
     private function updateMACD(Symbol $symbol, $data)
     {
         $macd = $data['valueMACD'] ?? null;
@@ -265,9 +273,6 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
         ]);
     }
 
-    /**
-     * Returns the database column name for a given indicator.
-     */
     private function getIndicatorColumnName($indicator)
     {
         $mapping = [

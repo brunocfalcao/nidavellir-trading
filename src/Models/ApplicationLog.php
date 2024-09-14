@@ -13,24 +13,16 @@ use Nidavellir\Trading\Abstracts\AbstractModel;
  *     ->withReturnValue('Success')
  *     ->withReturnData(['order_id' => $order->id])
  *     ->withComments('Created via checkout flow')
- *     ->withLoggable($order)  // Polymorphic relationship (e.g., Order)
+ *     ->withTraderId($trader->id)  // Example usage for logging trader ID
+ *     ->withSymbolId($symbol->id)  // Example usage for logging symbol ID
  *     ->saveLog();
  */
 class ApplicationLog extends AbstractModel
 {
-    // Casting debug_backtrace as array
     protected $casts = [
-        'debug_backtrace' => 'array',  // Automatically cast to array when retrieving/saving
+        'debug_backtrace' => 'array',
         'return_data' => 'array',
     ];
-
-    /**
-     * Polymorphic relationship: An ApplicationLog can belong to any model.
-     */
-    public function loggable()
-    {
-        return $this->morphTo();
-    }
 
     /**
      * Magic method to handle dynamic setters like withActionCanonical(), withDescription(), etc.
@@ -41,22 +33,12 @@ class ApplicationLog extends AbstractModel
      */
     public function __call($method, $parameters)
     {
-        // Check if the method starts with 'with'
         if (strpos($method, 'with') === 0) {
             // Convert 'withSomething' to 'something'
             $attribute = lcfirst(substr($method, 4));
 
-            // Convert camelCase to snake_case (e.g., actionCanonical -> action_canonical)
+            // Convert camelCase to snake_case (e.g., traderId -> trader_id)
             $attribute = Str::snake($attribute);
-
-            // Handle the loggable (polymorphic) relationship separately
-            if ($attribute === 'loggable' && isset($parameters[0])) {
-                $loggable = $parameters[0];
-                $this->loggable_id = $loggable->id;
-                $this->loggable_type = get_class($loggable);
-
-                return $this;
-            }
 
             // Dynamically set the attribute on the model
             $this->{$attribute} = $parameters[0] ?? null;
@@ -64,7 +46,6 @@ class ApplicationLog extends AbstractModel
             return $this;
         }
 
-        // If method is not dynamic, fall back to parent behavior
         return parent::__call($method, $parameters);
     }
 
@@ -75,12 +56,10 @@ class ApplicationLog extends AbstractModel
      */
     public function saveLog()
     {
-        // Automatically add debug backtrace if it's not set
         if (! isset($this->debug_backtrace)) {
             $this->debug_backtrace = debug_backtrace();
         }
 
-        // Save the current instance
         $this->save();
 
         return $this;

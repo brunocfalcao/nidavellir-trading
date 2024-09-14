@@ -16,7 +16,7 @@ use Nidavellir\Trading\Abstracts\AbstractModel;
 class Symbol extends AbstractModel
 {
     protected $casts = [
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
     ];
 
     public function exchanges()

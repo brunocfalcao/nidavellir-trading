@@ -15,10 +15,15 @@ use Throwable;
 class NidavellirException extends Exception
 {
     protected $attributes;
+
     protected $loggable;
+
     protected $originalException;
+
     protected $primaryFile;
+
     protected $primaryLine;
+
     protected $title;
 
     /**
@@ -73,6 +78,7 @@ class NidavellirException extends Exception
             $primaryValue = $loggable->getKey();
             $attributes[$primaryKey] = $primaryValue;
         }
+
         return $attributes;
     }
 
@@ -81,9 +87,10 @@ class NidavellirException extends Exception
         $traceLog = [];
         foreach (array_slice($trace, 0, 10) as $index => $frame) {
             if (isset($frame['file'], $frame['line'])) {
-                $traceLog[] = "#{$index} " . basename($frame['file']) . ":{$frame['line']}";
+                $traceLog[] = "#{$index} ".basename($frame['file']).":{$frame['line']}";
             }
         }
+
         return $traceLog;
     }
 

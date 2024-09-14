@@ -15,11 +15,16 @@ return new class extends Migration
         Schema::create('application_logs', function (Blueprint $table) {
             $table->id();
 
-            $table->string('loggable_type')
-                ->nullable();
+            $table->string('block')
+                ->nullable()
+                ->comment('Block that groups a full application log task activities');
 
-            $table->unsignedBigInteger('loggable_id')
-                ->nullable();
+            $table->foreignId('trader_id')->nullable();
+            $table->foreignId('exchange_id')->nullable();
+            $table->foreignId('exchange_symbol_id')->nullable();
+            $table->foreignId('symbol_id')->nullable();
+            $table->foreignId('position_id')->nullable();
+            $table->foreignId('order_id')->nullable();
 
             $table->string('action_canonical')
                 ->nullable();
@@ -152,8 +157,8 @@ return new class extends Migration
                 ->comment('E.g.: ETH');
 
             $table->boolean('is_active')
-                  ->default(true)
-                  ->comment('Master status that will define if a symbol is globally active or not');
+                ->default(true)
+                ->comment('Master status that will define if a symbol is globally active or not');
 
             $table->string('website')
                 ->nullable()

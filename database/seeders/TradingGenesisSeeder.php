@@ -4,18 +4,18 @@ namespace Nidavellir\Trading\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Bus;
+use Nidavellir\Trading\Jobs\Symbols\UpsertEligibleSymbolsJob;
+use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolMetadataJob;
+use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsJob;
+use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsRankingJob;
+use Nidavellir\Trading\Jobs\System\Binance\UpsertExchangeAvailableSymbolsJob;
+use Nidavellir\Trading\Jobs\System\Binance\UpsertNotionalAndLeverageJob;
+use Nidavellir\Trading\Jobs\System\DisableSymbolsFromConfigJob;
+use Nidavellir\Trading\Jobs\System\Taapi\UpsertSymbolIndicatorValuesJob;
+use Nidavellir\Trading\Jobs\System\UpsertFearGreedIndexJob;
+use Nidavellir\Trading\Models\Exchange;
 use Nidavellir\Trading\Models\System;
 use Nidavellir\Trading\Models\Trader;
-use Nidavellir\Trading\Models\Exchange;
-use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsJob;
-use Nidavellir\Trading\Jobs\System\UpsertFearGreedIndexJob;
-use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolMetadataJob;
-use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsRankingJob;
-use Nidavellir\Trading\Jobs\Symbols\UpsertEligibleSymbolsJob;
-use Nidavellir\Trading\Jobs\System\DisableSymbolsFromConfigJob;
-use Nidavellir\Trading\Jobs\System\Binance\UpsertNotionalAndLeverageJob;
-use Nidavellir\Trading\Jobs\System\Taapi\UpsertSymbolIndicatorValuesJob;
-use Nidavellir\Trading\Jobs\System\Binance\UpsertExchangeAvailableSymbolsJob;
 
 class TradingGenesisSeeder extends Seeder
 {
@@ -57,11 +57,11 @@ class TradingGenesisSeeder extends Seeder
             new UpsertSymbolMetadataJob,
             new UpsertSymbolsRankingJob,
 
-            // Globally disable symbols from the config file.
-            new DisableSymbolsFromConfigJob,
-
             // Exchange-based jobs (Binance)
             new UpsertExchangeAvailableSymbolsJob,
+
+            // Globally disable symbols from the config file.
+            new DisableSymbolsFromConfigJob,
 
             // Upsert notional and leverage data.
             new UpsertNotionalAndLeverageJob,
