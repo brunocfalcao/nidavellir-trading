@@ -151,6 +151,10 @@ return new class extends Migration
             $table->string('token')
                 ->comment('E.g.: ETH');
 
+            $table->boolean('is_active')
+                  ->default(true)
+                  ->comment('Master status that will define if a symbol is globally active or not');
+
             $table->string('website')
                 ->nullable()
                 ->comment('Token website');

@@ -25,6 +25,9 @@ class UpsertSymbolsJob implements ShouldQueue
 {
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    // Job timeout extended since we have +10.000 tokens to sync.
+    public $timeout = 180;
+
     // Limit for fetching symbols from the API.
     private ?int $limit;
 
@@ -53,7 +56,10 @@ class UpsertSymbolsJob implements ShouldQueue
             );
 
             // Set API options including the limit for the number of symbols to fetch.
-            $api->withOptions(['limit' => $this->limit]);
+
+            if ($this->limit) {
+                $api->withOptions(['limit' => $this->limit]);
+            }
 
             // Fetch the symbol data from the CoinMarketCap API.
             $data = $api->getSymbols();

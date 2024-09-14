@@ -5,6 +5,7 @@ namespace Nidavellir\Trading\Jobs\Tests;
 use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\Exceptions\OrderNotSyncedException;
 use Nidavellir\Trading\Models\Position;
+use Nidavellir\Trading\NidavellirException;
 use Throwable;
 
 /**
@@ -75,9 +76,11 @@ class HardcodeMarketOrderJob extends AbstractJob
                 'api_order_id' => rand(1582606909, 1882606909), // Random ID for testing.
             ]);
         } catch (Throwable $e) {
-            // Throw an OrderNotSyncedException if something goes wrong.
-            throw new OrderNotSyncedException(
-                message: $e->getMessage()
+            // Throw a NidavellirException instead of OrderNotSyncedException.
+            throw new NidavellirException(
+                originalException: $e,
+                loggable: $this->order,
+                additionalData: ['position_id' => $this->positionId]
             );
         }
     }

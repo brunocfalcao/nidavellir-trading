@@ -23,6 +23,9 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    // Job timeout extended since we have +10.000 tokens to sync.
+    public $timeout = 180;
+
     // Base endpoint for the Taapi API.
     private $taapiEndpoint = 'https://api.taapi.io';
 
@@ -83,9 +86,10 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
     private function fetchOldestSymbols()
     {
         return Symbol::where('rank', '<=', $this->maxRank)
-            ->orderBy('updated_at', 'asc')
-            ->limit($this->constructLimit)
-            ->get();
+                     ->where('is_active', true)
+                     ->orderBy('updated_at', 'asc')
+                     ->limit($this->constructLimit)
+                     ->get();
     }
 
     /**
@@ -116,9 +120,6 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
                 // Parse the response and update the indicators.
                 $responseData = $response->json();
                 $this->updateIndicators($symbol, $indicator, $responseData);
-
-                // Log the token and the indicator values.
-                \Log::info("Token: {$symbol->token}, Indicator: {$indicator}, Values: ".json_encode($responseData));
             } else {
                 // Throw an exception if the API call fails.
                 throw new NidavellirException(
@@ -165,8 +166,6 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
                     'price_amplitude' => $priceAmplitudePercentage,
                     'updated_at' => Carbon::now(),
                 ]);
-
-                \Log::info("Token: {$symbol->token}, Price Amplitude Percentage: {$priceAmplitudePercentage}%");
             }
         } else {
             // Throw an exception if the API call fails.

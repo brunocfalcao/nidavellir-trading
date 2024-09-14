@@ -28,6 +28,9 @@ class UpsertEligibleSymbolsJob implements ShouldQueue
 {
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    // Job timeout extended since we have +10.000 tokens to sync.
+    public $timeout = 180;
+
     public function __construct()
     {
         // Constructor left empty for now.

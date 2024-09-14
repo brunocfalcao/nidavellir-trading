@@ -26,6 +26,9 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    // Job timeout extended since we have +10.000 tokens to sync.
+    public $timeout = 180;
+
     // API wrapper for interacting with Binance API.
     public ExchangeRESTWrapper $wrapper;
 
@@ -153,13 +156,6 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
                         // If it exists, update the existing record.
                         $exchangeSymbol->update($symbolData);
                     }
-                } else {
-                    // Throw an exception if the symbol is not found.
-                    throw new NidavellirException(
-                        title: 'Symbol not found for token: '.$token,
-                        additionalData: ['token' => $token, 'symbolData' => $data],
-                        loggable: $exchange
-                    );
                 }
             } catch (Throwable $e) {
                 // Throw an exception if there is an error while syncing a symbol.

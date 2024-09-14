@@ -24,6 +24,9 @@ class UpsertSymbolsRankingJob implements ShouldQueue
 {
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    // Job timeout extended since we have +10.000 tokens to sync.
+    public $timeout = 180;
+
     /**
      * Constructor for the job. Currently, it doesn't require
      * any specific initialization.

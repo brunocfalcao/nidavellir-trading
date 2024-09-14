@@ -28,6 +28,9 @@ class UpsertSymbolMetadataJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    // Job timeout extended since we have +10.000 tokens to sync.
+    public $timeout = 180;
+
     /**
      * Handle the job to upsert symbol metadata.
      *
@@ -49,14 +52,6 @@ class UpsertSymbolMetadataJob implements ShouldQueue
                 ->orWhereNull('description')
                 ->pluck('coinmarketcap_id')
                 ->toArray();
-
-            // If no symbols are found, throw an exception.
-            if (empty($symbols)) {
-                throw new NidavellirException(
-                    title: 'No symbols with missing metadata found.',
-                    additionalData: []
-                );
-            }
 
             // Process symbols in chunks to avoid large requests (up to 100 symbols per chunk).
             foreach (array_chunk($symbols, 100) as $chunk) {

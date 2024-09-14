@@ -4,17 +4,18 @@ namespace Nidavellir\Trading\Commands\System;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
-use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
-use Nidavellir\Trading\Jobs\Symbols\UpsertEligibleSymbolsJob;
-use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsRankingJob;
-use Nidavellir\Trading\Jobs\System\Taapi\UpsertSymbolIndicatorValuesJob;
-use Nidavellir\Trading\Jobs\Tests\HardcodeMarketOrderJob;
-use Nidavellir\Trading\Models\Position;
+use Nidavellir\Trading\Nidavellir;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Models\Trader;
-use Nidavellir\Trading\Nidavellir;
+use Illuminate\Support\Facades\Storage;
+use Nidavellir\Trading\Models\Position;
+use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
+use Nidavellir\Trading\Jobs\Tests\HardcodeMarketOrderJob;
+use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
+use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsRankingJob;
+use Nidavellir\Trading\Jobs\Symbols\UpsertEligibleSymbolsJob;
+use Nidavellir\Trading\Jobs\System\Binance\UpsertNotionalAndLeverageJob;
+use Nidavellir\Trading\Jobs\System\Taapi\UpsertSymbolIndicatorValuesJob;
 
 class TestCommand extends Command
 {
@@ -29,12 +30,13 @@ class TestCommand extends Command
 
     public function handle()
     {
+        //UpsertNotionalAndLeverageJob::dispatchSync();
 
         //UpsertEligibleSymbolsJob::dispatchSync();
 
-        UpsertSymbolsRankingJob::dispatchSync();
+        //UpsertSymbolsRankingJob::dispatchSync();
 
-        // UpsertSymbolIndicatorValuesJob::dispatchSync(5);
+        UpsertSymbolIndicatorValuesJob::dispatchSync();
 
         //$this->getNotionalAndLeverageBrackets();
         //HardcodeMarketOrderJob::dispatchSync(Position::find(1)->id);
@@ -53,7 +55,7 @@ class TestCommand extends Command
             )
         ))->mapper;
 
-        dd($mapper->getLeverageBrackets()[0]);
+        dd($mapper->getLeverageBrackets());
     }
 
     private function queryOpenOrders()
