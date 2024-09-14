@@ -121,10 +121,17 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
                 $responseData = $response->json();
                 $this->updateIndicators($symbol, $indicator, $responseData);
             } else {
+                // Capture the error response from Taapi.io
+                $errorMessage = $response->body(); // Get the full error response body
+
                 // Throw an exception if the API call fails.
                 throw new NidavellirException(
-                    title: 'Failed to fetch indicator from Taapi.io for symbol: '.$symbol->token,
-                    additionalData: ['symbol' => $symbol->token, 'indicator' => $indicator],
+                    title: 'Failed to fetch indicator from Taapi.io for symbol: ' . $symbol->token,
+                    additionalData: [
+                        'symbol' => $symbol->token,
+                        'indicator' => $indicator,
+                        'api_error' => $errorMessage
+                    ],
                     loggable: $symbol
                 );
             }
@@ -133,7 +140,7 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
 
     /**
      * Fetches candle data for a symbol and updates the
-     * price amplitude percentage.
+     * price amplitude and other candle values.
      */
     private function fetchAndUpdateCandle(Symbol $symbol)
     {
@@ -145,7 +152,8 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
             'secret' => $this->taapiApiKey,
             'exchange' => 'binance',
             'symbol' => $symbol->token.'/USDT',
-            'interval' => '1d', // Daily interval
+            'interval' => '1d',
+            'backtrack' => 1,
         ];
 
         // Send the request to Taapi.io.
@@ -157,13 +165,15 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
             $high = $data['high'] ?? null;
             $low = $data['low'] ?? null;
 
-            // Calculate and update price amplitude if data is valid.
+            // Calculate and update price amplitude and intraday values if data is valid.
             if ($high !== null && $low !== null && $low > 0) {
                 $priceAmplitudePercentage = (($high - $low) / $low) * 100;
 
-                // Update the symbol with the calculated price amplitude.
+                // Update the symbol with the calculated price amplitude and intraday high/low.
                 $symbol->update([
-                    'price_amplitude' => $priceAmplitudePercentage,
+                    'price_amplitude_highest' => $high,
+                    'price_amplitude_lowest' => $low,
+                    'price_amplitude_percentage' => $priceAmplitudePercentage,
                     'updated_at' => Carbon::now(),
                 ]);
             }

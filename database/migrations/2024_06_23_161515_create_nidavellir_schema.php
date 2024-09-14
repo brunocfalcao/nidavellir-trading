@@ -210,7 +210,13 @@ return new class extends Migration
                 ->nullable()
                 ->comment('MACD Histogram value for the symbol');
 
-            $table->decimal('price_amplitude', 10, 4)
+            $table->decimal('price_amplitude_highest', 10, 4)
+                ->nullable();
+
+            $table->decimal('price_amplitude_lowest', 10, 4)
+                ->nullable();
+
+            $table->decimal('price_amplitude_percentage', 10, 4)
                 ->nullable()
                 ->comment('Price amplitude percentage (high - low / low * 100) for the symbol on the day');
 
