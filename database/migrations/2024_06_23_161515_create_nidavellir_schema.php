@@ -46,11 +46,11 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('loggable_id')->nullable();
             $table->string('loggable_type')->nullable();
-            $table->longText('title');
-            $table->longText('error_message');
-            $table->string('exception_class');
-            $table->string('file');
-            $table->integer('line');
+            $table->longText('title')->nullable();
+            $table->longText('error_message')->nullable();
+            $table->string('exception_class')->nullable();
+            $table->string('file')->nullable();
+            $table->integer('line')->nullable();
             $table->json('attributes')->nullable();
             $table->longText('trace')->nullable();
             $table->timestamps();
