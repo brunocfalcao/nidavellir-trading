@@ -7,12 +7,10 @@ use Nidavellir\Trading\Models\ExceptionsLog;
 use Throwable;
 
 /**
- *
  * NidavellirException class for handling and logging exceptions
  * with additional model-specific data in the system's custom
  * ExceptionsLog model. It captures the file, line, and trace
  * details.
- *
  */
 class NidavellirException extends Exception
 {
@@ -32,14 +30,12 @@ class NidavellirException extends Exception
     protected $primaryLine;
 
     /**
-     *
      * Constructor to initialize NidavellirException.
      *
      * This constructor handles the initialization of the
      * exception. It captures relevant file and line details,
      * merges the loggable model's attributes with additional
      * data, and logs the exception.
-     *
      */
     public function __construct(
         ?Throwable $originalException = null,
@@ -81,13 +77,11 @@ class NidavellirException extends Exception
     }
 
     /**
-     *
      * Captures the file and line where the exception occurred.
      *
      * This method extracts the file and line information
      * from the exception trace, or from the current exception
      * if no original exception exists.
-     *
      */
     protected function capturePrimaryFileAndLine()
     {
@@ -108,12 +102,10 @@ class NidavellirException extends Exception
     }
 
     /**
-     *
      * Retrieves model attributes for logging.
      *
      * This method extracts key attributes from the loggable
      * model, such as its primary key, to include in the log entry.
-     *
      */
     protected function getModelAttributes($loggable)
     {
@@ -130,13 +122,11 @@ class NidavellirException extends Exception
     }
 
     /**
-     *
      * Formats the title to wrap at 80 characters.
      *
      * This method ensures the exception title is formatted
      * for better readability when logged, splitting it into
      * multiple lines if necessary.
-     *
      */
     protected function formatTitle($title)
     {
@@ -144,13 +134,11 @@ class NidavellirException extends Exception
     }
 
     /**
-     *
      * Processes and formats the stack trace for logging.
      *
      * This method processes the trace and formats it into a
      * list of entries. It extracts the file and line from
      * each frame, limiting the trace log to 10 entries.
-     *
      */
     protected function processTrace($trace)
     {
@@ -176,13 +164,11 @@ class NidavellirException extends Exception
     }
 
     /**
-     *
      * Logs the exception details to the system log.
      *
      * This method constructs a log message containing the
      * exception details, including the title, file, line,
      * and trace information, and logs it.
-     *
      */
     public function report()
     {
@@ -210,13 +196,11 @@ class NidavellirException extends Exception
     }
 
     /**
-     *
      * Logs the exception into the `exceptions_logs` table.
      *
      * This method inserts a new log entry into the `exceptions_logs`
      * table with details about the exception, including the title,
      * message, file, line, attributes, and trace information.
-     *
      */
     public function logException()
     {
@@ -249,13 +233,11 @@ class NidavellirException extends Exception
     }
 
     /**
-     *
      * Static method to log and handle fallback exceptions.
      *
      * This method handles uncaught exceptions by logging the
      * exception details and halting execution. It is useful
      * for handling unexpected errors.
-     *
      */
     public static function throwFallbackException(Throwable $e)
     {

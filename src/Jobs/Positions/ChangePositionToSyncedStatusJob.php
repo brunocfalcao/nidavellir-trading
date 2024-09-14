@@ -3,36 +3,30 @@
 namespace Nidavellir\Trading\Jobs\Positions;
 
 use Nidavellir\Trading\Abstracts\AbstractJob;
-use Nidavellir\Trading\Exceptions\NidavellirException;
 use Nidavellir\Trading\Models\Position;
+use Nidavellir\Trading\NidavellirException;
 use Throwable;
 
 /**
- * Class: ChangePositionToSyncedStatusJob
+ * ChangePositionToSyncedStatusJob updates the status of a
+ * trading position to "synced" after all necessary operations
+ * on the position have been successfully completed.
  *
- * This class updates the status of a trading position to "synced"
- * after all the necessary operations on the position have been
- * successfully completed.
- *
- * Important points:
  * - Updates the position status to 'synced'.
  * - If an error occurs, updates the status to 'error' and
  *   throws a custom exception.
  */
 class ChangePositionToSyncedStatusJob extends AbstractJob
 {
-    /**
-     * @var int The ID of the position to update.
-     */
+    // The ID of the position to update.
     public int $positionId;
 
     /**
      * Constructor to initialize the position ID.
-     *
-     * @param  int  $positionId  The ID of the position to update.
      */
     public function __construct(int $positionId)
     {
+        // Set the position ID.
         $this->positionId = $positionId;
     }
 
@@ -42,17 +36,11 @@ class ChangePositionToSyncedStatusJob extends AbstractJob
     public function handle()
     {
         try {
-            /**
-             * Find the position by its ID and update its
-             * status to 'synced'.
-             */
+            // Find the position by its ID and update its status to 'synced'.
             $position = Position::findOrFail($this->positionId);
             $position->update(['status' => 'synced']);
         } catch (Throwable $e) {
-            /**
-             * If an error occurs, update the status to 'error'
-             * and throw a custom exception with relevant details.
-             */
+            // If an error occurs, update the status to 'error' and throw a custom exception.
             $position->update(['status' => 'error']);
             throw new NidavellirException(
                 originalException: $e,

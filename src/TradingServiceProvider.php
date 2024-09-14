@@ -15,27 +15,23 @@ use Nidavellir\Trading\Listeners\Positions\PositionCreatedListener;
 use Nidavellir\Trading\Listeners\Traders\LoggedInListener;
 
 /**
- *
  * TradingServiceProvider
  *
  * This class serves as the service provider for
  * the Nidavellir Trading system. It handles
  * registration of commands, events, and
  * migrations for the trading system.
- *
  */
 class TradingServiceProvider extends ServiceProvider
 {
     use HasAutoLoaders;
 
     /**
-     *
      * Register method.
      *
      * This method is used to register services or bindings
      * into the container. Currently, no bindings are
      * registered in this service provider.
-     *
      */
     public function register()
     {
@@ -43,14 +39,12 @@ class TradingServiceProvider extends ServiceProvider
     }
 
     /**
-     *
      * Boot method.
      *
      * This method is executed when the service provider
      * is booted. It loads migrations, autoloads policies,
      * observers, global scopes, and registers commands
      * and events.
-     *
      */
     public function boot()
     {
@@ -64,13 +58,11 @@ class TradingServiceProvider extends ServiceProvider
     }
 
     /**
-     *
      * Register Events.
      *
      * This method registers all the event listeners
      * used within the trading system. It listens for
      * position, order, and user login events.
-     *
      */
     protected function registerEvents()
     {
@@ -94,14 +86,12 @@ class TradingServiceProvider extends ServiceProvider
     }
 
     /**
-     *
      * Load Commands.
      *
      * This method registers all the artisan commands
      * available within the trading system. These commands
      * include the test command and the command to upsert
      * Binance mark prices.
-     *
      */
     protected function loadCommands()
     {

@@ -4,42 +4,37 @@ namespace Nidavellir\Trading\Jobs\Positions;
 
 use Illuminate\Support\Facades\Bus;
 use Nidavellir\Trading\Abstracts\AbstractJob;
-use Nidavellir\Trading\Exceptions\NidavellirException;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
-use Nidavellir\Trading\Jobs\Tests\HardcodeMarketOrderJob;
 use Nidavellir\Trading\Models\ApplicationLog;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Nidavellir;
+use Nidavellir\Trading\NidavellirException;
 use Throwable;
 
 /**
- * Class: DispatchPositionJob
+ * DispatchPositionJob manages the dispatching of positions
+ * in a trading system. It validates mandatory fields, selects
+ * eligible symbols, calculates the total trade amount, and
+ * dispatches the orders linked to the position.
  *
- * This class is responsible for managing the dispatching of
- * positions in a trading system. It validates mandatory
- * fields, selects eligible symbols, calculates the total
- * trade amount, and dispatches the orders linked to the
- * position.
- *
- * Important points:
  * - Handles errors through custom exceptions.
  * - Retrieves and sets the mark price, leverage, and symbol.
  * - Manages and sequences order dispatching through a chain.
  */
 class DispatchPositionJob extends AbstractJob
 {
+    // Holds the position being dispatched.
     public Position $position;
 
     /**
      * Constructor for the job.
-     *
-     * @param  int  $positionId  The ID of the position to dispatch.
      */
     public function __construct(int $positionId)
     {
+        // Find the position based on the given ID.
         $this->position = Position::find($positionId);
     }
 
@@ -50,9 +45,7 @@ class DispatchPositionJob extends AbstractJob
     public function handle()
     {
         try {
-            /**
-             * Log the start of the position dispatch process.
-             */
+            // Log the start of the position dispatch process.
             ApplicationLog::withActionCanonical('Position.Dispatch')
                 ->withDescription('Job started')
                 ->withLoggable($this->position)
@@ -65,16 +58,12 @@ class DispatchPositionJob extends AbstractJob
             $this->setLeverage();
             $this->setLeverageOnToken();
 
-            /**
-             * Fetch and set the mark price if it has not been set.
-             */
+            // Fetch and set the mark price if it has not been set.
             if (blank($this->position->initial_mark_price)) {
                 $this->fetchAndSetMarkPrice();
             }
 
-            /**
-             * Log key information about the position.
-             */
+            // Log key information about the position.
             info_multiple(
                 '=== POSITION ID '.$this->position->id,
                 'Initial Mark Price: '.$this->position->initial_mark_price,
@@ -86,15 +75,10 @@ class DispatchPositionJob extends AbstractJob
                 ' '
             );
 
-            /**
-             * Dispatch the orders associated with the position.
-             */
+            // Dispatch the orders associated with the position.
             $this->dispatchOrders($this->position);
         } catch (Throwable $e) {
-            /**
-             * Catch any errors and throw a custom exception for
-             * synchronization failures.
-             */
+            // Handle any errors and throw a custom exception.
             throw new NidavellirException(
                 originalException: $e,
                 title: 'Error during dispatching position ID: '.$this->position->id,
@@ -197,16 +181,12 @@ class DispatchPositionJob extends AbstractJob
                 new BinanceRESTMapper(credentials: Nidavellir::getSystemCredentials('binance'))
             );
 
-            /**
-             * Fetch leverage information based on the symbol.
-             */
+            // Fetch leverage information based on the symbol.
             $leverageData = $this->position
                                  ->exchangeSymbol
                                  ->api_notional_and_leverage_symbol_information;
 
-            /**
-             * Determine the maximum leverage available.
-             */
+            // Determine the maximum leverage available.
             $possibleLeverage = Nidavellir::getMaximumLeverage(
                 $leverageData,
                 $this->position->exchangeSymbol->symbol->token.'USDT',
@@ -259,31 +239,14 @@ class DispatchPositionJob extends AbstractJob
             fn ($limitOrder) => new DispatchOrderJob($limitOrder->id)
         )->toArray();
 
-        /**
-         * Dispatch orders in a specific sequence, starting
-         * with limit orders, followed by market and profit orders.
-         */
+        // Dispatch orders in a specific sequence, starting with limit orders.
         Bus::chain([
-            // Limit orders.
             Bus::batch($limitJobs),
-
-            // Market order.
-            //new DispatchOrderJob($marketOrder->id),
-
-            // Hardcoding the market order to simulate the profit.
-            //new HardcodeMarketOrderJob($this->position->id),
-
-            // Profit order.
-            //new DispatchOrderJob($profitOrder->id),
-
-            //new ChangePositionToSyncedStatusJob($this->position->id),
         ])->dispatch();
     }
 
     /**
      * Update the position status to error if any issue occurs.
-     *
-     * @param  string  $message  The error message to log.
      */
     private function updatePositionError(string $message)
     {

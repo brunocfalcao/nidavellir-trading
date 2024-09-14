@@ -4,23 +4,33 @@ namespace Nidavellir\Trading;
 
 use Monolog\Formatter\LineFormatter;
 
+/**
+ * CustomLogFormatter is responsible for customizing the
+ * Monolog logger's output format to match Laravel's default
+ * timestamp format and other specific log formatting needs.
+ */
 class CustomLogFormatter
 {
     /**
-     * Customize the Monolog instance.
-     *
-     * @param  \Monolog\Logger  $logger
-     * @return void
+     * Customizes the Monolog instance by setting a custom
+     * formatter on all handlers. This ensures that the
+     * logger outputs messages with the desired format
+     * and timestamp.
      */
     public function __invoke($logger)
     {
+        // Iterate over each handler of the logger.
         foreach ($logger->getHandlers() as $handler) {
-            // Define the format, ensuring to match the default Laravel timestamp format
+            // Define the output format to include timestamp, channel, level, and message.
             $output = "[%datetime%] %channel%.%level_name%: %message%\n";
-            $dateFormat = 'Y-m-d H:i:s'; // Laravel's default timestamp format
 
-            // Customize the formatter with the defined date format
+            // Set the date format to match Laravel's default timestamp format.
+            $dateFormat = 'Y-m-d H:i:s';
+
+            // Customize the formatter with the defined date and output format.
             $formatter = new LineFormatter($output, $dateFormat, true, true);
+
+            // Apply the customized formatter to the handler.
             $handler->setFormatter($formatter);
         }
     }
