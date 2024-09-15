@@ -3,6 +3,7 @@
 namespace Nidavellir\Trading\Jobs\Positions;
 
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Str;
 use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
@@ -12,7 +13,6 @@ use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Nidavellir;
 use Nidavellir\Trading\NidavellirException;
-use Illuminate\Support\Str;
 use Throwable;
 
 /**
@@ -25,6 +25,7 @@ class DispatchPositionJob extends AbstractJob
 {
     // Holds the position being dispatched.
     public Position $position;
+
     private $logBlock;
 
     /**
@@ -119,11 +120,13 @@ class DispatchPositionJob extends AbstractJob
 
             if ($availableBalance == 0) {
                 $this->updatePositionError('No USDT on Futures available balance.');
+
                 return;
             }
 
             if ($availableBalance < $minimumTradeAmount) {
                 $this->updatePositionError("Less than {$minimumTradeAmount} USDT on Futures available balance (current: {$availableBalance}).");
+
                 return;
             }
 

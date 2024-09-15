@@ -7,13 +7,13 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Str;
 use Nidavellir\Trading\Exchanges\CoinmarketCap\CoinmarketCapRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
-use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Models\ApplicationLog;
+use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Nidavellir;
 use Nidavellir\Trading\NidavellirException;
-use Illuminate\Support\Str;
 use Throwable;
 
 /**
@@ -31,6 +31,7 @@ class UpsertSymbolMetadataJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $timeout = 180;
+
     private $logBlock;
 
     /**

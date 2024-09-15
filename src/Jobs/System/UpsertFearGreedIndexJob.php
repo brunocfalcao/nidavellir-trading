@@ -9,10 +9,10 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
-use Nidavellir\Trading\Models\System;
-use Nidavellir\Trading\Models\ApplicationLog;
-use Nidavellir\Trading\NidavellirException;
 use Illuminate\Support\Str;
+use Nidavellir\Trading\Models\ApplicationLog;
+use Nidavellir\Trading\Models\System;
+use Nidavellir\Trading\NidavellirException;
 
 /**
  * UpsertFearGreedIndexJob handles fetching the Fear and Greed

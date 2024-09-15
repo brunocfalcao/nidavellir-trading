@@ -9,11 +9,11 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Str;
+use Nidavellir\Trading\Models\ApplicationLog;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Symbol;
-use Nidavellir\Trading\Models\ApplicationLog;
 use Nidavellir\Trading\NidavellirException;
-use Illuminate\Support\Str;
 
 /**
  * DisableSymbolsFromConfigJob is responsible for disabling
@@ -66,7 +66,7 @@ class DisableSymbolsFromConfigJob implements ShouldQueue
                 ->saveLog();
 
             // If there are excluded symbols, update them to inactive.
-            if (!empty($excludedSymbols)) {
+            if (! empty($excludedSymbols)) {
                 // Disable the symbols in the `symbols` table.
                 Symbol::whereIn('token', $excludedSymbols)
                     ->update(['is_active' => false]);

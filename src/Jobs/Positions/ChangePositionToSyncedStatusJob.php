@@ -2,11 +2,11 @@
 
 namespace Nidavellir\Trading\Jobs\Positions;
 
+use Illuminate\Support\Str;
 use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\Models\ApplicationLog;
 use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\NidavellirException;
-use Illuminate\Support\Str;
 use Throwable;
 
 /**
@@ -22,6 +22,7 @@ class ChangePositionToSyncedStatusJob extends AbstractJob
 {
     // The ID of the position to update.
     public int $positionId;
+
     private $logBlock;
 
     /**

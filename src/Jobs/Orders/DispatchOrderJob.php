@@ -30,7 +30,9 @@ class DispatchOrderJob extends AbstractJob
 {
     // Constants for different order types: Market, Limit, and Profit.
     public const ORDER_TYPE_MARKET = 'MARKET';
+
     public const ORDER_TYPE_LIMIT = 'LIMIT';
+
     public const ORDER_TYPE_PROFIT = 'PROFIT';
 
     // Holds the order being dispatched.
@@ -299,14 +301,14 @@ class DispatchOrderJob extends AbstractJob
     {
         // Build the API order data for a Market order.
         $this->orderData = [
-            'newClientOrderId' => 'Trader:' . $this->trader .
-                '-Exchange:' . $this->exchange->id .
-                '-Position:' . $this->position->id .
-                '-Order:' . $this->order->id,
+            'newClientOrderId' => 'Trader:'.$this->trader.
+                '-Exchange:'.$this->exchange->id.
+                '-Position:'.$this->position->id.
+                '-Order:'.$this->order->id,
             'side' => strtoupper($sideDetails['orderSide']),
             'type' => 'MARKET',
             'quantity' => $orderQuantity,
-            'symbol' => $this->symbol->token . 'USDT',
+            'symbol' => $this->symbol->token.'USDT',
         ];
 
         // Dispatch the order via the trader's API.
@@ -348,11 +350,11 @@ class DispatchOrderJob extends AbstractJob
             'side' => strtoupper($sideDetails['orderSide']),
             'type' => 'LIMIT',
             'quantity' => $orderQuantity,
-            'newClientOrderId' => 'Trader:' . $this->trader .
-                '-Exchange:' . $this->exchangeSymbol->exchange->id .
-                '-Position:' . $this->order->position->id .
-                '-Order:' . $this->order->id,
-            'symbol' => $this->exchangeSymbol->symbol->token . 'USDT',
+            'newClientOrderId' => 'Trader:'.$this->trader.
+                '-Exchange:'.$this->exchangeSymbol->exchange->id.
+                '-Position:'.$this->order->position->id.
+                '-Order:'.$this->order->id,
+            'symbol' => $this->exchangeSymbol->symbol->token.'USDT',
             'price' => $orderPrice,
         ];
 
@@ -441,16 +443,16 @@ class DispatchOrderJob extends AbstractJob
 
         // Optionally, you can keep the original info_multiple logging if needed.
         info_multiple(
-            '=== ORDER ID ' . $this->order->id,
-            'Type: ' . $this->order->type,
-            'Token: ' . $this->symbol->token,
-            'Total Trade Amount: ' . $this->position->total_trade_amount,
-            'Token Price: ' . round($this->position->initial_mark_price, $this->exchangeSymbol->precision_price),
-            'Amount Divider: ' . $this->order->amount_divider,
-            'Ratio: ' . $this->order->price_ratio_percentage,
-            'Order Price: ' . $orderPrice,
-            'Order Quantity: ' . $orderQuantity,
-            'Order Amount (USDT): ' . ($orderQuantity * $orderPrice),
+            '=== ORDER ID '.$this->order->id,
+            'Type: '.$this->order->type,
+            'Token: '.$this->symbol->token,
+            'Total Trade Amount: '.$this->position->total_trade_amount,
+            'Token Price: '.round($this->position->initial_mark_price, $this->exchangeSymbol->precision_price),
+            'Amount Divider: '.$this->order->amount_divider,
+            'Ratio: '.$this->order->price_ratio_percentage,
+            'Order Price: '.$orderPrice,
+            'Order Quantity: '.$orderQuantity,
+            'Order Amount (USDT): '.($orderQuantity * $orderPrice),
             '===',
             ' '
         );

@@ -9,10 +9,10 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
-use Nidavellir\Trading\Models\Symbol;
-use Nidavellir\Trading\Models\ApplicationLog;
-use Nidavellir\Trading\NidavellirException;
 use Illuminate\Support\Str;
+use Nidavellir\Trading\Models\ApplicationLog;
+use Nidavellir\Trading\Models\Symbol;
+use Nidavellir\Trading\NidavellirException;
 
 /**
  * UpsertSymbolIndicatorValuesJob fetches indicator values and
@@ -28,9 +28,13 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
     public $timeout = 180;
 
     private $taapiEndpoint = 'https://api.taapi.io';
+
     private $taapiApiKey;
+
     private $constructLimit;
+
     private $maxRank;
+
     private $logBlock;
 
     public function __construct()
@@ -62,6 +66,7 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
                     ->withDescription('No symbols found for update')
                     ->withBlock($this->logBlock)
                     ->saveLog();
+
                 return;
             }
 
@@ -84,7 +89,7 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
 
             throw new NidavellirException(
                 originalException: $e,
-                title: 'Error occurred while updating indicators or candles for symbol: ' . ($symbols->first()->token ?? 'Unknown Symbol'),
+                title: 'Error occurred while updating indicators or candles for symbol: '.($symbols->first()->token ?? 'Unknown Symbol'),
                 loggable: $symbols->first()
             );
         }
@@ -108,7 +113,7 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
             $params = [
                 'secret' => $this->taapiApiKey,
                 'exchange' => 'binance',
-                'symbol' => $symbol->token . '/USDT',
+                'symbol' => $symbol->token.'/USDT',
                 'interval' => '1d',
             ];
 
@@ -135,7 +140,7 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
                     ->saveLog();
 
                 throw new NidavellirException(
-                    title: 'Failed to fetch indicator from Taapi.io for symbol: ' . $symbol->token,
+                    title: 'Failed to fetch indicator from Taapi.io for symbol: '.$symbol->token,
                     additionalData: [
                         'symbol' => $symbol->token,
                         'indicator' => $indicator,
@@ -153,7 +158,7 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
         $params = [
             'secret' => $this->taapiApiKey,
             'exchange' => 'binance',
-            'symbol' => $symbol->token . '/USDT',
+            'symbol' => $symbol->token.'/USDT',
             'interval' => '1d',
             'backtrack' => 1,
         ];
@@ -191,7 +196,7 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
                 ->saveLog();
 
             throw new NidavellirException(
-                title: 'Failed to fetch candle data from Taapi.io for symbol: ' . $symbol->token,
+                title: 'Failed to fetch candle data from Taapi.io for symbol: '.$symbol->token,
                 additionalData: ['symbol' => $symbol->token],
                 loggable: $symbol
             );
