@@ -76,7 +76,6 @@ class UpsertFearGreedIndexJob implements ShouldQueue
                         ApplicationLog::withActionCanonical('UpsertFearGreedIndexJob.UpdateSystem')
                             ->withDescription('Updated system with new Fear and Greed Index')
                             ->withReturnData(['index_value' => $fearGreedIndex])
-                            ->withSystemId($system->id)
                             ->withBlock($this->logBlock)
                             ->saveLog();
                     } else {
@@ -90,7 +89,6 @@ class UpsertFearGreedIndexJob implements ShouldQueue
                         ApplicationLog::withActionCanonical('UpsertFearGreedIndexJob.CreateSystem')
                             ->withDescription('Created new system entry with Fear and Greed Index')
                             ->withReturnData(['index_value' => $fearGreedIndex])
-                            ->withSystemId($system->id)
                             ->withBlock($this->logBlock)
                             ->saveLog();
                     }
