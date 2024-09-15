@@ -9,7 +9,6 @@ use Nidavellir\Trading\Models\IpRequestWeight;
 class IpBalancer
 {
     protected $exchange;
-
     protected $weightLimit;
 
     public function __construct(Exchange $exchange)
@@ -90,7 +89,7 @@ class IpBalancer
         }
 
         // Return the IP with the least weight
-        if (! empty($ipWeights)) {
+        if (!empty($ipWeights)) {
             asort($ipWeights); // Sort by weight
             $selectedIp = array_key_first($ipWeights); // Return the IP with the least weight
 
@@ -111,39 +110,62 @@ class IpBalancer
         throw new NidavellirException('All IPs have exceeded the rate limit for this exchange.');
     }
 
-    // Backoff logic
+    // Backoff logic: Increase the weight temporarily when the rate limit is hit
     public function backOffIp($ip)
     {
         $ipRecord = IpRequestWeight::where('exchange_id', $this->exchange->id)
             ->where('ip_address', $ip)
-            ->first();
+            ->firstOrFail(); // Ensure that the IP exists
 
-        // Set the IP's weight to a high value to exclude it temporarily
-        $ipRecord->update([
-            'current_weight' => 9999,
-            'last_reset_at' => now(),
-        ]);
+        // Increase the current weight to exclude it temporarily
+        $ipRecord->current_weight += 100; // Arbitrary increase for backoff
+        $ipRecord->save();
 
         // Log the IP backoff
         ApplicationLog::withActionCanonical('ipbalancer.ip_backoff')
             ->withDescription('IP backoff applied')
-            ->withReturnData(['ip' => $ip])
+            ->withReturnData(['ip' => $ip, 'new_weight' => $ipRecord->current_weight])
             ->saveLog();
     }
 
-    // New method to update weight
     public function updateWeightWithExactValue($ip, $weight)
     {
-        // Update or create the IP request weight in the database
-        IpRequestWeight::updateOrCreate(
+        // Retrieve the existing record for the IP or create a new one if it doesn't exist
+        $ipRecord = IpRequestWeight::firstOrCreate(
             ['exchange_id' => $this->exchange->id, 'ip_address' => $ip],
-            ['current_weight' => $weight]
+            ['current_weight' => 0] // Initialize current_weight to 0 if it's a new record
         );
+
+        // Get the max requests per minute from the config
+        $rateLimitPerMinute = config('nidavellir.system.api.params.binance.weight_limit'); // Adjust the config path if needed
+
+        // Get the current time and last updated time
+        $lastUpdatedAt = $ipRecord->updated_at;
+        $currentTime = now();
+
+        // Reset the weight if the current request is in a different minute than the last update
+        if ($lastUpdatedAt->format('Y-m-d H:i') !== $currentTime->format('Y-m-d H:i')) {
+            $ipRecord->current_weight = $weight;  // Reset to the current weight
+        } else {
+            // Otherwise, sum the weight with the existing value
+            $ipRecord->current_weight += $weight;
+
+            // Optional: If the weight exceeds the rate limit, you can log it or take action
+            if ($ipRecord->current_weight > $rateLimitPerMinute) {
+                ApplicationLog::withActionCanonical('ipbalancer.rate_limit_warning')
+                ->withDescription('Rate limit exceeded for IP')
+                ->withReturnData(['ip' => $ip, 'current_weight' => $ipRecord->current_weight])
+                ->saveLog();
+            }
+        }
+
+        // Save the updated record (updated_at will be automatically set)
+        $ipRecord->save();
 
         // Log the weight update
         ApplicationLog::withActionCanonical('ipbalancer.weight_updated')
-            ->withDescription('IP weight updated successfully')
-            ->withReturnData(['ip' => $ip, 'weight' => $weight])
-            ->saveLog();
+        ->withDescription('IP weight updated successfully')
+        ->withReturnData(['ip' => $ip, 'new_total_weight' => $ipRecord->current_weight])
+        ->saveLog();
     }
 }
