@@ -12,6 +12,54 @@ return new class extends Migration
      */
     public function up(): void
     {
+        Schema::create('exchanges', function (Blueprint $table) {
+            $table->id();
+
+            $table->string('name')
+                ->comment('Exchange commerical name');
+
+            $table->string('canonical')
+                ->nullable()
+                ->comment('Unique natural identifier');
+
+            $table->string('full_qualified_class_name_rest')
+                ->nullable()
+                ->comment('E.g: Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper');
+
+            $table->string('full_qualified_class_name_websocket')
+                ->nullable()
+                ->comment('E.g: Nidavellir\Trading\Exchanges\Binance\BinanceWebsocketMapper');
+
+            $table->string('futures_url_rest_prefix')
+                ->nullable();
+
+            $table->string('futures_url_websockets_prefix')
+                ->nullable();
+
+            $table->string('generic_url_prefix')
+                ->nullable()
+                ->comment('Used for fallback cases, like for coinmarketcap calls');
+
+            $table->timestamps();
+        });
+
+        Schema::create('ip_request_weights', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('exchange_id');
+            $table->string('ip_address');
+            $table->integer('current_weight')->default(0);
+            $table->timestamp('last_reset_at')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('endpoint_weights', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('exchange_id');
+            $table->string('endpoint');
+            $table->integer('weight')->default(1); // Default weight
+            $table->timestamps();
+        });
+
         Schema::create('application_logs', function (Blueprint $table) {
             $table->id();
 
@@ -109,37 +157,6 @@ return new class extends Migration
 
             $table->unsignedTinyInteger('fear_greed_index_threshold')
                 ->comment('F&G threshold to change from bearish trading configuration to bullish trading configuration, or vice-versa');
-
-            $table->timestamps();
-        });
-
-        Schema::create('exchanges', function (Blueprint $table) {
-            $table->id();
-
-            $table->string('name')
-                ->comment('Exchange commerical name');
-
-            $table->string('canonical')
-                ->nullable()
-                ->comment('Unique natural identifier');
-
-            $table->string('full_qualified_class_name_rest')
-                ->nullable()
-                ->comment('E.g: Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper');
-
-            $table->string('full_qualified_class_name_websocket')
-                ->nullable()
-                ->comment('E.g: Nidavellir\Trading\Exchanges\Binance\BinanceWebsocketMapper');
-
-            $table->string('futures_url_rest_prefix')
-                ->nullable();
-
-            $table->string('futures_url_websockets_prefix')
-                ->nullable();
-
-            $table->string('generic_url_prefix')
-                ->nullable()
-                ->comment('Used for fallback cases, like for coinmarketcap calls');
 
             $table->timestamps();
         });

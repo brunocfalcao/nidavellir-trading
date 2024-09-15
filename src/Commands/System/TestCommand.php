@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Storage;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Jobs\Symbols\UpsertEligibleSymbolsJob;
+use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolMetadataJob;
 use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsRankingJob;
 use Nidavellir\Trading\Jobs\System\Binance\UpsertNotionalAndLeverageJob;
 use Nidavellir\Trading\Jobs\System\Taapi\UpsertSymbolIndicatorValuesJob;
@@ -30,13 +31,15 @@ class TestCommand extends Command
 
     public function handle()
     {
-        //UpsertNotionalAndLeverageJob::dispatchSync();
+        //UpsertSymbolMetadataJob::dispatchSync();
+
+        UpsertNotionalAndLeverageJob::dispatchSync();
 
         //UpsertEligibleSymbolsJob::dispatchSync();
 
         //UpsertSymbolsRankingJob::dispatchSync();
 
-        UpsertSymbolIndicatorValuesJob::dispatchSync();
+        //UpsertSymbolIndicatorValuesJob::dispatchSync();
 
         //$this->getNotionalAndLeverageBrackets();
         //HardcodeMarketOrderJob::dispatchSync(Position::find(1)->id);

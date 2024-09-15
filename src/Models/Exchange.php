@@ -15,6 +15,16 @@ use Nidavellir\Trading\Abstracts\AbstractModel;
  */
 class Exchange extends AbstractModel
 {
+    public function ipRequestWeights()
+    {
+        return $this->hasMany(IpRequestWeight::class);
+    }
+
+    public function endpointWeights()
+    {
+        return $this->hasMany(EndpointWeight::class);
+    }
+
     public function symbols()
     {
         return $this->belongsToMany(Symbol::class);

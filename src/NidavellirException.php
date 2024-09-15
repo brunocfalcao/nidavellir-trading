@@ -35,11 +35,6 @@ class NidavellirException extends Exception
         array $additionalData = [],
         ?string $title = null
     ) {
-        // If already a NidavellirException, do not wrap again
-        if ($originalException instanceof NidavellirException) {
-            throw $originalException;
-        }
-
         if (! $originalException && ! $title) {
             throw new \InvalidArgumentException(
                 'A title must be provided if no exception is passed.'
@@ -119,12 +114,18 @@ class NidavellirException extends Exception
 
     protected function logToSystem()
     {
+        if ($this->originalException) {
+            $errorMessage = $this->originalException->getMessage();
+        } else {
+            $errorMessage = '( Empty message from Exception )';
+        }
+
         $traceLog = $this->processTrace($this->originalException ? $this->originalException->getTrace() : $this->getTrace());
         $logMessage = implode("\n", [
             "\n",
             '========= '.class_basename(static::class).' =========',
             'Title        : '.$this->formatTitle($this->title),
-            'Error Message: '.$this->getMessage(),
+            'Exception Message: '.wordwrap($errorMessage, 80, "\n               "),
             "File         : {$this->primaryFile} [{$this->primaryLine}]",
             'Trace        :',
             implode("\n", $traceLog),

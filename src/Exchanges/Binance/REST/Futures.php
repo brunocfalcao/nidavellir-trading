@@ -2,19 +2,16 @@
 
 namespace Nidavellir\Trading\Exchanges\Binance\REST;
 
-use Binance\APIClient;
+use Nidavellir\Trading\Exchanges\Binance\BinanceAPIClient;
 
-class Futures extends APIClient
+class Futures extends BinanceAPIClient
 {
-    use Account;
-    use Market;
-    use Trade;
+    use Account,
+        Market,
+        Trade;
 
     public function __construct(array $args = [])
     {
-        $args['baseURL'] = $args['url'];
-        $args['key'] = $args['key'];
-        $args['secret'] = $args['secret'];
         parent::__construct($args);
     }
 }

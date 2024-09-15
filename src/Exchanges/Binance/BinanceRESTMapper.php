@@ -29,9 +29,10 @@ class BinanceRESTMapper extends AbstractMapper
     public function connectionDetails()
     {
         return [
-            'url' => $this->exchange()->futures_url_rest_prefix,
+            'baseURL' => $this->exchange()->futures_url_rest_prefix,
             'secret' => $this->credentials['secret_key'],
             'key' => $this->credentials['api_key'],
+            'exchange' => $this->exchange(),
         ];
     }
 

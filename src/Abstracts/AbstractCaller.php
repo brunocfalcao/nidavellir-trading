@@ -2,8 +2,8 @@
 
 namespace Nidavellir\Trading\Abstracts;
 
-use Nidavellir\Trading\Exceptions\ApiCallException;
 use Nidavellir\Trading\Models\ApiLog;
+use Nidavellir\Trading\NidavellirException;
 
 abstract class AbstractCaller
 {
@@ -45,9 +45,11 @@ abstract class AbstractCaller
             ]);
 
             if (! $this->throwSilently) {
-                throw new ApiCallException(
-                    $e,
-                    $apiLog
+                throw new NidavellirException(
+                    originalException: $e,
+                    loggable: $apiLog, // Use the ApiLog model as loggable
+                    title: 'API Call Exception',
+                    additionalData: ['result' => serialize($this->result)]
                 );
             }
         } finally {
