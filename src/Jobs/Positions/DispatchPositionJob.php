@@ -12,6 +12,7 @@ use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Nidavellir;
 use Nidavellir\Trading\NidavellirException;
+use Illuminate\Support\Str;
 use Throwable;
 
 /**
@@ -19,38 +20,34 @@ use Throwable;
  * in a trading system. It validates mandatory fields, selects
  * eligible symbols, calculates the total trade amount, and
  * dispatches the orders linked to the position.
- *
- * - Handles errors through custom exceptions.
- * - Retrieves and sets the mark price, leverage, and symbol.
- * - Manages and sequences order dispatching through a chain.
  */
 class DispatchPositionJob extends AbstractJob
 {
     // Holds the position being dispatched.
     public Position $position;
+    private $logBlock;
 
     /**
      * Constructor for the job.
      */
     public function __construct(int $positionId)
     {
-        // Find the position based on the given ID.
         $this->position = Position::find($positionId);
+        $this->logBlock = Str::uuid();
     }
 
     /**
-     * Main handler for the job. It validates the position,
-     * processes its settings, and dispatches the related orders.
+     * Main handler for the job.
      */
     public function handle()
     {
-        try {
-            // Log the start of the position dispatch process.
-            ApplicationLog::withActionCanonical('Position.Dispatch')
-                ->withDescription('Job started')
-                ->withLoggable($this->position)
-                ->saveLog();
+        ApplicationLog::withActionCanonical('Position.Dispatch.Start')
+            ->withDescription('Dispatch position job started')
+            ->withLoggable($this->position)
+            ->withBlock($this->logBlock)
+            ->saveLog();
 
+        try {
             $this->validateMandatoryFields();
             $this->computeTotalTradeAmount();
             $this->selectEligibleSymbol();
@@ -58,12 +55,10 @@ class DispatchPositionJob extends AbstractJob
             $this->setLeverage();
             $this->setLeverageOnToken();
 
-            // Fetch and set the mark price if it has not been set.
             if (blank($this->position->initial_mark_price)) {
                 $this->fetchAndSetMarkPrice();
             }
 
-            // Log key information about the position.
             info_multiple(
                 '=== POSITION ID '.$this->position->id,
                 'Initial Mark Price: '.$this->position->initial_mark_price,
@@ -75,10 +70,21 @@ class DispatchPositionJob extends AbstractJob
                 ' '
             );
 
-            // Dispatch the orders associated with the position.
             $this->dispatchOrders($this->position);
+
+            ApplicationLog::withActionCanonical('Position.Dispatch.End')
+                ->withDescription('Dispatch position job completed successfully')
+                ->withLoggable($this->position)
+                ->withBlock($this->logBlock)
+                ->saveLog();
         } catch (Throwable $e) {
-            // Handle any errors and throw a custom exception.
+            ApplicationLog::withActionCanonical('Position.Dispatch.Error')
+                ->withDescription('Error occurred during position dispatch')
+                ->withReturnData(['error' => $e->getMessage()])
+                ->withLoggable($this->position)
+                ->withBlock($this->logBlock)
+                ->saveLog();
+
             throw new NidavellirException(
                 originalException: $e,
                 title: 'Error during dispatching position ID: '.$this->position->id,
@@ -87,9 +93,6 @@ class DispatchPositionJob extends AbstractJob
         }
     }
 
-    /**
-     * Validate that the position has all the necessary fields.
-     */
     private function validateMandatoryFields()
     {
         if (blank($this->position->trader_id) ||
@@ -102,31 +105,25 @@ class DispatchPositionJob extends AbstractJob
         }
     }
 
-    /**
-     * Calculate the total trade amount for the position.
-     */
     private function computeTotalTradeAmount()
     {
         $configuration = $this->position->trade_configuration;
 
         if (blank($this->position->total_trade_amount)) {
-            $availableBalance =
-                $this->position->trader
-                    ->withRESTApi()
-                    ->withPosition($this->position)
-                    ->getAccountBalance();
+            $availableBalance = $this->position->trader
+                ->withRESTApi()
+                ->withPosition($this->position)
+                ->getAccountBalance();
 
             $minimumTradeAmount = config('nidavellir.positions.minimum_trade_amount');
 
             if ($availableBalance == 0) {
                 $this->updatePositionError('No USDT on Futures available balance.');
-
                 return;
             }
 
             if ($availableBalance < $minimumTradeAmount) {
                 $this->updatePositionError("Less than {$minimumTradeAmount} USDT on Futures available balance (current: {$availableBalance}).");
-
                 return;
             }
 
@@ -134,12 +131,16 @@ class DispatchPositionJob extends AbstractJob
             $totalTradeAmount = round(floor($availableBalance * $maxPercentageTradeAmount / 100));
 
             $this->position->update(['total_trade_amount' => $totalTradeAmount]);
+
+            ApplicationLog::withActionCanonical('Position.Dispatch.TradeAmountComputed')
+                ->withDescription('Total trade amount computed')
+                ->withReturnData(['total_trade_amount' => $totalTradeAmount])
+                ->withLoggable($this->position)
+                ->withBlock($this->logBlock)
+                ->saveLog();
         }
     }
 
-    /**
-     * Select a random eligible symbol for the position.
-     */
     private function selectEligibleSymbol()
     {
         if (blank($this->position->exchange_symbol_id)) {
@@ -156,37 +157,41 @@ class DispatchPositionJob extends AbstractJob
 
             $exchangeSymbol = $eligibleSymbols->random();
             $this->position->update(['exchange_symbol_id' => $exchangeSymbol->id]);
+
+            ApplicationLog::withActionCanonical('Position.Dispatch.SymbolSelected')
+                ->withDescription('Eligible symbol selected for the position')
+                ->withReturnData(['symbol_token' => $exchangeSymbol->symbol->token])
+                ->withLoggable($this->position)
+                ->withBlock($this->logBlock)
+                ->saveLog();
         }
     }
 
-    /**
-     * Update the position's side (buy/sell).
-     */
     private function updatePositionSide()
     {
         $this->position->update([
             'side' => $this->position->trade_configuration['positions']['current_side'],
         ]);
+
+        ApplicationLog::withActionCanonical('Position.Dispatch.SideUpdated')
+            ->withDescription('Position side updated')
+            ->withReturnData(['side' => $this->position->side])
+            ->withLoggable($this->position)
+            ->withBlock($this->logBlock)
+            ->saveLog();
     }
 
-    /**
-     * Set the leverage for the position.
-     */
     private function setLeverage()
     {
-        $configuration = $this->position->trade_configuration;
-
         if (blank($this->position->leverage)) {
             $wrapper = new ExchangeRESTWrapper(
                 new BinanceRESTMapper(credentials: Nidavellir::getSystemCredentials('binance'))
             );
 
-            // Fetch leverage information based on the symbol.
             $leverageData = $this->position
-                                 ->exchangeSymbol
-                                 ->api_notional_and_leverage_symbol_information;
+                ->exchangeSymbol
+                ->api_notional_and_leverage_symbol_information;
 
-            // Determine the maximum leverage available.
             $possibleLeverage = Nidavellir::getMaximumLeverage(
                 $leverageData,
                 $this->position->exchangeSymbol->symbol->token.'USDT',
@@ -195,12 +200,16 @@ class DispatchPositionJob extends AbstractJob
 
             $leverage = min(config('nidavellir.positions.planned_leverage'), $possibleLeverage);
             $this->position->update(['leverage' => $leverage]);
+
+            ApplicationLog::withActionCanonical('Position.Dispatch.LeverageSet')
+                ->withDescription('Leverage set for the position')
+                ->withReturnData(['leverage' => $leverage])
+                ->withLoggable($this->position)
+                ->withBlock($this->logBlock)
+                ->saveLog();
         }
     }
 
-    /**
-     * Set the leverage for the token on the exchange.
-     */
     private function setLeverageOnToken()
     {
         $this->position->trader
@@ -209,11 +218,14 @@ class DispatchPositionJob extends AbstractJob
             ->withExchangeSymbol($this->position->exchangeSymbol)
             ->withOptions(['symbol' => $this->position->exchangeSymbol->symbol->token.'USDT', 'leverage' => $this->position->leverage])
             ->setDefaultLeverage();
+
+        ApplicationLog::withActionCanonical('Position.Dispatch.LeverageOnTokenSet')
+            ->withDescription('Leverage set on token for the position')
+            ->withLoggable($this->position)
+            ->withBlock($this->logBlock)
+            ->saveLog();
     }
 
-    /**
-     * Fetch and set the initial mark price for the position.
-     */
     private function fetchAndSetMarkPrice()
     {
         $markPrice = round($this->position->trader
@@ -224,11 +236,15 @@ class DispatchPositionJob extends AbstractJob
             ->getMarkPrice(), $this->position->exchangeSymbol->precision_price);
 
         $this->position->update(['initial_mark_price' => $markPrice]);
+
+        ApplicationLog::withActionCanonical('Position.Dispatch.MarkPriceSet')
+            ->withDescription('Initial mark price set for the position')
+            ->withReturnData(['mark_price' => $markPrice])
+            ->withLoggable($this->position)
+            ->withBlock($this->logBlock)
+            ->saveLog();
     }
 
-    /**
-     * Dispatch the orders linked to the position.
-     */
     private function dispatchOrders()
     {
         $marketOrder = $this->position->orders->firstWhere('type', 'MARKET');
@@ -239,17 +255,26 @@ class DispatchPositionJob extends AbstractJob
             fn ($limitOrder) => new DispatchOrderJob($limitOrder->id)
         )->toArray();
 
-        // Dispatch orders in a specific sequence, starting with limit orders.
         Bus::chain([
             Bus::batch($limitJobs),
         ])->dispatch();
+
+        ApplicationLog::withActionCanonical('Position.Dispatch.OrdersDispatched')
+            ->withDescription('Position orders dispatched')
+            ->withLoggable($this->position)
+            ->withBlock($this->logBlock)
+            ->saveLog();
     }
 
-    /**
-     * Update the position status to error if any issue occurs.
-     */
     private function updatePositionError(string $message)
     {
         $this->position->update(['status' => 'error', 'comments' => $message]);
+
+        ApplicationLog::withActionCanonical('Position.Dispatch.Error')
+            ->withDescription('Position marked as error')
+            ->withReturnData(['error_message' => $message])
+            ->withLoggable($this->position)
+            ->withBlock($this->logBlock)
+            ->saveLog();
     }
 }

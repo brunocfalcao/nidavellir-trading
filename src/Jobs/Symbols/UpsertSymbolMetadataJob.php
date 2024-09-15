@@ -10,8 +10,10 @@ use Illuminate\Queue\SerializesModels;
 use Nidavellir\Trading\Exchanges\CoinmarketCap\CoinmarketCapRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Symbol;
+use Nidavellir\Trading\Models\ApplicationLog;
 use Nidavellir\Trading\Nidavellir;
 use Nidavellir\Trading\NidavellirException;
+use Illuminate\Support\Str;
 use Throwable;
 
 /**
@@ -28,8 +30,16 @@ class UpsertSymbolMetadataJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    // Job timeout extended since we have +10.000 tokens to sync.
     public $timeout = 180;
+    private $logBlock;
+
+    /**
+     * Constructor for generating a UUID block for logging.
+     */
+    public function __construct()
+    {
+        $this->logBlock = Str::uuid(); // Generate UUID block for log entries
+    }
 
     /**
      * Handle the job to upsert symbol metadata.
@@ -39,6 +49,11 @@ class UpsertSymbolMetadataJob implements ShouldQueue
      */
     public function handle()
     {
+        ApplicationLog::withActionCanonical('UpsertSymbolMetadataJob.Start')
+            ->withDescription('Starting job to upsert symbol metadata')
+            ->withBlock($this->logBlock)
+            ->saveLog();
+
         try {
             // Initialize API wrapper for CoinMarketCap using system credentials.
             $api = new ExchangeRESTWrapper(
@@ -53,6 +68,12 @@ class UpsertSymbolMetadataJob implements ShouldQueue
                 ->pluck('coinmarketcap_id')
                 ->toArray();
 
+            ApplicationLog::withActionCanonical('UpsertSymbolMetadataJob.SymbolsFetched')
+                ->withDescription('Fetched symbols missing metadata')
+                ->withReturnData(['symbols_count' => count($symbols)])
+                ->withBlock($this->logBlock)
+                ->saveLog();
+
             // Process symbols in chunks to avoid large requests (up to 100 symbols per chunk).
             foreach (array_chunk($symbols, 100) as $chunk) {
                 $symbolList = implode(',', $chunk);
@@ -61,8 +82,21 @@ class UpsertSymbolMetadataJob implements ShouldQueue
                 $cryptoDataList = (array) $api->withOptions(['ids' => $symbolList])
                     ->getSymbolsMetadata();
 
+                // Log when processing each chunk.
+                ApplicationLog::withActionCanonical('UpsertSymbolMetadataJob.ProcessingChunk')
+                    ->withDescription('Processing chunk of symbols for metadata')
+                    ->withReturnData(['chunk_size' => count($chunk)])
+                    ->withBlock($this->logBlock)
+                    ->saveLog();
+
                 // Throw an exception if no metadata is returned.
                 if (empty($cryptoDataList)) {
+                    ApplicationLog::withActionCanonical('UpsertSymbolMetadataJob.NoMetadata')
+                        ->withDescription('No metadata returned from API for the chunk')
+                        ->withReturnData(['symbols_chunk' => $chunk])
+                        ->withBlock($this->logBlock)
+                        ->saveLog();
+
                     throw new NidavellirException(
                         title: 'No metadata returned from the API.',
                         additionalData: ['symbols_chunk' => $chunk]
@@ -90,8 +124,25 @@ class UpsertSymbolMetadataJob implements ShouldQueue
                             'description' => $description,
                         ]);
                 }
+
+                ApplicationLog::withActionCanonical('UpsertSymbolMetadataJob.ChunkProcessed')
+                    ->withDescription('Successfully processed metadata for a chunk of symbols')
+                    ->withReturnData(['processed_count' => count($cryptoDataList)])
+                    ->withBlock($this->logBlock)
+                    ->saveLog();
             }
+
+            ApplicationLog::withActionCanonical('UpsertSymbolMetadataJob.End')
+                ->withDescription('Successfully completed symbol metadata upsert job')
+                ->withBlock($this->logBlock)
+                ->saveLog();
         } catch (Throwable $e) {
+            ApplicationLog::withActionCanonical('UpsertSymbolMetadataJob.Error')
+                ->withDescription('Error occurred during symbol metadata upsert')
+                ->withReturnData(['error' => $e->getMessage()])
+                ->withBlock($this->logBlock)
+                ->saveLog();
+
             // Catch any exceptions and rethrow a custom exception.
             throw new NidavellirException(
                 originalException: $e,

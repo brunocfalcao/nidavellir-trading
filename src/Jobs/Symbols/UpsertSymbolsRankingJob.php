@@ -11,8 +11,10 @@ use Illuminate\Queue\SerializesModels;
 use Nidavellir\Trading\Exchanges\CoinmarketCap\CoinmarketCapRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Symbol;
+use Nidavellir\Trading\Models\ApplicationLog;
 use Nidavellir\Trading\Nidavellir;
 use Nidavellir\Trading\NidavellirException;
+use Illuminate\Support\Str;
 use Throwable;
 
 /**
@@ -24,8 +26,9 @@ class UpsertSymbolsRankingJob implements ShouldQueue
 {
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    // Job timeout extended since we have +10.000 tokens to sync.
     public $timeout = 180;
+
+    private $logBlock;
 
     /**
      * Constructor for the job. Currently, it doesn't require
@@ -33,7 +36,7 @@ class UpsertSymbolsRankingJob implements ShouldQueue
      */
     public function __construct()
     {
-        // No specific initialization needed for now.
+        $this->logBlock = Str::uuid(); // Generate UUID block for log entries
     }
 
     /**
@@ -42,6 +45,11 @@ class UpsertSymbolsRankingJob implements ShouldQueue
      */
     public function handle()
     {
+        ApplicationLog::withActionCanonical('UpsertSymbolsRankingJob.Start')
+            ->withDescription('Starting job to update symbol rankings from CoinMarketCap')
+            ->withBlock($this->logBlock)
+            ->saveLog();
+
         try {
             // Initialize the API wrapper using system credentials.
             $api = new ExchangeRESTWrapper(
@@ -52,6 +60,12 @@ class UpsertSymbolsRankingJob implements ShouldQueue
 
             // Fetch the latest symbol rankings from CoinMarketCap API.
             $symbolsRanking = (array) $api->getSymbolsRanking();
+
+            ApplicationLog::withActionCanonical('UpsertSymbolsRankingJob.SymbolsFetched')
+                ->withDescription('Fetched symbols ranking from CoinMarketCap API')
+                ->withReturnData(['symbols_ranking' => array_column($symbolsRanking, 'id')])
+                ->withBlock($this->logBlock)
+                ->saveLog();
 
             // Retrieve all symbols from the database, keyed by their CoinMarketCap ID.
             $symbols = Symbol::all()->keyBy('coinmarketcap_id');
@@ -65,15 +79,31 @@ class UpsertSymbolsRankingJob implements ShouldQueue
                 if (isset($symbols[$coinmarketcapId])) {
                     $symbol = $symbols[$coinmarketcapId];
 
-                    // Update the rank only if it differs from the current rank or is null.
                     if ($symbol->rank != $newRank || is_null($symbol->rank)) {
                         $symbol->rank = $newRank;
                         $symbol->save();
+
+                        ApplicationLog::withActionCanonical('UpsertSymbolsRankingJob.SymbolUpdated')
+                            ->withDescription("Updated rank for symbol: {$symbol->token}")
+                            ->withSymbolId($symbol->id)
+                            ->withReturnData(['coinmarketcap_id' => $coinmarketcapId, 'new_rank' => $newRank])
+                            ->withBlock($this->logBlock)
+                            ->saveLog();
                     }
                 }
             }
+
+            ApplicationLog::withActionCanonical('UpsertSymbolsRankingJob.End')
+                ->withDescription('Successfully completed symbol rank update from CoinMarketCap')
+                ->withBlock($this->logBlock)
+                ->saveLog();
         } catch (Throwable $e) {
-            // If an error occurs, throw a custom exception.
+            ApplicationLog::withActionCanonical('UpsertSymbolsRankingJob.Error')
+                ->withDescription('Error occurred during symbol rank update')
+                ->withReturnData(['error' => $e->getMessage()])
+                ->withBlock($this->logBlock)
+                ->saveLog();
+
             throw new NidavellirException(
                 originalException: $e,
                 title: 'Error occurred while updating symbol ranks',

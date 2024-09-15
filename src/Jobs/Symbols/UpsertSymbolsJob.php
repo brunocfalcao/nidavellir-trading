@@ -11,8 +11,10 @@ use Illuminate\Queue\SerializesModels;
 use Nidavellir\Trading\Exchanges\CoinmarketCap\CoinmarketCapRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Symbol;
+use Nidavellir\Trading\Models\ApplicationLog;
 use Nidavellir\Trading\Nidavellir;
 use Nidavellir\Trading\NidavellirException;
+use Illuminate\Support\Str;
 use Throwable;
 
 /**
@@ -25,11 +27,10 @@ class UpsertSymbolsJob implements ShouldQueue
 {
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    // Job timeout extended since we have +10.000 tokens to sync.
     public $timeout = 180;
 
-    // Limit for fetching symbols from the API.
     private ?int $limit;
+    private $logBlock;
 
     /**
      * Constructor to initialize the job with an optional
@@ -39,6 +40,7 @@ class UpsertSymbolsJob implements ShouldQueue
     {
         // Set the limit for fetching symbols.
         $this->limit = $limit;
+        $this->logBlock = Str::uuid(); // Generate UUID block for log entries
     }
 
     /**
@@ -47,6 +49,12 @@ class UpsertSymbolsJob implements ShouldQueue
      */
     public function handle()
     {
+        ApplicationLog::withActionCanonical('UpsertSymbolsJob.Start')
+            ->withDescription('Starting job to upsert symbols from CoinMarketCap')
+            ->withReturnData(['limit' => $this->limit])
+            ->withBlock($this->logBlock)
+            ->saveLog();
+
         try {
             // Initialize the CoinMarketCap API wrapper using system credentials.
             $api = new ExchangeRESTWrapper(
@@ -56,7 +64,6 @@ class UpsertSymbolsJob implements ShouldQueue
             );
 
             // Set API options including the limit for the number of symbols to fetch.
-
             if ($this->limit) {
                 $api->withOptions(['limit' => $this->limit]);
             }
@@ -64,8 +71,19 @@ class UpsertSymbolsJob implements ShouldQueue
             // Fetch the symbol data from the CoinMarketCap API.
             $data = $api->getSymbols();
 
+            ApplicationLog::withActionCanonical('UpsertSymbolsJob.SymbolsFetched')
+                ->withDescription('Fetched symbols from CoinMarketCap API')
+                ->withReturnData(['fetched_count' => count($data)])
+                ->withBlock($this->logBlock)
+                ->saveLog();
+
             // If no data is returned, throw an exception.
             if (! $data) {
+                ApplicationLog::withActionCanonical('UpsertSymbolsJob.NoSymbolsFetched')
+                    ->withDescription('No symbols fetched from CoinMarketCap API')
+                    ->withBlock($this->logBlock)
+                    ->saveLog();
+
                 throw new NidavellirException(
                     title: 'No symbols fetched from CoinMarketCap API',
                     additionalData: ['limit' => $this->limit]
@@ -77,7 +95,6 @@ class UpsertSymbolsJob implements ShouldQueue
 
             // Iterate through the API data and collect symbol information for upserting.
             foreach ($data as $item) {
-                // Collect symbol data for upsert.
                 $symbolUpdates[] = [
                     'coinmarketcap_id' => $item['id'],
                     'name' => $item['name'],
@@ -92,8 +109,24 @@ class UpsertSymbolsJob implements ShouldQueue
                 ['coinmarketcap_id'],
                 ['name', 'token', 'updated_at']
             );
+
+            ApplicationLog::withActionCanonical('UpsertSymbolsJob.SymbolsUpserted')
+                ->withDescription('Symbols upserted into the database')
+                ->withReturnData(['upserted_count' => count($symbolUpdates)])
+                ->withBlock($this->logBlock)
+                ->saveLog();
+
+            ApplicationLog::withActionCanonical('UpsertSymbolsJob.End')
+                ->withDescription('Successfully completed symbol upsert job')
+                ->withBlock($this->logBlock)
+                ->saveLog();
         } catch (Throwable $e) {
-            // If an error occurs, throw a custom exception.
+            ApplicationLog::withActionCanonical('UpsertSymbolsJob.Error')
+                ->withDescription('Error occurred during symbol upsert')
+                ->withReturnData(['error' => $e->getMessage()])
+                ->withBlock($this->logBlock)
+                ->saveLog();
+
             throw new NidavellirException(
                 originalException: $e,
                 title: 'Error occurred during upsert of symbols',

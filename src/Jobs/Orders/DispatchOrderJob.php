@@ -2,6 +2,7 @@
 
 namespace Nidavellir\Trading\Jobs\Orders;
 
+use Illuminate\Support\Str;
 use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\Models\ApplicationLog;
 use Nidavellir\Trading\Models\Exchange;
@@ -29,9 +30,7 @@ class DispatchOrderJob extends AbstractJob
 {
     // Constants for different order types: Market, Limit, and Profit.
     public const ORDER_TYPE_MARKET = 'MARKET';
-
     public const ORDER_TYPE_LIMIT = 'LIMIT';
-
     public const ORDER_TYPE_PROFIT = 'PROFIT';
 
     // Holds the order being dispatched.
@@ -52,6 +51,9 @@ class DispatchOrderJob extends AbstractJob
     // The cryptocurrency symbol being traded.
     public Symbol $symbol;
 
+    // Log block for grouping log entries.
+    private $logBlock;
+
     /**
      * Initializes the job with the specific order ID.
      * Preloads necessary entities to avoid repeated queries.
@@ -65,6 +67,9 @@ class DispatchOrderJob extends AbstractJob
         $this->exchangeSymbol = $this->order->position->exchangeSymbol;
         $this->symbol = $this->exchangeSymbol->symbol;
         $this->exchange = $this->order->position->trader->exchange;
+
+        // Generate a UUID block for log entries.
+        $this->logBlock = Str::uuid();
     }
 
     /**
@@ -74,13 +79,14 @@ class DispatchOrderJob extends AbstractJob
      */
     public function handle()
     {
-        try {
-            // Log the start of the order dispatch process.
-            ApplicationLog::withActionCanonical('order.dispatch')
-                ->withDescription('Job started')
-                ->withLoggable($this->order)
-                ->saveLog();
+        // Log the start of the order dispatch process.
+        ApplicationLog::withActionCanonical('order.dispatch.start')
+            ->withDescription('Job started')
+            ->withLoggable($this->order)
+            ->withBlock($this->logBlock)
+            ->saveLog();
 
+        try {
             // Retrieve sibling orders excluding the current one.
             $siblings = $this->position->orders->where('id', '<>', $this->order->id);
             $siblingsLimitOnly = $siblings->where('type', self::ORDER_TYPE_LIMIT);
@@ -88,6 +94,15 @@ class DispatchOrderJob extends AbstractJob
             // Handle retries and stop after 3 attempts.
             if ($this->attempts() == 3) {
                 $this->order->update(['status' => 'error']);
+
+                // Log the maximum attempts reached.
+                ApplicationLog::withActionCanonical('order.dispatch.max_attempts')
+                    ->withDescription('Max attempts reached for order dispatching')
+                    ->withReturnData(['order_id' => $this->order->id])
+                    ->withLoggable($this->order)
+                    ->withBlock($this->logBlock)
+                    ->saveLog();
+
                 throw new NidavellirException(
                     title: 'Max attempts: Failed to create order on exchange',
                     additionalData: ['order_id' => $this->order->id],
@@ -97,22 +112,51 @@ class DispatchOrderJob extends AbstractJob
 
             // Stop processing if any sibling orders have errors.
             if ($siblings->contains('status', 'error')) {
+                // Log that sibling orders have errors.
+                ApplicationLog::withActionCanonical('order.dispatch.sibling_error')
+                    ->withDescription('Sibling orders have errors, stopping dispatch')
+                    ->withLoggable($this->order)
+                    ->withBlock($this->logBlock)
+                    ->saveLog();
+
                 return;
             }
 
             // For Market orders, wait for all Limit orders to finish processing.
             if ($this->shouldWaitForLimitOrdersToFinish($siblingsLimitOnly)) {
+                // Log that we're waiting for Limit orders to finish.
+                ApplicationLog::withActionCanonical('order.dispatch.waiting_limit_orders')
+                    ->withDescription('Waiting for Limit orders to finish before dispatching Market order')
+                    ->withLoggable($this->order)
+                    ->withBlock($this->logBlock)
+                    ->saveLog();
+
                 return;
             }
 
             // For Profit orders, wait for other orders to finish.
             if ($this->shouldWaitForAllOrdersExceptProfit($siblings)) {
+                // Log that we're waiting for other orders to finish.
+                ApplicationLog::withActionCanonical('order.dispatch.waiting_other_orders')
+                    ->withDescription('Waiting for other orders to finish before dispatching Profit order')
+                    ->withLoggable($this->order)
+                    ->withBlock($this->logBlock)
+                    ->saveLog();
+
                 return;
             }
 
             // Proceed to process the order.
             $this->processOrder();
         } catch (Throwable $e) {
+            // Log the error that occurred during order dispatching.
+            ApplicationLog::withActionCanonical('order.dispatch.error')
+                ->withDescription('Error occurred during order dispatching')
+                ->withReturnData(['error' => $e->getMessage()])
+                ->withLoggable($this->order)
+                ->withBlock($this->logBlock)
+                ->saveLog();
+
             // Handle any errors and throw a custom exception.
             throw new NidavellirException(
                 originalException: $e,
@@ -163,9 +207,10 @@ class DispatchOrderJob extends AbstractJob
     private function processOrder()
     {
         // Log the start of the order processing.
-        ApplicationLog::withActionCanonical('order.dispatch')
+        ApplicationLog::withActionCanonical('order.dispatch.process_order_start')
             ->withDescription('Process Order started')
             ->withLoggable($this->order)
+            ->withBlock($this->logBlock)
             ->saveLog();
 
         // Get the side of the order (buy/sell).
@@ -174,10 +219,11 @@ class DispatchOrderJob extends AbstractJob
         );
 
         // Log the side details of the order.
-        ApplicationLog::withActionCanonical('order.dispatch')
+        ApplicationLog::withActionCanonical('order.dispatch.side_details')
             ->withDescription('Attribute $sideDetails')
             ->withReturnData($sideDetails)
             ->withLoggable($this->order)
+            ->withBlock($this->logBlock)
             ->saveLog();
 
         // Build the payload for dispatching the order.
@@ -189,10 +235,11 @@ class DispatchOrderJob extends AbstractJob
             ->withOrder($this->order);
 
         // Log the payload details for debugging.
-        ApplicationLog::withActionCanonical('order.dispatch')
+        ApplicationLog::withActionCanonical('order.dispatch.payload')
             ->withDescription('Attribute $payload')
             ->withReturnData($payload)
             ->withLoggable($this->order)
+            ->withBlock($this->logBlock)
             ->saveLog();
 
         // Determine the price and quantity for the order.
@@ -252,14 +299,14 @@ class DispatchOrderJob extends AbstractJob
     {
         // Build the API order data for a Market order.
         $this->orderData = [
-            'newClientOrderId' => 'Trader:'.$this->trader.
-                '-Exchange:'.$this->exchange->id.
-                '-Position:'.$this->position->id.
-                '-Order:'.$this->order->id,
+            'newClientOrderId' => 'Trader:' . $this->trader .
+                '-Exchange:' . $this->exchange->id .
+                '-Position:' . $this->position->id .
+                '-Order:' . $this->order->id,
             'side' => strtoupper($sideDetails['orderSide']),
             'type' => 'MARKET',
             'quantity' => $orderQuantity,
-            'symbol' => $this->symbol->token.'USDT',
+            'symbol' => $this->symbol->token . 'USDT',
         ];
 
         // Dispatch the order via the trader's API.
@@ -274,6 +321,14 @@ class DispatchOrderJob extends AbstractJob
 
         // Update the order with the result from the exchange.
         $this->updateOrderWithExchangeResult($result);
+
+        // Log the successful placement of the Market order.
+        ApplicationLog::withActionCanonical('order.dispatch.market_order_placed')
+            ->withDescription('Market order placed successfully')
+            ->withReturnData($result)
+            ->withLoggable($this->order)
+            ->withBlock($this->logBlock)
+            ->saveLog();
     }
 
     /**
@@ -293,11 +348,11 @@ class DispatchOrderJob extends AbstractJob
             'side' => strtoupper($sideDetails['orderSide']),
             'type' => 'LIMIT',
             'quantity' => $orderQuantity,
-            'newClientOrderId' => 'Trader:'.$this->trader.
-                '-Exchange:'.$this->exchangeSymbol->exchange->id.
-                '-Position:'.$this->order->position->id.
-                '-Order:'.$this->order->id,
-            'symbol' => $this->exchangeSymbol->symbol->token.'USDT',
+            'newClientOrderId' => 'Trader:' . $this->trader .
+                '-Exchange:' . $this->exchangeSymbol->exchange->id .
+                '-Position:' . $this->order->position->id .
+                '-Order:' . $this->order->id,
+            'symbol' => $this->exchangeSymbol->symbol->token . 'USDT',
             'price' => $orderPrice,
         ];
 
@@ -313,6 +368,24 @@ class DispatchOrderJob extends AbstractJob
 
         // Update the order with the result from the exchange.
         $this->updateOrderWithExchangeResult($result);
+
+        // Log the successful placement of the Limit order.
+        ApplicationLog::withActionCanonical('order.dispatch.limit_order_placed')
+            ->withDescription('Limit order placed successfully')
+            ->withReturnData($result)
+            ->withLoggable($this->order)
+            ->withBlock($this->logBlock)
+            ->saveLog();
+    }
+
+    /**
+     * Places a Profit order on the exchange.
+     * Note: Implement this method as per your requirements.
+     */
+    private function placeProfitOrder($orderQuantity, $sideDetails)
+    {
+        // Implement the logic for placing a Profit order.
+        // Add appropriate logging similar to other order types.
     }
 
     /**
@@ -329,6 +402,14 @@ class DispatchOrderJob extends AbstractJob
             'api_result' => $result,
             'status' => 'synced',
         ]);
+
+        // Log the order update with exchange result.
+        ApplicationLog::withActionCanonical('order.dispatch.order_updated')
+            ->withDescription('Order updated with exchange result')
+            ->withReturnData($result)
+            ->withLoggable($this->order)
+            ->withBlock($this->logBlock)
+            ->saveLog();
     }
 
     /**
@@ -337,17 +418,39 @@ class DispatchOrderJob extends AbstractJob
      */
     private function logOrderDetails($orderQuantity, $orderPrice)
     {
+        $details = [
+            'Order ID' => $this->order->id,
+            'Type' => $this->order->type,
+            'Token' => $this->symbol->token,
+            'Total Trade Amount' => $this->position->total_trade_amount,
+            'Token Price' => round($this->position->initial_mark_price, $this->exchangeSymbol->precision_price),
+            'Amount Divider' => $this->order->amount_divider,
+            'Ratio' => $this->order->price_ratio_percentage,
+            'Order Price' => $orderPrice,
+            'Order Quantity' => $orderQuantity,
+            'Order Amount (USDT)' => $orderQuantity * $orderPrice,
+        ];
+
+        // Log the order details.
+        ApplicationLog::withActionCanonical('order.dispatch.order_details')
+            ->withDescription('Order details logged')
+            ->withReturnData($details)
+            ->withLoggable($this->order)
+            ->withBlock($this->logBlock)
+            ->saveLog();
+
+        // Optionally, you can keep the original info_multiple logging if needed.
         info_multiple(
-            '=== ORDER ID '.$this->order->id,
-            'Type: '.$this->order->type,
-            'Token: '.$this->symbol->token,
-            'Total Trade Amount: '.$this->position->total_trade_amount,
-            'Token Price: '.round($this->position->initial_mark_price, $this->exchangeSymbol->precision_price),
-            'Amount Divider: '.$this->order->amount_divider,
-            'Ratio: '.$this->order->price_ratio_percentage,
-            'Order Price: '.$orderPrice,
-            'Order amount: '.$orderQuantity,
-            'Order amount (USDT): '.$orderQuantity * $orderPrice,
+            '=== ORDER ID ' . $this->order->id,
+            'Type: ' . $this->order->type,
+            'Token: ' . $this->symbol->token,
+            'Total Trade Amount: ' . $this->position->total_trade_amount,
+            'Token Price: ' . round($this->position->initial_mark_price, $this->exchangeSymbol->precision_price),
+            'Amount Divider: ' . $this->order->amount_divider,
+            'Ratio: ' . $this->order->price_ratio_percentage,
+            'Order Price: ' . $orderPrice,
+            'Order Quantity: ' . $orderQuantity,
+            'Order Amount (USDT): ' . ($orderQuantity * $orderPrice),
             '===',
             ' '
         );

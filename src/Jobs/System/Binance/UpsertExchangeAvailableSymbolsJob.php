@@ -12,8 +12,10 @@ use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Exchange;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Symbol;
+use Nidavellir\Trading\Models\ApplicationLog;
 use Nidavellir\Trading\Nidavellir;
 use Nidavellir\Trading\NidavellirException;
+use Illuminate\Support\Str;
 use Throwable;
 
 /**
@@ -26,14 +28,11 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    // Job timeout extended since we have +10.000 tokens to sync.
     public $timeout = 180;
 
-    // API wrapper for interacting with Binance API.
     public ExchangeRESTWrapper $wrapper;
-
-    // Array to store the fetched symbols.
     protected array $symbols;
+    private $logBlock;
 
     /**
      * Initializes the job by setting up the API wrapper with
@@ -41,12 +40,13 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
      */
     public function __construct()
     {
-        // Initialize the API wrapper with Binance credentials.
         $this->wrapper = new ExchangeRESTWrapper(
             new BinanceRESTMapper(
                 credentials: Nidavellir::getSystemCredentials('binance')
             )
         );
+
+        $this->logBlock = Str::uuid(); // Generate UUID block for log entries
     }
 
     /**
@@ -56,15 +56,24 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
      */
     public function handle()
     {
+        ApplicationLog::withActionCanonical('UpsertExchangeAvailableSymbolsJob.Start')
+            ->withDescription('Starting job to sync available Binance symbols')
+            ->withBlock($this->logBlock)
+            ->saveLog();
+
         try {
-            // Get the Binance API mapper.
             $mapper = $this->wrapper->mapper;
 
             // Fetch symbols from Binance API.
             $this->symbols = $mapper->getExchangeInformation();
 
+            ApplicationLog::withActionCanonical('UpsertExchangeAvailableSymbolsJob.SymbolsFetched')
+                ->withDescription('Fetched symbols from Binance API')
+                ->withReturnData(['symbols' => array_keys($this->symbols)])
+                ->withBlock($this->logBlock)
+                ->saveLog();
+
             if (empty($this->symbols)) {
-                // Throw an exception if no symbols are fetched.
                 throw new NidavellirException(
                     title: 'No symbols fetched from Binance',
                     additionalData: ['exchange' => 'binance']
@@ -75,7 +84,6 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
             $this->symbols = $this->filterSymbolsWithUSDTMargin();
 
             if (empty($this->symbols)) {
-                // Throw an exception if no USDT margin symbols are found.
                 throw new NidavellirException(
                     title: 'No USDT margin symbols found from Binance data',
                     additionalData: ['exchange' => 'binance']
@@ -84,8 +92,18 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
 
             // Sync or update the exchange symbols in the database.
             $this->syncExchangeSymbols();
+
+            ApplicationLog::withActionCanonical('UpsertExchangeAvailableSymbolsJob.End')
+                ->withDescription('Successfully completed syncing Binance symbols')
+                ->withBlock($this->logBlock)
+                ->saveLog();
         } catch (Throwable $e) {
-            // Handle any errors by raising a custom exception.
+            ApplicationLog::withActionCanonical('UpsertExchangeAvailableSymbolsJob.Error')
+                ->withDescription('Error occurred during syncing Binance symbols')
+                ->withReturnData(['error' => $e->getMessage()])
+                ->withBlock($this->logBlock)
+                ->saveLog();
+
             throw new NidavellirException(
                 originalException: $e,
                 title: 'Error occurred during syncing Binance symbols',
@@ -104,23 +122,17 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
         $exchange = Exchange::firstWhere('canonical', 'binance');
 
         if (! $exchange) {
-            // Throw an exception if the exchange record is not found.
             throw new NidavellirException(
                 title: 'Binance exchange record not found',
                 additionalData: ['exchange' => 'binance']
             );
         }
 
-        // Iterate through each symbol and update or create records in the ExchangeSymbol model.
         foreach ($this->symbols as $symbolToken => $data) {
             try {
-                // Extract token data from the fetched symbol information.
                 $tokenData = $this->extractTokenData($data);
-
-                // Get the base asset (token) from the symbol data.
                 $token = $tokenData['symbol'];
 
-                // Find the corresponding ExchangeSymbol for the token.
                 $exchangeSymbol = ExchangeSymbol::with('symbol')
                     ->whereHas('symbol', function ($query) use ($token) {
                         $query->where('token', $token);
@@ -128,11 +140,9 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
                     ->where('exchange_id', $exchange->id)
                     ->first();
 
-                // Fetch the corresponding Symbol record.
                 $symbol = Symbol::firstWhere('token', $token);
 
                 if ($symbol) {
-                    // Prepare the attributes for updating or creating the symbol data.
                     $symbolData = [
                         'symbol_id' => $symbol->id,
                         'exchange_id' => $exchange->id,
@@ -143,7 +153,6 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
                         'api_symbol_information' => $data,
                     ];
 
-                    // If ExchangeSymbol doesn't exist, create it.
                     if (! $exchangeSymbol) {
                         ExchangeSymbol::updateOrCreate(
                             [
@@ -153,15 +162,28 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
                             $symbolData
                         );
                     } else {
-                        // If it exists, update the existing record.
                         $exchangeSymbol->update($symbolData);
                     }
+
+                    ApplicationLog::withActionCanonical('UpsertExchangeAvailableSymbolsJob.SymbolUpdated')
+                        ->withDescription("Updated symbol: {$token}")
+                        ->withReturnData(['symbol' => $token, 'data' => $symbolData])
+                        ->withSymbolId($symbol->id)
+                        ->withExchangeId($exchange->id)
+                        ->withBlock($this->logBlock)
+                        ->saveLog();
                 }
             } catch (Throwable $e) {
-                // Throw an exception if there is an error while syncing a symbol.
+                ApplicationLog::withActionCanonical('UpsertExchangeAvailableSymbolsJob.SymbolSyncError')
+                    ->withDescription('Error occurred while syncing symbol')
+                    ->withReturnData(['symbol' => $tokenData['symbol'], 'error' => $e->getMessage()])
+                    ->withExchangeId($exchange->id)
+                    ->withBlock($this->logBlock)
+                    ->saveLog();
+
                 throw new NidavellirException(
                     originalException: $e,
-                    title: 'Error occurred while syncing symbol: '.$symbolToken,
+                    title: 'Error occurred while syncing symbol: ' . $symbolToken,
                     additionalData: ['token' => $tokenData['symbol'], 'symbolData' => $data],
                     loggable: $exchange
                 );
@@ -176,7 +198,6 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
      */
     private function extractTokenData($item)
     {
-        // Get tick size from the filters array.
         $tickSize = collect($item['filters'])
             ->firstWhere('filterType', 'PRICE_FILTER')['tickSize'] ?? null;
 
