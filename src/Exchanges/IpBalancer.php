@@ -36,6 +36,7 @@ class IpBalancer
     protected function getFixedIp()
     {
         $ips = config('nidavellir.system.api.ips');
+
         return $ips[0];
     }
 
@@ -75,6 +76,7 @@ class IpBalancer
         // Return the IP with the least weight
         if (! empty($ipWeights)) {
             asort($ipWeights); // Sort by weight
+
             return array_key_first($ipWeights); // Return the IP with the least weight
         }
 
