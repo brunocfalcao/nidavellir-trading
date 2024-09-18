@@ -10,7 +10,6 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Str;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
-use Nidavellir\Trading\Models\ApplicationLog;
 use Nidavellir\Trading\Models\Exchange;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Symbol;
@@ -58,22 +57,11 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
      */
     public function handle()
     {
-        ApplicationLog::withActionCanonical('UpsertExchangeAvailableSymbolsJob.Start')
-            ->withDescription('Starting job to sync available Binance symbols')
-            ->withBlock($this->logBlock)
-            ->saveLog();
-
         try {
             $mapper = $this->wrapper->mapper;
 
             // Fetch symbols from Binance API.
             $this->symbols = $mapper->getExchangeInformation();
-
-            ApplicationLog::withActionCanonical('UpsertExchangeAvailableSymbolsJob.SymbolsFetched')
-                ->withDescription('Fetched symbols from Binance API')
-                ->withReturnData(['symbols' => array_keys($this->symbols)])
-                ->withBlock($this->logBlock)
-                ->saveLog();
 
             if (empty($this->symbols)) {
                 throw new NidavellirException(
@@ -94,18 +82,7 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
 
             // Sync or update the exchange symbols in the database.
             $this->syncExchangeSymbols();
-
-            ApplicationLog::withActionCanonical('UpsertExchangeAvailableSymbolsJob.End')
-                ->withDescription('Successfully completed syncing Binance symbols')
-                ->withBlock($this->logBlock)
-                ->saveLog();
         } catch (Throwable $e) {
-            ApplicationLog::withActionCanonical('UpsertExchangeAvailableSymbolsJob.Error')
-                ->withDescription('Error occurred during syncing Binance symbols')
-                ->withReturnData(['error' => $e->getMessage()])
-                ->withBlock($this->logBlock)
-                ->saveLog();
-
             throw new NidavellirException(
                 originalException: $e,
                 title: 'Error occurred during syncing Binance symbols',
@@ -166,23 +143,8 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
                     } else {
                         $exchangeSymbol->update($symbolData);
                     }
-
-                    ApplicationLog::withActionCanonical('UpsertExchangeAvailableSymbolsJob.SymbolUpdated')
-                        ->withDescription("Updated symbol: {$token}")
-                        ->withReturnData(['symbol' => $token, 'data' => $symbolData])
-                        ->withSymbolId($symbol->id)
-                        ->withExchangeId($exchange->id)
-                        ->withBlock($this->logBlock)
-                        ->saveLog();
                 }
             } catch (Throwable $e) {
-                ApplicationLog::withActionCanonical('UpsertExchangeAvailableSymbolsJob.SymbolSyncError')
-                    ->withDescription('Error occurred while syncing symbol')
-                    ->withReturnData(['symbol' => $tokenData['symbol'], 'error' => $e->getMessage()])
-                    ->withExchangeId($exchange->id)
-                    ->withBlock($this->logBlock)
-                    ->saveLog();
-
                 throw new NidavellirException(
                     originalException: $e,
                     title: 'Error occurred while syncing symbol: '.$symbolToken,

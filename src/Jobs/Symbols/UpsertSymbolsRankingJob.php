@@ -11,7 +11,6 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Str;
 use Nidavellir\Trading\Exchanges\CoinmarketCap\CoinmarketCapRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
-use Nidavellir\Trading\Models\ApplicationLog;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Nidavellir;
 use Nidavellir\Trading\NidavellirException;
@@ -45,11 +44,6 @@ class UpsertSymbolsRankingJob implements ShouldQueue
      */
     public function handle()
     {
-        ApplicationLog::withActionCanonical('UpsertSymbolsRankingJob.Start')
-            ->withDescription('Starting job to update symbol rankings from CoinMarketCap')
-            ->withBlock($this->logBlock)
-            ->saveLog();
-
         try {
             // Initialize the API wrapper using system credentials.
             $api = new ExchangeRESTWrapper(
@@ -60,12 +54,6 @@ class UpsertSymbolsRankingJob implements ShouldQueue
 
             // Fetch the latest symbol rankings from CoinMarketCap API.
             $symbolsRanking = (array) $api->getSymbolsRanking();
-
-            ApplicationLog::withActionCanonical('UpsertSymbolsRankingJob.SymbolsFetched')
-                ->withDescription('Fetched symbols ranking from CoinMarketCap API')
-                ->withReturnData(['symbols_ranking' => array_column($symbolsRanking, 'id')])
-                ->withBlock($this->logBlock)
-                ->saveLog();
 
             // Retrieve all symbols from the database, keyed by their CoinMarketCap ID.
             $symbols = Symbol::all()->keyBy('coinmarketcap_id');
@@ -82,28 +70,10 @@ class UpsertSymbolsRankingJob implements ShouldQueue
                     if ($symbol->rank != $newRank || is_null($symbol->rank)) {
                         $symbol->rank = $newRank;
                         $symbol->save();
-
-                        ApplicationLog::withActionCanonical('UpsertSymbolsRankingJob.SymbolUpdated')
-                            ->withDescription("Updated rank for symbol: {$symbol->token}")
-                            ->withSymbolId($symbol->id)
-                            ->withReturnData(['coinmarketcap_id' => $coinmarketcapId, 'new_rank' => $newRank])
-                            ->withBlock($this->logBlock)
-                            ->saveLog();
                     }
                 }
             }
-
-            ApplicationLog::withActionCanonical('UpsertSymbolsRankingJob.End')
-                ->withDescription('Successfully completed symbol rank update from CoinMarketCap')
-                ->withBlock($this->logBlock)
-                ->saveLog();
         } catch (Throwable $e) {
-            ApplicationLog::withActionCanonical('UpsertSymbolsRankingJob.Error')
-                ->withDescription('Error occurred during symbol rank update')
-                ->withReturnData(['error' => $e->getMessage()])
-                ->withBlock($this->logBlock)
-                ->saveLog();
-
             throw new NidavellirException(
                 originalException: $e,
                 title: 'Error occurred while updating symbol ranks',

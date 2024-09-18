@@ -9,7 +9,6 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Str;
-use Nidavellir\Trading\Models\ApplicationLog;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\NidavellirException;
@@ -47,28 +46,12 @@ class UpsertEligibleSymbolsJob implements ShouldQueue
      */
     public function handle()
     {
-        ApplicationLog::withActionCanonical('UpsertEligibleSymbolsJob.Start')
-            ->withDescription('Starting job to update eligible symbols')
-            ->withBlock($this->logBlock)
-            ->saveLog();
-
         try {
             // Fetch the list of excluded tokens from the configuration file.
             $excludedTokens = Symbol::where('is_active', false)->pluck('id');
 
-            ApplicationLog::withActionCanonical('UpsertEligibleSymbolsJob.ExcludedTokensFetched')
-                ->withDescription('Fetched excluded tokens')
-                ->withReturnData(['excluded_tokens' => $excludedTokens])
-                ->withBlock($this->logBlock)
-                ->saveLog();
-
             // Reset the `is_eligible` flag to false for all symbols.
             ExchangeSymbol::query()->update(['is_eligible' => false]);
-
-            ApplicationLog::withActionCanonical('UpsertEligibleSymbolsJob.ResetEligibility')
-                ->withDescription('Reset eligibility for all symbols')
-                ->withBlock($this->logBlock)
-                ->saveLog();
 
             // Initialize a counter to track the number of eligible symbols.
             $eligibleCount = 0;
@@ -88,36 +71,14 @@ class UpsertEligibleSymbolsJob implements ShouldQueue
                     }
                 });
 
-            ApplicationLog::withActionCanonical('UpsertEligibleSymbolsJob.EligibleSymbolsUpdated')
-                ->withDescription('Updated eligible symbols')
-                ->withReturnData(['eligible_count' => $eligibleCount])
-                ->withBlock($this->logBlock)
-                ->saveLog();
-
             // If no eligible symbols are updated, throw a custom exception.
             if ($eligibleCount === 0) {
-                ApplicationLog::withActionCanonical('UpsertEligibleSymbolsJob.NoEligibleSymbols')
-                    ->withDescription('No eligible symbols were updated')
-                    ->withBlock($this->logBlock)
-                    ->saveLog();
-
                 throw new NidavellirException(
                     title: 'No eligible symbols updated.',
                     additionalData: ['excludedTokens' => $excludedTokens]
                 );
             }
-
-            ApplicationLog::withActionCanonical('UpsertEligibleSymbolsJob.End')
-                ->withDescription('Successfully completed updating eligible symbols')
-                ->withBlock($this->logBlock)
-                ->saveLog();
         } catch (Throwable $e) {
-            ApplicationLog::withActionCanonical('UpsertEligibleSymbolsJob.Error')
-                ->withDescription('Error occurred during eligible symbols update')
-                ->withReturnData(['error' => $e->getMessage()])
-                ->withBlock($this->logBlock)
-                ->saveLog();
-
             // Handle any exceptions and throw a custom exception.
             throw new NidavellirException(
                 originalException: $e,

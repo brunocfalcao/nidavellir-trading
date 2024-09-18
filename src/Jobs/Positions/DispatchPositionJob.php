@@ -9,7 +9,6 @@ use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
 use Nidavellir\Trading\Jobs\Tests\HardcodeMarketOrderJob;
-use Nidavellir\Trading\Models\ApplicationLog;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Nidavellir;
@@ -43,12 +42,6 @@ class DispatchPositionJob extends AbstractJob
      */
     public function handle()
     {
-        ApplicationLog::withActionCanonical('Position.Dispatch.Start')
-            ->withDescription('Dispatch position job started')
-            ->withPositionId($this->position->id)
-            ->withBlock($this->logBlock)
-            ->saveLog();
-
         try {
             $this->validateMandatoryFields();
             $this->computeTotalTradeAmount();
@@ -73,20 +66,7 @@ class DispatchPositionJob extends AbstractJob
             );
 
             $this->dispatchOrders($this->position);
-
-            ApplicationLog::withActionCanonical('Position.Dispatch.End')
-                ->withDescription('Dispatch position job completed successfully')
-                ->withPositionId($this->position->id)
-                ->withBlock($this->logBlock)
-                ->saveLog();
         } catch (Throwable $e) {
-            ApplicationLog::withActionCanonical('Position.Dispatch.Error')
-                ->withDescription('Error occurred during position dispatch')
-                ->withReturnData(['error' => $e->getMessage()])
-                ->withPositionId($this->position->id)
-                ->withBlock($this->logBlock)
-                ->saveLog();
-
             throw new NidavellirException(
                 originalException: $e,
                 title: 'Error during dispatching position ID: '.$this->position->id,
@@ -135,13 +115,6 @@ class DispatchPositionJob extends AbstractJob
             $totalTradeAmount = round(floor($availableBalance * $maxPercentageTradeAmount / 100));
 
             $this->position->update(['total_trade_amount' => $totalTradeAmount]);
-
-            ApplicationLog::withActionCanonical('Position.Dispatch.TradeAmountComputed')
-                ->withDescription('Total trade amount computed')
-                ->withReturnData(['total_trade_amount' => $totalTradeAmount])
-                ->withPositionId($this->position->id)
-                ->withBlock($this->logBlock)
-                ->saveLog();
         }
     }
 
@@ -161,13 +134,6 @@ class DispatchPositionJob extends AbstractJob
 
             $exchangeSymbol = $eligibleSymbols->random();
             $this->position->update(['exchange_symbol_id' => $exchangeSymbol->id]);
-
-            ApplicationLog::withActionCanonical('Position.Dispatch.SymbolSelected')
-                ->withDescription('Eligible symbol selected for the position')
-                ->withReturnData(['symbol_token' => $exchangeSymbol->symbol->token])
-                ->withPositionId($this->position->id)
-                ->withBlock($this->logBlock)
-                ->saveLog();
         }
     }
 
@@ -176,13 +142,6 @@ class DispatchPositionJob extends AbstractJob
         $this->position->update([
             'side' => $this->position->trade_configuration['positions']['current_side'],
         ]);
-
-        ApplicationLog::withActionCanonical('Position.Dispatch.SideUpdated')
-            ->withDescription('Position side updated')
-            ->withReturnData(['side' => $this->position->side])
-            ->withPositionId($this->position->id)
-            ->withBlock($this->logBlock)
-            ->saveLog();
     }
 
     private function setLeverage()
@@ -204,13 +163,6 @@ class DispatchPositionJob extends AbstractJob
 
             $leverage = min(config('nidavellir.positions.planned_leverage'), $possibleLeverage);
             $this->position->update(['leverage' => $leverage]);
-
-            ApplicationLog::withActionCanonical('Position.Dispatch.LeverageSet')
-                ->withDescription('Leverage set for the position')
-                ->withReturnData(['leverage' => $leverage])
-                ->withPositionId($this->position->id)
-                ->withBlock($this->logBlock)
-                ->saveLog();
         }
     }
 
@@ -222,12 +174,6 @@ class DispatchPositionJob extends AbstractJob
             ->withExchangeSymbol($this->position->exchangeSymbol)
             ->withOptions(['symbol' => $this->position->exchangeSymbol->symbol->token.'USDT', 'leverage' => $this->position->leverage])
             ->setDefaultLeverage();
-
-        ApplicationLog::withActionCanonical('Position.Dispatch.LeverageOnTokenSet')
-            ->withDescription('Leverage set on token for the position')
-            ->withPositionId($this->position->id)
-            ->withBlock($this->logBlock)
-            ->saveLog();
     }
 
     private function fetchAndSetMarkPrice()
@@ -240,13 +186,6 @@ class DispatchPositionJob extends AbstractJob
             ->getMarkPrice(), $this->position->exchangeSymbol->precision_price);
 
         $this->position->update(['initial_mark_price' => $markPrice]);
-
-        ApplicationLog::withActionCanonical('Position.Dispatch.MarkPriceSet')
-            ->withDescription('Initial mark price set for the position')
-            ->withReturnData(['mark_price' => $markPrice])
-            ->withPositionId($this->position->id)
-            ->withBlock($this->logBlock)
-            ->saveLog();
     }
 
     private function dispatchOrders()
@@ -269,23 +208,10 @@ class DispatchPositionJob extends AbstractJob
             new DispatchOrderJob($profitOrder->id),
 
         ])->dispatch();
-
-        ApplicationLog::withActionCanonical('Position.Dispatch.OrdersDispatched')
-            ->withDescription('Position orders dispatched')
-            ->withPositionId($this->position->id)
-            ->withBlock($this->logBlock)
-            ->saveLog();
     }
 
     private function updatePositionError(string $message)
     {
         $this->position->update(['status' => 'error', 'comments' => $message]);
-
-        ApplicationLog::withActionCanonical('Position.Dispatch.Error')
-            ->withDescription('Position marked as error')
-            ->withReturnData(['error_message' => $message])
-            ->withPositionId($this->position->id)
-            ->withBlock($this->logBlock)
-            ->saveLog();
     }
 }

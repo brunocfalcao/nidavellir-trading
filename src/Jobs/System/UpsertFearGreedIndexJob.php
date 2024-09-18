@@ -2,16 +2,16 @@
 
 namespace Nidavellir\Trading\Jobs\System;
 
-use Illuminate\Support\Str;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
-use Illuminate\Support\Facades\Http;
-use Nidavellir\Trading\Models\System;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Nidavellir\Trading\Exceptions\FearAndGreedIndexNotSyncedException;
+use Nidavellir\Trading\Models\System;
 
 /**
  * UpsertFearGreedIndexJob handles fetching the Fear and Greed

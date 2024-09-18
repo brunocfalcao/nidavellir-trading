@@ -10,7 +10,6 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Str;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
-use Nidavellir\Trading\Models\ApplicationLog;
 use Nidavellir\Trading\Models\Exchange;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Symbol;
@@ -55,11 +54,6 @@ class UpsertNotionalAndLeverageJob implements ShouldQueue
      */
     public function handle()
     {
-        ApplicationLog::withActionCanonical('UpsertNotionalAndLeverageJob.Start')
-            ->withDescription('Starting job to update notional and leverage data for Binance symbols')
-            ->withBlock($this->logBlock)
-            ->saveLog();
-
         try {
             // Retrieve the Binance exchange record from the database.
             $exchange = Exchange::firstWhere('canonical', 'binance');
@@ -73,13 +67,6 @@ class UpsertNotionalAndLeverageJob implements ShouldQueue
 
             // Fetch notional and leverage data for all symbols from Binance API.
             $symbols = $this->wrapper->getLeverageBrackets();
-
-            ApplicationLog::withActionCanonical('UpsertNotionalAndLeverageJob.SymbolsFetched')
-                ->withDescription('Fetched symbols from Binance API')
-                ->withReturnData(['symbols' => $symbols])
-                ->withExchangeId($exchange->id)
-                ->withBlock($this->logBlock)
-                ->saveLog();
 
             if (! $symbols) {
                 throw new NidavellirException(
@@ -99,30 +86,10 @@ class UpsertNotionalAndLeverageJob implements ShouldQueue
                             ->update([
                                 'api_notional_and_leverage_symbol_information' => $symbolData,
                             ]);
-
-                        ApplicationLog::withActionCanonical('UpsertNotionalAndLeverageJob.SymbolUpdated')
-                            ->withDescription("Updated notional and leverage data for symbol: {$symbol->token}")
-                            ->withReturnData(['symbol' => $symbol->token, 'data' => $symbolData])
-                            ->withSymbolId($symbol->id)
-                            ->withExchangeId($exchange->id)
-                            ->withBlock($this->logBlock)
-                            ->saveLog();
                     }
                 }
             }
-
-            ApplicationLog::withActionCanonical('UpsertNotionalAndLeverageJob.End')
-                ->withDescription('Successfully completed updating notional and leverage data')
-                ->withBlock($this->logBlock)
-                ->saveLog();
         } catch (Throwable $e) {
-            ApplicationLog::withActionCanonical('UpsertNotionalAndLeverageJob.Error')
-                ->withDescription('Error occurred while updating notional and leverage data')
-                ->withReturnData(['error' => $e->getMessage()])
-                ->withExchangeId($exchange->id ?? null) // Log exchange ID if available
-                ->withBlock($this->logBlock)
-                ->saveLog();
-
             throw new NidavellirException(
                 originalException: $e,
                 title: 'Error occurred while updating notional and leverage data for Binance symbols',

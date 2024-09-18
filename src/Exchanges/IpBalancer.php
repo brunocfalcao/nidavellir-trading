@@ -2,7 +2,6 @@
 
 namespace Nidavellir\Trading\Exchanges;
 
-use Nidavellir\Trading\Models\ApplicationLog;
 use Nidavellir\Trading\Models\Exchange;
 use Nidavellir\Trading\Models\IpRequestWeight;
 
@@ -37,15 +36,7 @@ class IpBalancer
     protected function getFixedIp()
     {
         $ips = config('nidavellir.system.api.ips');
-        $ip = $ips[0];
-
-        // Log the IP selection
-        ApplicationLog::withActionCanonical('ipbalancer.fixed_ip')
-            ->withDescription('Fixed IP selected')
-            ->withReturnData(['ip' => $ip])
-            ->saveLog();
-
-        return $ip;
+        return $ips[0];
     }
 
     // Tactic 2: Round-robin IP (cycle through IPs)
@@ -60,15 +51,7 @@ class IpBalancer
         // Cache the new index
         cache(['last_used_ip_index_'.$this->exchange->id => $nextIpIndex]);
 
-        $ip = $ips[$nextIpIndex];
-
-        // Log the round-robin IP selection
-        ApplicationLog::withActionCanonical('ipbalancer.round_robin')
-            ->withDescription('Round-robin IP selected')
-            ->withReturnData(['ip' => $ip, 'index' => $nextIpIndex])
-            ->saveLog();
-
-        return $ip;
+        return $ips[$nextIpIndex];
     }
 
     // Tactic 3: Least weight IP (the IP with the least weight)
@@ -92,21 +75,8 @@ class IpBalancer
         // Return the IP with the least weight
         if (! empty($ipWeights)) {
             asort($ipWeights); // Sort by weight
-            $selectedIp = array_key_first($ipWeights); // Return the IP with the least weight
-
-            // Log the least-weight IP selection
-            ApplicationLog::withActionCanonical('ipbalancer.least_weight')
-                ->withDescription('Least-weight IP selected')
-                ->withReturnData(['ip' => $selectedIp, 'weight' => $ipWeights[$selectedIp]])
-                ->saveLog();
-
-            return $selectedIp;
+            return array_key_first($ipWeights); // Return the IP with the least weight
         }
-
-        // Log if all IPs have exceeded their weight limit
-        ApplicationLog::withActionCanonical('ipbalancer.all_ips_exceeded')
-            ->withDescription('All IPs exceeded their rate limit')
-            ->saveLog();
 
         throw new NidavellirException('All IPs have exceeded the rate limit for this exchange.');
     }
@@ -121,12 +91,6 @@ class IpBalancer
         // Increase the current weight to exclude it temporarily
         $ipRecord->current_weight += 100; // Arbitrary increase for backoff
         $ipRecord->save();
-
-        // Log the IP backoff
-        ApplicationLog::withActionCanonical('ipbalancer.ip_backoff')
-            ->withDescription('IP backoff applied')
-            ->withReturnData(['ip' => $ip, 'new_weight' => $ipRecord->current_weight])
-            ->saveLog();
     }
 
     public function updateWeightWithExactValue($ip, $weight)
@@ -153,20 +117,11 @@ class IpBalancer
 
             // Optional: If the weight exceeds the rate limit, you can log it or take action
             if ($ipRecord->current_weight > $rateLimitPerMinute) {
-                ApplicationLog::withActionCanonical('ipbalancer.rate_limit_warning')
-                    ->withDescription('Rate limit exceeded for IP')
-                    ->withReturnData(['ip' => $ip, 'current_weight' => $ipRecord->current_weight])
-                    ->saveLog();
+                // Take action if needed (e.g., trigger alerts or logging)
             }
         }
 
         // Save the updated record (updated_at will be automatically set)
         $ipRecord->save();
-
-        // Log the weight update
-        ApplicationLog::withActionCanonical('ipbalancer.weight_updated')
-            ->withDescription('IP weight updated successfully')
-            ->withReturnData(['ip' => $ip, 'new_total_weight' => $ipRecord->current_weight])
-            ->saveLog();
     }
 }

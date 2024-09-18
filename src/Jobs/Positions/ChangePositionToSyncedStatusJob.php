@@ -4,7 +4,6 @@ namespace Nidavellir\Trading\Jobs\Positions;
 
 use Illuminate\Support\Str;
 use Nidavellir\Trading\Abstracts\AbstractJob;
-use Nidavellir\Trading\Models\ApplicationLog;
 use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\NidavellirException;
 use Throwable;
@@ -40,33 +39,12 @@ class ChangePositionToSyncedStatusJob extends AbstractJob
     public function handle()
     {
         try {
-            // Log the start of the job
-            ApplicationLog::withActionCanonical('Position.SyncStatus.Start')
-                ->withDescription('Starting job to update position status to synced')
-                ->withPositionId($this->positionId)
-                ->withBlock($this->logBlock)
-                ->saveLog();
-
             // Find the position by its ID and update its status to 'synced'.
             $position = Position::findOrFail($this->positionId);
             $position->update(['status' => 'synced']);
-
-            // Log the successful update
-            ApplicationLog::withActionCanonical('Position.SyncStatus.Success')
-                ->withDescription('Position status updated to synced successfully')
-                ->withPositionId($this->position->id)
-                ->withBlock($this->logBlock)
-                ->saveLog();
         } catch (Throwable $e) {
             // If an error occurs, update the status to 'error', log it and throw a custom exception.
             $position->update(['status' => 'error']);
-
-            ApplicationLog::withActionCanonical('Position.SyncStatus.Error')
-                ->withDescription('Error occurred while updating position status to synced')
-                ->withReturnData(['error' => $e->getMessage()])
-                ->withPositionId($this->position->id)
-                ->withBlock($this->logBlock)
-                ->saveLog();
 
             throw new NidavellirException(
                 originalException: $e,

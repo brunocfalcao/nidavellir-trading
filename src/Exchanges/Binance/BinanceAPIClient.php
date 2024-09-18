@@ -6,7 +6,6 @@ use Binance\Exception\ClientException;
 use Binance\Exception\ServerException;
 use Binance\Util\Url;
 use Nidavellir\Trading\Exchanges\IpBalancer;
-use Nidavellir\Trading\Models\ApplicationLog;
 use Nidavellir\Trading\Models\EndpointWeight;
 use Nidavellir\Trading\Models\Exchange;
 use Psr\Log\NullLogger;
@@ -79,12 +78,6 @@ abstract class BinanceAPIClient
         $maxRetryAttempts = count(config('nidavellir.system.api.ips')) > 1 ? 3 : 1;
         $attempt = 0;
 
-        // Log start of request and selected IP
-        ApplicationLog::withActionCanonical('binance.request.ip_selection')
-            ->withDescription('Selected IP for request')
-            ->withReturnData(['ip' => $ip])
-            ->saveLog();
-
         while ($attempt < $maxRetryAttempts) {
             try {
                 $curlOptions = [];
@@ -96,11 +89,6 @@ abstract class BinanceAPIClient
                             CURLOPT_INTERFACE => $ip,
                         ],
                     ];
-                } else {
-                    ApplicationLog::withActionCanonical('binance.request.local_ip')
-                        ->withDescription('Local IP (127.0.0.1) detected, not setting CURLOPT_INTERFACE')
-                        ->withReturnData(['ip' => $ip])
-                        ->saveLog();
                 }
 
                 // Proceed with the request
@@ -111,12 +99,6 @@ abstract class BinanceAPIClient
                 $headers = $response->getHeaders();
                 $usedWeight = $headers['X-MBX-USED-WEIGHT-1M'][0] ?? $endpointWeight;
 
-                // Log successful request
-                ApplicationLog::withActionCanonical('binance.request.success')
-                    ->withDescription('Request to Binance API successful')
-                    ->withReturnData(['ip' => $ip, 'weight' => $usedWeight])
-                    ->saveLog();
-
                 // Update the IP's weight
                 $this->ipBalancer->updateWeightWithExactValue($ip, $usedWeight);
 
@@ -126,26 +108,12 @@ abstract class BinanceAPIClient
                 if ($e->getResponse()->getStatusCode() === 429) {
                     $this->handleRateLimit($ip, $attempt);
                 } else {
-                    ApplicationLog::withActionCanonical('binance.request.failed')
-                        ->withDescription($e->getMessage())
-                        ->withReturnData(['ip' => $ip])
-                        ->saveLog();
                     throw new ClientException($e->getMessage(), $e);
                 }
             } catch (\GuzzleHttp\Exception\ServerException $e) {
-                ApplicationLog::withActionCanonical('binance.request.server_error')
-                    ->withDescription($e->getMessage())
-                    ->withReturnData(['ip' => $ip])
-                    ->saveLog();
                 throw new ServerException($e->getMessage(), $e);
             }
         }
-
-        // Log if max retries are exceeded
-        ApplicationLog::withActionCanonical('binance.request.max_retries_exceeded')
-            ->withDescription('Max retry attempts reached')
-            ->withReturnData(['ip' => $ip])
-            ->saveLog();
 
         throw new \Exception('Max retry attempts reached');
     }
@@ -162,11 +130,6 @@ abstract class BinanceAPIClient
                 'endpoint' => $endpoint,
                 'weight' => 1,
             ]);
-
-            ApplicationLog::withActionCanonical('binance.endpoint.learned')
-                ->withDescription('New endpoint weight learned')
-                ->withReturnData(['endpoint' => $endpoint, 'weight' => 1])
-                ->saveLog();
         }
 
         return $endpointWeight->weight;
@@ -175,20 +138,11 @@ abstract class BinanceAPIClient
     private function handleRateLimit($ip, &$attempt)
     {
         if (count(config('nidavellir.system.api.ips')) > 1) {
-            ApplicationLog::withActionCanonical('binance.ip.backoff')
-                ->withDescription('Rate limit exceeded, backing off IP')
-                ->withReturnData(['ip' => $ip])
-                ->saveLog();
-
             $this->ipBalancer->backOffIp($ip);
             $ip = $this->ipBalancer->selectNextIp();
             $attempt++;
             sleep(2);
         } else {
-            ApplicationLog::withActionCanonical('binance.request.failed')
-                ->withDescription('Rate limit exceeded with one IP')
-                ->withReturnData(['ip' => $ip])
-                ->saveLog();
             throw new \Exception('Rate limit exceeded with one IP');
         }
     }

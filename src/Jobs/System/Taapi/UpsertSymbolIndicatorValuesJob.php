@@ -10,7 +10,6 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
-use Nidavellir\Trading\Models\ApplicationLog;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\NidavellirException;
 
@@ -47,26 +46,10 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
 
     public function handle()
     {
-        ApplicationLog::withActionCanonical('UpsertSymbolIndicatorValuesJob.Start')
-            ->withDescription('Starting job to update symbol indicators')
-            ->withBlock($this->logBlock)
-            ->saveLog();
-
         try {
             $symbols = $this->fetchOldestSymbols();
 
-            ApplicationLog::withActionCanonical('UpsertSymbolIndicatorValuesJob.SymbolsFetched')
-                ->withDescription('Fetched symbols to update')
-                ->withReturnData(['symbols' => $symbols->pluck('token')->toArray()])
-                ->withBlock($this->logBlock)
-                ->saveLog();
-
             if ($symbols->isEmpty()) {
-                ApplicationLog::withActionCanonical('UpsertSymbolIndicatorValuesJob.NoSymbols')
-                    ->withDescription('No symbols found for update')
-                    ->withBlock($this->logBlock)
-                    ->saveLog();
-
                 return;
             }
 
@@ -74,19 +57,7 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
                 $this->fetchAndUpdateIndicators($symbol);
                 $this->fetchAndUpdateCandle($symbol);
             }
-
-            ApplicationLog::withActionCanonical('UpsertSymbolIndicatorValuesJob.End')
-                ->withDescription('Successfully completed updating symbols')
-                ->withBlock($this->logBlock)
-                ->saveLog();
         } catch (\Throwable $e) {
-            ApplicationLog::withActionCanonical('UpsertSymbolIndicatorValuesJob.Error')
-                ->withDescription('Error occurred during symbol updates')
-                ->withReturnData(['error' => $e->getMessage()])
-                ->withSymbolId($symbols->first()->id ?? null)  // Use 'symbol_id'
-                ->withBlock($this->logBlock)
-                ->saveLog();
-
             throw new NidavellirException(
                 originalException: $e,
                 title: 'Error occurred while updating indicators or candles for symbol: '.($symbols->first()->token ?? 'Unknown Symbol'),
@@ -122,23 +93,8 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
             if ($response->successful()) {
                 $responseData = $response->json();
                 $this->updateIndicators($symbol, $indicator, $responseData);
-
-                ApplicationLog::withActionCanonical('UpsertSymbolIndicatorValuesJob.IndicatorUpdated')
-                    ->withDescription("Updated $indicator for symbol: {$symbol->token}")
-                    ->withReturnData(['symbol' => $symbol->token, 'indicator' => $indicator, 'response' => $responseData])
-                    ->withSymbolId($symbol->id)  // Use 'symbol_id'
-                    ->withBlock($this->logBlock)
-                    ->saveLog();
             } else {
                 $errorMessage = $response->body();
-
-                ApplicationLog::withActionCanonical('UpsertSymbolIndicatorValuesJob.IndicatorFetchFailed')
-                    ->withDescription("Failed to fetch $indicator for symbol: {$symbol->token}")
-                    ->withReturnData(['symbol' => $symbol->token, 'error' => $errorMessage])
-                    ->withSymbolId($symbol->id)  // Use 'symbol_id'
-                    ->withBlock($this->logBlock)
-                    ->saveLog();
-
                 throw new NidavellirException(
                     title: 'Failed to fetch indicator from Taapi.io for symbol: '.$symbol->token,
                     additionalData: [
@@ -179,22 +135,8 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
                     'price_amplitude_percentage' => $priceAmplitudePercentage,
                     'updated_at' => Carbon::now(),
                 ]);
-
-                ApplicationLog::withActionCanonical('UpsertSymbolIndicatorValuesJob.CandleUpdated')
-                    ->withDescription("Updated candle data for symbol: {$symbol->token}")
-                    ->withReturnData(['symbol' => $symbol->token, 'high' => $high, 'low' => $low])
-                    ->withSymbolId($symbol->id)  // Use 'symbol_id'
-                    ->withBlock($this->logBlock)
-                    ->saveLog();
             }
         } else {
-            ApplicationLog::withActionCanonical('UpsertSymbolIndicatorValuesJob.CandleFetchFailed')
-                ->withDescription("Failed to fetch candle data for symbol: {$symbol->token}")
-                ->withReturnData(['symbol' => $symbol->token, 'error' => $response->body()])
-                ->withSymbolId($symbol->id)  // Use 'symbol_id'
-                ->withBlock($this->logBlock)
-                ->saveLog();
-
             throw new NidavellirException(
                 title: 'Failed to fetch candle data from Taapi.io for symbol: '.$symbol->token,
                 additionalData: ['symbol' => $symbol->token],
