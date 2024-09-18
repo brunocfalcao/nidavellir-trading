@@ -77,10 +77,10 @@ return new class extends Migration
             $table->string('action_canonical')
                 ->nullable();
 
-            $table->string('description')
+            $table->text('description')
                 ->nullable();
 
-            $table->string('return_value')
+            $table->text('return_value')
                 ->nullable();
 
             $table->longText('return_data')
@@ -370,7 +370,7 @@ return new class extends Migration
                 ->nullable()
                 ->comment('The order entry amount that wsa actually filled');
 
-            $table->string('order_exchange_id')
+            $table->string('order_exchange_system_id')
                 ->nullable()
                 ->comment('API generated order id for reference purposes, generated as P:xxx where P means position id on the database');
 

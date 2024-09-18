@@ -54,7 +54,7 @@ class ChangePositionToSyncedStatusJob extends AbstractJob
             // Log the successful update
             ApplicationLog::withActionCanonical('Position.SyncStatus.Success')
                 ->withDescription('Position status updated to synced successfully')
-                ->withLoggable($position)
+                ->withPositionId($this->position->id)
                 ->withBlock($this->logBlock)
                 ->saveLog();
         } catch (Throwable $e) {
@@ -64,7 +64,7 @@ class ChangePositionToSyncedStatusJob extends AbstractJob
             ApplicationLog::withActionCanonical('Position.SyncStatus.Error')
                 ->withDescription('Error occurred while updating position status to synced')
                 ->withReturnData(['error' => $e->getMessage()])
-                ->withLoggable($position)
+                ->withPositionId($this->position->id)
                 ->withBlock($this->logBlock)
                 ->saveLog();
 

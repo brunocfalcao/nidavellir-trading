@@ -84,7 +84,7 @@ class DispatchOrderJob extends AbstractJob
         // Log the start of the order dispatch process.
         ApplicationLog::withActionCanonical('order.dispatch.start')
             ->withDescription('Job started')
-            ->withLoggable($this->order)
+            ->withOrderId($this->order->id)
             ->withBlock($this->logBlock)
             ->saveLog();
 
@@ -101,7 +101,7 @@ class DispatchOrderJob extends AbstractJob
                 ApplicationLog::withActionCanonical('order.dispatch.max_attempts')
                     ->withDescription('Max attempts reached for order dispatching')
                     ->withReturnData(['order_id' => $this->order->id])
-                    ->withLoggable($this->order)
+                    ->withOrderId($this->order->id)
                     ->withBlock($this->logBlock)
                     ->saveLog();
 
@@ -117,7 +117,7 @@ class DispatchOrderJob extends AbstractJob
                 // Log that sibling orders have errors.
                 ApplicationLog::withActionCanonical('order.dispatch.sibling_error')
                     ->withDescription('Sibling orders have errors, stopping dispatch')
-                    ->withLoggable($this->order)
+                    ->withOrderId($this->order->id)
                     ->withBlock($this->logBlock)
                     ->saveLog();
 
@@ -129,7 +129,7 @@ class DispatchOrderJob extends AbstractJob
                 // Log that we're waiting for Limit orders to finish.
                 ApplicationLog::withActionCanonical('order.dispatch.waiting_limit_orders')
                     ->withDescription('Waiting for Limit orders to finish before dispatching Market order')
-                    ->withLoggable($this->order)
+                    ->withOrderId($this->order->id)
                     ->withBlock($this->logBlock)
                     ->saveLog();
 
@@ -141,7 +141,7 @@ class DispatchOrderJob extends AbstractJob
                 // Log that we're waiting for other orders to finish.
                 ApplicationLog::withActionCanonical('order.dispatch.waiting_other_orders')
                     ->withDescription('Waiting for other orders to finish before dispatching Profit order')
-                    ->withLoggable($this->order)
+                    ->withOrderId($this->order->id)
                     ->withBlock($this->logBlock)
                     ->saveLog();
 
@@ -155,9 +155,12 @@ class DispatchOrderJob extends AbstractJob
             ApplicationLog::withActionCanonical('order.dispatch.error')
                 ->withDescription('Error occurred during order dispatching')
                 ->withReturnData(['error' => $e->getMessage()])
-                ->withLoggable($this->order)
+                ->withOrderId($this->order->id)
                 ->withBlock($this->logBlock)
                 ->saveLog();
+
+            // Update order to error.
+            $this->order->update(['status' => 'error']);
 
             // Handle any errors and throw a custom exception.
             throw new NidavellirException(
@@ -211,7 +214,7 @@ class DispatchOrderJob extends AbstractJob
         // Log the start of the order processing.
         ApplicationLog::withActionCanonical('order.dispatch.process_order_start')
             ->withDescription('Process Order started')
-            ->withLoggable($this->order)
+            ->withOrderId($this->order->id)
             ->withBlock($this->logBlock)
             ->saveLog();
 
@@ -224,7 +227,7 @@ class DispatchOrderJob extends AbstractJob
         ApplicationLog::withActionCanonical('order.dispatch.side_details')
             ->withDescription('Attribute $sideDetails')
             ->withReturnData($sideDetails)
-            ->withLoggable($this->order)
+            ->withOrderId($this->order->id)
             ->withBlock($this->logBlock)
             ->saveLog();
 
@@ -240,7 +243,7 @@ class DispatchOrderJob extends AbstractJob
         ApplicationLog::withActionCanonical('order.dispatch.payload')
             ->withDescription('Attribute $payload')
             ->withReturnData($payload)
-            ->withLoggable($this->order)
+            ->withOrderId($this->order->id)
             ->withBlock($this->logBlock)
             ->saveLog();
 
@@ -301,10 +304,10 @@ class DispatchOrderJob extends AbstractJob
     {
         // Build the API order data for a Market order.
         $this->orderData = [
-            'newClientOrderId' => 'Trader:'.$this->trader.
-                '-Exchange:'.$this->exchange->id.
-                '-Position:'.$this->position->id.
-                '-Order:'.$this->order->id,
+            'newClientOrderId' => 'T:'.$this->trader->id.
+                '-E:'.$this->exchange->id.
+                '-P:'.$this->position->id.
+                '-O:'.$this->order->id,
             'side' => strtoupper($sideDetails['orderSide']),
             'type' => 'MARKET',
             'quantity' => $orderQuantity,
@@ -328,7 +331,7 @@ class DispatchOrderJob extends AbstractJob
         ApplicationLog::withActionCanonical('order.dispatch.market_order_placed')
             ->withDescription('Market order placed successfully')
             ->withReturnData($result)
-            ->withLoggable($this->order)
+            ->withOrderId($this->order->id)
             ->withBlock($this->logBlock)
             ->saveLog();
     }
@@ -350,10 +353,10 @@ class DispatchOrderJob extends AbstractJob
             'side' => strtoupper($sideDetails['orderSide']),
             'type' => 'LIMIT',
             'quantity' => $orderQuantity,
-            'newClientOrderId' => 'Trader:'.$this->trader.
-                '-Exchange:'.$this->exchangeSymbol->exchange->id.
-                '-Position:'.$this->order->position->id.
-                '-Order:'.$this->order->id,
+            'newClientOrderId' => 'T:'.$this->trader->id.
+                '-E:'.$this->exchange->id.
+                '-P:'.$this->position->id.
+                '-O:'.$this->order->id,
             'symbol' => $this->exchangeSymbol->symbol->token.'USDT',
             'price' => $orderPrice,
         ];
@@ -375,7 +378,7 @@ class DispatchOrderJob extends AbstractJob
         ApplicationLog::withActionCanonical('order.dispatch.limit_order_placed')
             ->withDescription('Limit order placed successfully')
             ->withReturnData($result)
-            ->withLoggable($this->order)
+            ->withOrderId($this->order->id)
             ->withBlock($this->logBlock)
             ->saveLog();
     }
@@ -398,7 +401,7 @@ class DispatchOrderJob extends AbstractJob
     {
         // Update the order details with exchange result.
         $this->order->update([
-            'order_exchange_id' => $result['orderId'],
+            'order_exchange_system_id' => $result['orderId'],
             'filled_quantity' => $result['executedQty'],
             'filled_average_price' => $result['avgPrice'],
             'api_result' => $result,
@@ -409,7 +412,7 @@ class DispatchOrderJob extends AbstractJob
         ApplicationLog::withActionCanonical('order.dispatch.order_updated')
             ->withDescription('Order updated with exchange result')
             ->withReturnData($result)
-            ->withLoggable($this->order)
+            ->withOrderId($this->order->id)
             ->withBlock($this->logBlock)
             ->saveLog();
     }
@@ -437,7 +440,7 @@ class DispatchOrderJob extends AbstractJob
         ApplicationLog::withActionCanonical('order.dispatch.order_details')
             ->withDescription('Order details logged')
             ->withReturnData($details)
-            ->withLoggable($this->order)
+            ->withOrderId($this->order->id)
             ->withBlock($this->logBlock)
             ->saveLog();
 

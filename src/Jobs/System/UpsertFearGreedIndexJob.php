@@ -2,17 +2,16 @@
 
 namespace Nidavellir\Trading\Jobs\System;
 
+use Illuminate\Support\Str;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
+use Illuminate\Support\Facades\Http;
+use Nidavellir\Trading\Models\System;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
-use Nidavellir\Trading\Models\ApplicationLog;
-use Nidavellir\Trading\Models\System;
-use Nidavellir\Trading\NidavellirException;
+use Nidavellir\Trading\Exceptions\FearAndGreedIndexNotSyncedException;
 
 /**
  * UpsertFearGreedIndexJob handles fetching the Fear and Greed
@@ -26,9 +25,6 @@ class UpsertFearGreedIndexJob implements ShouldQueue
 
     // API URL for fetching the Fear and Greed Index.
     protected $fearGreedIndexUrl = 'https://api.alternative.me/fng/';
-
-    // UUID block for grouping logs
-    private $logBlock;
 
     /**
      * Constructor for the job.
@@ -44,12 +40,6 @@ class UpsertFearGreedIndexJob implements ShouldQueue
      */
     public function handle()
     {
-        // Log the start of the job
-        ApplicationLog::withActionCanonical('UpsertFearGreedIndexJob.Start')
-            ->withDescription('Starting job to update Fear and Greed Index')
-            ->withBlock($this->logBlock)
-            ->saveLog();
-
         try {
             // Fetch the Fear and Greed Index from the external API.
             $response = Http::get($this->fearGreedIndexUrl);
@@ -71,50 +61,21 @@ class UpsertFearGreedIndexJob implements ShouldQueue
                             'fear_greed_index' => $fearGreedIndex,
                             'fear_greed_index_updated_at' => now(),
                         ]);
-
-                        // Log system update success
-                        ApplicationLog::withActionCanonical('UpsertFearGreedIndexJob.UpdateSystem')
-                            ->withDescription('Updated system with new Fear and Greed Index')
-                            ->withReturnData(['index_value' => $fearGreedIndex])
-                            ->withBlock($this->logBlock)
-                            ->saveLog();
                     } else {
                         // If no record exists, create a new one with the index value.
                         $system = System::create([
                             'fear_greed_index' => $fearGreedIndex,
                             'fear_greed_index_updated_at' => now(),
                         ]);
-
-                        // Log system creation success
-                        ApplicationLog::withActionCanonical('UpsertFearGreedIndexJob.CreateSystem')
-                            ->withDescription('Created new system entry with Fear and Greed Index')
-                            ->withReturnData(['index_value' => $fearGreedIndex])
-                            ->withBlock($this->logBlock)
-                            ->saveLog();
                     }
                 } else {
-                    // Log invalid response data
-                    ApplicationLog::withActionCanonical('UpsertFearGreedIndexJob.InvalidData')
-                        ->withDescription('Invalid response data: Missing Fear and Greed Index value')
-                        ->withReturnData(['response_data' => $data])
-                        ->withBlock($this->logBlock)
-                        ->saveLog();
-
                     // Throw an exception for invalid data
-                    throw new NidavellirException(
+                    throw new FearAndGreedIndexNotSyncedException(
                         title: 'Invalid response data: Missing Fear and Greed Index value',
-                        additionalData: ['response_data' => $data],
-                        loggable: System::first()
+                        additionalData: ['response_data' => $data]
                     );
                 }
             } else {
-                // Log API failure
-                ApplicationLog::withActionCanonical('UpsertFearGreedIndexJob.ApiFailed')
-                    ->withDescription('Failed to fetch Fear and Greed Index from API')
-                    ->withReturnData(['response_status' => $response->status()])
-                    ->withBlock($this->logBlock)
-                    ->saveLog();
-
                 // Throw an exception if the API call failed.
                 throw new NidavellirException(
                     title: 'Failed to fetch Fear and Greed Index from API',
@@ -122,20 +83,7 @@ class UpsertFearGreedIndexJob implements ShouldQueue
                     loggable: System::first()
                 );
             }
-
-            // Log the successful completion of the job
-            ApplicationLog::withActionCanonical('UpsertFearGreedIndexJob.End')
-                ->withDescription('Successfully updated Fear and Greed Index')
-                ->withBlock($this->logBlock)
-                ->saveLog();
         } catch (\Throwable $e) {
-            // Log any error that occurs during the job
-            ApplicationLog::withActionCanonical('UpsertFearGreedIndexJob.Error')
-                ->withDescription('Error occurred while updating Fear and Greed Index')
-                ->withReturnData(['error' => $e->getMessage()])
-                ->withBlock($this->logBlock)
-                ->saveLog();
-
             // Throw a NidavellirException if any error occurs during the process.
             throw new NidavellirException(
                 originalException: $e,

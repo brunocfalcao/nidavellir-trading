@@ -8,6 +8,7 @@ use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
+use Nidavellir\Trading\Jobs\Tests\HardcodeMarketOrderJob;
 use Nidavellir\Trading\Models\ApplicationLog;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Position;
@@ -44,7 +45,7 @@ class DispatchPositionJob extends AbstractJob
     {
         ApplicationLog::withActionCanonical('Position.Dispatch.Start')
             ->withDescription('Dispatch position job started')
-            ->withLoggable($this->position)
+            ->withPositionId($this->position->id)
             ->withBlock($this->logBlock)
             ->saveLog();
 
@@ -75,14 +76,14 @@ class DispatchPositionJob extends AbstractJob
 
             ApplicationLog::withActionCanonical('Position.Dispatch.End')
                 ->withDescription('Dispatch position job completed successfully')
-                ->withLoggable($this->position)
+                ->withPositionId($this->position->id)
                 ->withBlock($this->logBlock)
                 ->saveLog();
         } catch (Throwable $e) {
             ApplicationLog::withActionCanonical('Position.Dispatch.Error')
                 ->withDescription('Error occurred during position dispatch')
                 ->withReturnData(['error' => $e->getMessage()])
-                ->withLoggable($this->position)
+                ->withPositionId($this->position->id)
                 ->withBlock($this->logBlock)
                 ->saveLog();
 
@@ -138,7 +139,7 @@ class DispatchPositionJob extends AbstractJob
             ApplicationLog::withActionCanonical('Position.Dispatch.TradeAmountComputed')
                 ->withDescription('Total trade amount computed')
                 ->withReturnData(['total_trade_amount' => $totalTradeAmount])
-                ->withLoggable($this->position)
+                ->withPositionId($this->position->id)
                 ->withBlock($this->logBlock)
                 ->saveLog();
         }
@@ -164,7 +165,7 @@ class DispatchPositionJob extends AbstractJob
             ApplicationLog::withActionCanonical('Position.Dispatch.SymbolSelected')
                 ->withDescription('Eligible symbol selected for the position')
                 ->withReturnData(['symbol_token' => $exchangeSymbol->symbol->token])
-                ->withLoggable($this->position)
+                ->withPositionId($this->position->id)
                 ->withBlock($this->logBlock)
                 ->saveLog();
         }
@@ -179,7 +180,7 @@ class DispatchPositionJob extends AbstractJob
         ApplicationLog::withActionCanonical('Position.Dispatch.SideUpdated')
             ->withDescription('Position side updated')
             ->withReturnData(['side' => $this->position->side])
-            ->withLoggable($this->position)
+            ->withPositionId($this->position->id)
             ->withBlock($this->logBlock)
             ->saveLog();
     }
@@ -207,7 +208,7 @@ class DispatchPositionJob extends AbstractJob
             ApplicationLog::withActionCanonical('Position.Dispatch.LeverageSet')
                 ->withDescription('Leverage set for the position')
                 ->withReturnData(['leverage' => $leverage])
-                ->withLoggable($this->position)
+                ->withPositionId($this->position->id)
                 ->withBlock($this->logBlock)
                 ->saveLog();
         }
@@ -224,7 +225,7 @@ class DispatchPositionJob extends AbstractJob
 
         ApplicationLog::withActionCanonical('Position.Dispatch.LeverageOnTokenSet')
             ->withDescription('Leverage set on token for the position')
-            ->withLoggable($this->position)
+            ->withPositionId($this->position->id)
             ->withBlock($this->logBlock)
             ->saveLog();
     }
@@ -243,7 +244,7 @@ class DispatchPositionJob extends AbstractJob
         ApplicationLog::withActionCanonical('Position.Dispatch.MarkPriceSet')
             ->withDescription('Initial mark price set for the position')
             ->withReturnData(['mark_price' => $markPrice])
-            ->withLoggable($this->position)
+            ->withPositionId($this->position->id)
             ->withBlock($this->logBlock)
             ->saveLog();
     }
@@ -260,11 +261,18 @@ class DispatchPositionJob extends AbstractJob
 
         Bus::chain([
             Bus::batch($limitJobs),
+
+            // Lets hardcode a market order, so we don't spend money.
+            new HardcodeMarketOrderJob($this->position->id),
+
+            // Now the profit order, also simulated for now.
+            new DispatchOrderJob($profitOrder->id),
+
         ])->dispatch();
 
         ApplicationLog::withActionCanonical('Position.Dispatch.OrdersDispatched')
             ->withDescription('Position orders dispatched')
-            ->withLoggable($this->position)
+            ->withPositionId($this->position->id)
             ->withBlock($this->logBlock)
             ->saveLog();
     }
@@ -276,7 +284,7 @@ class DispatchPositionJob extends AbstractJob
         ApplicationLog::withActionCanonical('Position.Dispatch.Error')
             ->withDescription('Position marked as error')
             ->withReturnData(['error_message' => $message])
-            ->withLoggable($this->position)
+            ->withPositionId($this->position->id)
             ->withBlock($this->logBlock)
             ->saveLog();
     }

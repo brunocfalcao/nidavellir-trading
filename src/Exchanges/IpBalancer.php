@@ -9,6 +9,7 @@ use Nidavellir\Trading\Models\IpRequestWeight;
 class IpBalancer
 {
     protected $exchange;
+
     protected $weightLimit;
 
     public function __construct(Exchange $exchange)
@@ -22,11 +23,11 @@ class IpBalancer
         $balancerType = config('nidavellir.system.api.ip_balancer_type');
 
         switch ($balancerType) {
-            case 'SINGLE-IP':
+            case 'single-ip':
                 return $this->getFixedIp();
-            case 'ROUND-ROBIN':
+            case 'round-robin':
                 return $this->getRoundRobinIp();
-            case 'LEAST-WEIGHT':
+            case 'least-weight':
             default:
                 return $this->getLeastWeightIp();
         }
@@ -89,7 +90,7 @@ class IpBalancer
         }
 
         // Return the IP with the least weight
-        if (!empty($ipWeights)) {
+        if (! empty($ipWeights)) {
             asort($ipWeights); // Sort by weight
             $selectedIp = array_key_first($ipWeights); // Return the IP with the least weight
 
@@ -153,9 +154,9 @@ class IpBalancer
             // Optional: If the weight exceeds the rate limit, you can log it or take action
             if ($ipRecord->current_weight > $rateLimitPerMinute) {
                 ApplicationLog::withActionCanonical('ipbalancer.rate_limit_warning')
-                ->withDescription('Rate limit exceeded for IP')
-                ->withReturnData(['ip' => $ip, 'current_weight' => $ipRecord->current_weight])
-                ->saveLog();
+                    ->withDescription('Rate limit exceeded for IP')
+                    ->withReturnData(['ip' => $ip, 'current_weight' => $ipRecord->current_weight])
+                    ->saveLog();
             }
         }
 
@@ -164,8 +165,8 @@ class IpBalancer
 
         // Log the weight update
         ApplicationLog::withActionCanonical('ipbalancer.weight_updated')
-        ->withDescription('IP weight updated successfully')
-        ->withReturnData(['ip' => $ip, 'new_total_weight' => $ipRecord->current_weight])
-        ->saveLog();
+            ->withDescription('IP weight updated successfully')
+            ->withReturnData(['ip' => $ip, 'new_total_weight' => $ipRecord->current_weight])
+            ->saveLog();
     }
 }

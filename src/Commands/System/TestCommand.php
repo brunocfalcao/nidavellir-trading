@@ -33,7 +33,7 @@ class TestCommand extends Command
     {
         //UpsertSymbolMetadataJob::dispatchSync();
 
-        UpsertNotionalAndLeverageJob::dispatchSync();
+        //UpsertNotionalAndLeverageJob::dispatchSync();
 
         //UpsertEligibleSymbolsJob::dispatchSync();
 
@@ -45,7 +45,7 @@ class TestCommand extends Command
         //HardcodeMarketOrderJob::dispatchSync(Position::find(1)->id);
         //$this->queryOpenOrders();
         //$this->queryAllOrders();
-        //$this->testNewPosition();
+        $this->testNewPosition();
         //$this->testTokenLeverage();
         //$this->getAccountBalance();
     }
