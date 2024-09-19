@@ -3,7 +3,6 @@
 namespace Nidavellir\Trading\Jobs\Tests;
 
 use Nidavellir\Trading\Abstracts\AbstractJob;
-use Nidavellir\Trading\Exceptions\OrderNotSyncedException;
 use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Models\Position;
 
