@@ -126,7 +126,7 @@ class DispatchOrderJob extends AbstractJob
      * Determines if the Market order should wait for all
      * Limit orders to finish processing.
      */
-    private function shouldWaitForLimitOrdersToFinish($siblingsLimitOnly)
+    protected function shouldWaitForLimitOrdersToFinish($siblingsLimitOnly)
     {
         if ($this->order->type === self::ORDER_TYPE_MARKET &&
             $siblingsLimitOnly->contains('status', 'new')) {
@@ -143,7 +143,7 @@ class DispatchOrderJob extends AbstractJob
      * Determines if the Profit order should wait for other
      * orders to be processed before proceeding.
      */
-    private function shouldWaitForAllOrdersExceptProfit($siblings)
+    protected function shouldWaitForAllOrdersExceptProfit($siblings)
     {
         if ($this->order->type === self::ORDER_TYPE_PROFIT &&
             $siblings->contains('status', 'new')) {
@@ -160,7 +160,7 @@ class DispatchOrderJob extends AbstractJob
      * Processes the order by constructing the necessary data
      * and dispatching it to the exchange based on the order type.
      */
-    private function processOrder()
+    protected function processOrder()
     {
         // Get the side of the order (buy/sell).
         $sideDetails = $this->getOrderSideDetails(
@@ -187,7 +187,7 @@ class DispatchOrderJob extends AbstractJob
      * Computes the amount of the token to be traded based on
      * total trade amount, leverage, and the price of the token.
      */
-    private function computeOrderAmount($price)
+    protected function computeOrderAmount($price)
     {
         // For Market and Limit orders, calculate the token amount.
         if (in_array($this->order->type, [self::ORDER_TYPE_MARKET, self::ORDER_TYPE_LIMIT])) {
@@ -207,7 +207,7 @@ class DispatchOrderJob extends AbstractJob
     /**
      * Dispatches the order to the exchange based on the order type.
      */
-    private function dispatchOrder($orderPrice, $orderQuantity, $sideDetails)
+    protected function dispatchOrder($orderPrice, $orderQuantity, $sideDetails)
     {
         switch ($this->order->type) {
             case self::ORDER_TYPE_LIMIT:
@@ -217,7 +217,7 @@ class DispatchOrderJob extends AbstractJob
                 $this->placeMarketOrder($orderQuantity, $sideDetails);
                 break;
             case self::ORDER_TYPE_PROFIT:
-                $this->placeProfitOrder($orderQuantity, $sideDetails);
+                $this->placeProfitOrder($orderPrice, $sideDetails);
                 break;
         }
     }
@@ -225,12 +225,12 @@ class DispatchOrderJob extends AbstractJob
     /**
      * Places a Market order on the exchange.
      */
-    private function placeMarketOrder($orderQuantity, $sideDetails)
+    protected function placeMarketOrder($orderQuantity, $sideDetails)
     {
         // Build the API order data for a Market order.
         $this->orderData = [
             'newClientOrderId' => $this->generateClientOrderId(),
-            'side' => strtoupper($sideDetails['orderSide']),
+            'side' => strtoupper($sideDetails['orderMarketSide']),
             'type' => 'MARKET',
             'quantity' => $orderQuantity,
             'symbol' => $this->symbol->token.'USDT',
@@ -243,7 +243,8 @@ class DispatchOrderJob extends AbstractJob
             'side: '.$this->orderData['side'],
             'type: '.'MARKET',
             'quantity: '.$this->orderData['quantity'],
-            'symbol: '.$this->orderData['symbol']
+            'symbol: '.$this->orderData['symbol'],
+            ' '
         );
 
         // Dispatch the order via the trader's API.
@@ -258,10 +259,53 @@ class DispatchOrderJob extends AbstractJob
 
         // Update the order with the result from the exchange.
         $this->updateOrderWithExchangeResult($result);
+
+        /**
+         * The average price, and the filled quantity is not returned.
+         * So, we need to synchronously query the market order to
+         * obtain the remaining data. Synchronously because the profit
+         * order needs the market order quantity.
+         */
+        $this->updateOrderWithQueryOnOrderId($this->order->id);
+    }
+
+    /**
+     * Retrieves the full order data so we can obtain the remaining
+     * order data (avgPrice and excutedQty).
+     */
+    protected function updateOrderWithQueryOnOrderId($orderId)
+    {
+        $this->order->refresh();
+
+        $result = $this->trader
+            ->withRESTApi()
+            ->withPosition($this->position)
+            ->withTrader($this->trader)
+            ->withExchangeSymbol($this->exchangeSymbol)
+            ->withOrder($this->order)
+            ->withOptions([
+                'symbol' => $this->symbol->token.'USDT',
+                'orderId' => $this->order->order_exchange_system_id,
+            ])
+            ->getOrder();
+
+        // Lets ensure the order is FILLED.
+        if ($result['status'] != 'FILLED') {
+            throw new DispatchOrderException(
+                message: 'Market order was executed but it is not FILLED',
+                additionalData: ['order_id' => $this->order->id],
+            );
+        }
+
+        // Update the order details with exchange result.
+        $this->order->update([
+            'filled_quantity' => $result['executedQty'],
+            'filled_average_price' => $result['avgPrice'],
+        ]);
     }
 
     // Generates a custom business order id saved on the order.
-    private function generateClientOrderId()
+    protected function generateClientOrderId()
     {
         return
                 // Custom id generation.
@@ -274,7 +318,7 @@ class DispatchOrderJob extends AbstractJob
     /**
      * Places a Limit order on the exchange.
      */
-    private function placeLimitOrder($orderPrice, $orderQuantity, $sideDetails)
+    protected function placeLimitOrder($orderPrice, $orderQuantity, $sideDetails)
     {
         // Update the order with the computed entry data.
         $this->order->update([
@@ -285,7 +329,7 @@ class DispatchOrderJob extends AbstractJob
         // Build the API order data for a Limit order.
         $this->orderData = [
             'timeInForce' => 'GTC',
-            'side' => strtoupper($sideDetails['orderSide']),
+            'side' => strtoupper($sideDetails['orderLimitBuy']),
             'type' => 'LIMIT',
             'quantity' => $orderQuantity,
             'newClientOrderId' => $this->generateClientOrderId(),
@@ -302,6 +346,7 @@ class DispatchOrderJob extends AbstractJob
             'quantity: '.$this->orderData['quantity'],
             'symbol: '.$this->orderData['symbol'],
             'price:'.$this->orderData['price'],
+            ' '
         );
 
         // Dispatch the order via the trader's API.
@@ -320,19 +365,63 @@ class DispatchOrderJob extends AbstractJob
 
     /**
      * Places a Profit order on the exchange.
-     * Note: Implement this method as per your requirements.
      */
-    private function placeProfitOrder($orderQuantity, $sideDetails)
+    protected function placeProfitOrder($orderPrice, $sideDetails)
     {
-        // Implement the logic for placing a Profit order.
-        // Add appropriate logging similar to other order types.
+        /**
+         * This profit order placed, will be with the same filled quantity
+         * as the market order, since we will just start by
+         * selling what we had filled.
+         */
+        $marketOrderQuantity = $this->order
+            ->position
+            ->orders
+            ->firstWhere('type', 'MARKET')
+                                    ->filled_quantity;
+
+        // Build the API order data for a Limit order.
+        $this->orderData = [
+            'timeInForce' => 'GTC',
+            'side' => strtoupper($sideDetails['orderLimitProfit']),
+            'type' => 'LIMIT',
+            'reduceOnly' => 'true',
+            'quantity' => $marketOrderQuantity,
+            'newClientOrderId' => $this->generateClientOrderId(),
+            'symbol' => $this->exchangeSymbol->symbol->token.'USDT',
+            'price' => $orderPrice,
+        ];
+
+        info_multiple(
+            '-- Order Placement (PROFIT) --',
+            'Nidavellir Order id:'.$this->order->id,
+            'newClientOrderId: '.$this->orderData['newClientOrderId'],
+            'side: '.$this->orderData['side'],
+            'type: '.'LIMIT',
+            'quantity: '.$this->orderData['quantity'],
+            'symbol: '.$this->orderData['symbol'],
+            'price:'.$this->orderData['price'],
+            ' '
+        );
+
+        // Dispatch the order via the trader's API.
+        $result = $this->trader
+            ->withRESTApi()
+            ->withOptions($this->orderData)
+            ->withPosition($this->position)
+            ->withTrader($this->trader)
+            ->withExchangeSymbol($this->exchangeSymbol)
+            ->withOrder($this->order)
+            ->placeSingleOrder();
+
+        // Update the order with the result from the exchange.
+        $this->updateOrderWithExchangeResult($result);
     }
 
     /**
      * Updates the order in the system with the result
      * from the exchange.
      */
-    private function updateOrderWithExchangeResult(array $result)
+    protected function updateOrderWithExchangeResult(array $result)
     {
         // Update the order details with exchange result.
         $this->order->update([
@@ -348,20 +437,20 @@ class DispatchOrderJob extends AbstractJob
      * Determines the correct order side (buy/sell) based
      * on the current position's trade configuration.
      */
-    private function getOrderSideDetails($side)
+    protected function getOrderSideDetails($side)
     {
         if ($side === 'BUY') {
             return [
-                'orderSide' => 'buy',
-                'orderLimitBuy' => 'buy',
-                'orderLimitProfit' => 'sell',
+                'orderMarketSide' => 'BUY',
+                'orderLimitBuy' => 'BUY',
+                'orderLimitProfit' => 'SELL',
             ];
         }
 
         return [
-            'orderSide' => 'sell',
-            'orderLimitBuy' => 'sell',
-            'orderLimitProfit' => 'buy',
+            'orderMarketSide' => 'SELL',
+            'orderLimitBuy' => 'SELL',
+            'orderLimitProfit' => 'BUY',
         ];
     }
 
@@ -369,7 +458,7 @@ class DispatchOrderJob extends AbstractJob
      * Calculates the price for the order by adjusting
      * the mark price according to a configured ratio.
      */
-    private function getPriceByRatio($markPrice)
+    protected function getPriceByRatio($markPrice)
     {
         $precision = $this->exchangeSymbol->precision_price;
         $priceRatio = $this->order->price_ratio_percentage / 100;
@@ -397,7 +486,7 @@ class DispatchOrderJob extends AbstractJob
     /**
      * Adjusts the order price to match the exchange's tick size.
      */
-    private function adjustPriceToTickSize($price, $tickSize)
+    protected function adjustPriceToTickSize($price, $tickSize)
     {
         return floor($price / $tickSize) * $tickSize;
     }

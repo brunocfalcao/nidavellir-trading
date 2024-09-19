@@ -7,6 +7,11 @@ use Binance\Util\Strings;
 
 trait Trade
 {
+    public function updateMarginType(array $options)
+    {
+        return $this->signRequest('POST', '/fapi/v1/marginType', $options);
+    }
+
     //https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Position-Information-V2
     public function getPositions()
     {

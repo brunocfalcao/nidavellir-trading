@@ -46,6 +46,7 @@ class DispatchPositionJob extends AbstractJob
             $this->computeTotalTradeAmount();
             $this->selectEligibleSymbol();
             $this->updatePositionSide();
+            $this->updateMarginType();
             $this->setLeverage();
             $this->setLeverageOnToken();
 
@@ -78,7 +79,26 @@ class DispatchPositionJob extends AbstractJob
         }
     }
 
-    private function validateMandatoryFields()
+    /**
+     * Ensures that the token margin type is CROSS and not ISOLATED.
+     * This is not configurable from the traders' side.
+     */
+    protected function updateMarginType()
+    {
+        $this->position
+            ->trader
+            ->withRESTApi()
+            ->withPosition($this->position)
+            ->withOptions([
+                'symbol' => $this->position
+                                 ->exchangeSymbol
+                                 ->symbol
+                                 ->token.'USDT',
+                'marginType' => 'CROSS'])
+            ->updateMarginType();
+    }
+
+    protected function validateMandatoryFields()
     {
         if (blank($this->position->trader_id) ||
             blank($this->position->status) ||
@@ -92,7 +112,7 @@ class DispatchPositionJob extends AbstractJob
         }
     }
 
-    private function computeTotalTradeAmount()
+    protected function computeTotalTradeAmount()
     {
         $configuration = $this->position->trade_configuration;
 
@@ -123,7 +143,7 @@ class DispatchPositionJob extends AbstractJob
         }
     }
 
-    private function selectEligibleSymbol()
+    protected function selectEligibleSymbol()
     {
         if (blank($this->position->exchange_symbol_id)) {
             $eligibleSymbols = ExchangeSymbol::where('is_active', true)
@@ -142,14 +162,14 @@ class DispatchPositionJob extends AbstractJob
         }
     }
 
-    private function updatePositionSide()
+    protected function updatePositionSide()
     {
         $this->position->update([
             'side' => $this->position->trade_configuration['positions']['current_side'],
         ]);
     }
 
-    private function setLeverage()
+    protected function setLeverage()
     {
         if (blank($this->position->leverage)) {
             $wrapper = new ExchangeRESTWrapper(
@@ -171,7 +191,7 @@ class DispatchPositionJob extends AbstractJob
         }
     }
 
-    private function setLeverageOnToken()
+    protected function setLeverageOnToken()
     {
         $this->position->trader
             ->withRESTApi()
@@ -181,7 +201,7 @@ class DispatchPositionJob extends AbstractJob
             ->setDefaultLeverage();
     }
 
-    private function fetchAndSetMarkPrice()
+    protected function fetchAndSetMarkPrice()
     {
         $markPrice = round($this->position->trader
             ->withRESTApi()
@@ -193,7 +213,7 @@ class DispatchPositionJob extends AbstractJob
         $this->position->update(['initial_mark_price' => $markPrice]);
     }
 
-    private function dispatchOrders()
+    protected function dispatchOrders()
     {
         $marketOrder = $this->position->orders->firstWhere('type', 'MARKET');
         $limitOrders = $this->position->orders->where('type', 'LIMIT');
@@ -213,7 +233,7 @@ class DispatchPositionJob extends AbstractJob
         ])->dispatch();
     }
 
-    private function updatePositionError(string $message)
+    protected function updatePositionError(string $message)
     {
         $this->position->update(['status' => 'error', 'comments' => $message]);
     }

@@ -36,8 +36,8 @@ class TestCommand extends Command
     public function handle()
     {
         File::put(storage_path('logs/laravel.log'), '');
-        //DB::table('positions')->truncate();
-        //DB::table('orders')->truncate();
+        DB::table('positions')->truncate();
+        DB::table('orders')->truncate();
         DB::table('api_logs')->truncate();
         DB::table('application_logs')->truncate();
         DB::table('exceptions_log')->truncate();

@@ -11,6 +11,16 @@ class ExchangeRESTWrapper extends AbstractRESTWrapper
         return $this->mapper->getAccountInformation($this);
     }
 
+    public function updateMarginType()
+    {
+        return $this->mapper->updateMarginType($this);
+    }
+
+    public function getOrder()
+    {
+        return $this->mapper->getOrder($this);
+    }
+
     public function getOpenOrders()
     {
         return $this->mapper->getOpenOrders($this);
