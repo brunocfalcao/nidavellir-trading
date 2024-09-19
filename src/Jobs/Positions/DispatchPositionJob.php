@@ -66,7 +66,7 @@ class DispatchPositionJob extends AbstractJob
             );
 
             $this->dispatchOrders($this->position);
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             // Update position status to error.
             if ($this->position) {
                 $this->position->update(['status' => 'error']);

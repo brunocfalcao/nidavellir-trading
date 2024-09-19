@@ -9,7 +9,6 @@ use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\Exceptions\IndicatorNotSyncedException;
 use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Models\Symbol;
-use Throwable;
 
 /**
  * UpsertSymbolIndicatorValuesJob fetches indicator values and
@@ -52,7 +51,7 @@ class UpsertSymbolIndicatorValuesJob extends AbstractJob
                 $this->fetchAndUpdateIndicators($symbol);
                 $this->fetchAndUpdateCandle($symbol);
             }
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             throw new TryCatchException(
                 throwable: $e
             );

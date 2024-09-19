@@ -8,7 +8,6 @@ use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Symbol;
-use Throwable;
 
 /**
  * DisableSymbolsFromConfigJob is responsible for disabling
@@ -66,7 +65,7 @@ class DisableSymbolsFromConfigJob extends AbstractJob
                     }
                 }
             }
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             // Throw a custom exception if any error occurs during processing.
             throw new TryCatchException(
                 throwable: $e

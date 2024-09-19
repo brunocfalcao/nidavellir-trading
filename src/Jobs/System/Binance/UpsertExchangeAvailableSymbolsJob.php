@@ -132,7 +132,7 @@ class UpsertExchangeAvailableSymbolsJob extends AbstractJob
                         $exchangeSymbol->update($symbolData);
                     }
                 }
-            } catch (Throwable $e) {
+            } catch (\Throwable $e) {
                 throw new TryCatchException(
                     throwable: $e,
                 );

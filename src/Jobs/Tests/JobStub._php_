@@ -4,7 +4,6 @@ namespace Nidavellir\Trading\Jobs\Tests;
 
 use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\Exceptions\PositionNotSyncedException;
-use Throwable;
 
 class SomethingJob extends AbstractJob
 {
@@ -17,7 +16,7 @@ class SomethingJob extends AbstractJob
     {
         try {
             //
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             throw new PositionNotSyncedException(
                 $e->getMessage(),
                 ['position_id' => $this->positionId],

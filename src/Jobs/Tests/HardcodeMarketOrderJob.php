@@ -6,7 +6,6 @@ use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\Exceptions\OrderNotSyncedException;
 use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Models\Position;
-use Nidavellir\Trading\NidavellirException;
 
 /**
  * HardcodeMarketOrderJob creates a market order for testing
@@ -76,9 +75,9 @@ class HardcodeMarketOrderJob extends AbstractJob
                 'api_order_id' => rand(1582606909, 1882606909), // Random ID for testing.
             ]);
         } catch (\Throwable $e) {
-            // Throw a NidavellirException instead of OrderNotSyncedException.
             throw new TryCatchException(
                 throwable: $e,
+                additionalData: ['position_id' => $this->positionId]
             );
         }
     }

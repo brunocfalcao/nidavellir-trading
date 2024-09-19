@@ -9,7 +9,6 @@ use Nidavellir\Trading\Exceptions\FearAndGreedIndexNotSyncedException;
 use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Models\System;
 use Nidavellir\Trading\NidavellirException;
-use Throwable;
 
 /**
  * UpsertFearGreedIndexJob handles fetching the Fear and Greed
@@ -77,7 +76,7 @@ class UpsertFearGreedIndexJob extends AbstractJob
                         'response_status' => $response->status()],
                 );
             }
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             // Throw a NidavellirException if any error occurs during the process.
             throw new TryCatchException(
                 throwable: $e,
