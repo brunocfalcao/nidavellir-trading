@@ -237,14 +237,14 @@ class DispatchOrderJob extends AbstractJob
         ];
 
         info_multiple(
-            'newClientOrderId: ' . $this->generateClientOrderId(),
-            'side: ' . strtoupper($sideDetails['orderSide']),
-            'type: ' . 'MARKET',
-            'quantity: ' . $orderQuantity,
-            'symbol: ' . $this->symbol->token.'USDT'
+            '-- Order Placement (MARKET) --',
+            'Nidavellir Order id:'.$this->order->id,
+            'newClientOrderId: '.$this->orderData['newClientOrderId'],
+            'side: '.$this->orderData['side'],
+            'type: '.'MARKET',
+            'quantity: '.$this->orderData['quantity'],
+            'symbol: '.$this->orderData['symbol']
         );
-
-        return;
 
         // Dispatch the order via the trader's API.
         $result = $this->trader
@@ -292,6 +292,17 @@ class DispatchOrderJob extends AbstractJob
             'symbol' => $this->exchangeSymbol->symbol->token.'USDT',
             'price' => $orderPrice,
         ];
+
+        info_multiple(
+            '-- Order Placement (LIMIT) --',
+            'Nidavellir Order id:'.$this->order->id,
+            'newClientOrderId: '.$this->orderData['newClientOrderId'],
+            'side: '.$this->orderData['side'],
+            'type: '.'LIMIT',
+            'quantity: '.$this->orderData['quantity'],
+            'symbol: '.$this->orderData['symbol'],
+            'price:'.$this->orderData['price'],
+        );
 
         // Dispatch the order via the trader's API.
         $result = $this->trader

@@ -9,7 +9,6 @@ use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
-use Nidavellir\Trading\Jobs\Tests\HardcodeMarketOrderJob;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Nidavellir;
@@ -206,12 +205,10 @@ class DispatchPositionJob extends AbstractJob
 
         Bus::chain([
             Bus::batch($limitJobs),
+            new DispatchOrderJob($marketOrder->id),
+            new DispatchOrderJob($profitOrder->id),
 
-            // Lets hardcode a market order, so we don't spend money.
-            //new HardcodeMarketOrderJob($this->position->id),
-
-            // Now the profit order, also simulated for now.
-            //new DispatchOrderJob($profitOrder->id),
+            //new ConfirmPositionDataQuality($this->position->id)
 
         ])->dispatch();
     }

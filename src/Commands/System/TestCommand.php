@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
+use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
 use Nidavellir\Trading\Jobs\Symbols\UpsertEligibleSymbolsJob;
 use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolMetadataJob;
 use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsRankingJob;
@@ -42,7 +43,7 @@ class TestCommand extends Command
         DB::table('exceptions_log')->truncate();
         $this->testNewPosition();
 
-        DispatchOrderJob::dispatchSync();
+        //DispatchOrderJob::dispatchSync(1);
 
         //HardcodeMarketOrderJob::dispatchSync(Position::query()->first()->id);
         //UpsertFearGreedIndexJob::dispatchSync();
