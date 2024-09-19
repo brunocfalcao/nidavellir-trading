@@ -11,7 +11,10 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Nidavellir\Trading\Exceptions\FearAndGreedIndexNotSyncedException;
+use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Models\System;
+use Nidavellir\Trading\NidavellirException;
+use Throwable;
 
 /**
  * UpsertFearGreedIndexJob handles fetching the Fear and Greed
@@ -26,9 +29,6 @@ class UpsertFearGreedIndexJob implements ShouldQueue
     // API URL for fetching the Fear and Greed Index.
     protected $fearGreedIndexUrl = 'https://api.alternative.me/fng/';
 
-    /**
-     * Constructor for the job.
-     */
     public function __construct()
     {
         $this->logBlock = Str::uuid(); // Generate a UUID block for log entries
@@ -71,24 +71,26 @@ class UpsertFearGreedIndexJob implements ShouldQueue
                 } else {
                     // Throw an exception for invalid data
                     throw new FearAndGreedIndexNotSyncedException(
-                        title: 'Invalid response data: Missing Fear and Greed Index value',
-                        additionalData: ['response_data' => $data]
+                        message: 'Invalid response data: Missing Fear and Greed Index value',
+                        additionalData: [
+                            'response_data' => $data]
                     );
                 }
             } else {
                 // Throw an exception if the API call failed.
-                throw new NidavellirException(
-                    title: 'Failed to fetch Fear and Greed Index from API',
-                    additionalData: ['response_status' => $response->status()],
-                    loggable: System::first()
+                throw new FearAndGreedIndexNotSyncedException(
+                    message: 'Failed to fetch Fear and Greed Index from API',
+                    additionalData: [
+                        'response_status' => $response->status()],
                 );
             }
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             // Throw a NidavellirException if any error occurs during the process.
-            throw new NidavellirException(
-                originalException: $e,
-                title: 'Error occurred while updating Fear and Greed Index',
-                loggable: System::first()
+            throw new TryCatchException(
+                throwable: $e,
+                additionalData: [
+                    'response' => $response,
+                ]
             );
         }
     }

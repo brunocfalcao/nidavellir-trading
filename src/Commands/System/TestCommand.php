@@ -4,6 +4,7 @@ namespace Nidavellir\Trading\Commands\System;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
@@ -12,6 +13,7 @@ use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolMetadataJob;
 use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsRankingJob;
 use Nidavellir\Trading\Jobs\System\Binance\UpsertNotionalAndLeverageJob;
 use Nidavellir\Trading\Jobs\System\Taapi\UpsertSymbolIndicatorValuesJob;
+use Nidavellir\Trading\Jobs\System\UpsertFearGreedIndexJob;
 use Nidavellir\Trading\Jobs\Tests\HardcodeMarketOrderJob;
 use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Models\Symbol;
@@ -31,6 +33,17 @@ class TestCommand extends Command
 
     public function handle()
     {
+        File::put(storage_path('logs/laravel.log'), '');
+        DB::table('positions')->truncate();
+        DB::table('orders')->truncate();
+        DB::table('api_logs')->truncate();
+        DB::table('application_logs')->truncate();
+        DB::table('exceptions_log')->truncate();
+
+        //UpsertFearGreedIndexJob::dispatchSync();
+
+        UpsertNotionalAndLeverageJob::dispatchSync();
+
         //UpsertSymbolMetadataJob::dispatchSync();
 
         //UpsertNotionalAndLeverageJob::dispatchSync();
@@ -45,7 +58,7 @@ class TestCommand extends Command
         //HardcodeMarketOrderJob::dispatchSync(Position::find(1)->id);
         //$this->queryOpenOrders();
         //$this->queryAllOrders();
-        $this->testNewPosition();
+        //$this->testNewPosition();
         //$this->testTokenLeverage();
         //$this->getAccountBalance();
     }
@@ -124,12 +137,6 @@ class TestCommand extends Command
      */
     private function testNewPosition()
     {
-        DB::table('positions')->truncate();
-        DB::table('orders')->truncate();
-        DB::table('api_logs')->truncate();
-        DB::table('application_logs')->truncate();
-        DB::table('exceptions_log')->truncate();
-
         $position = Position::create([
             'trader_id' => Trader::find(1)->id,
             //'exchange_symbol_id' => 36,

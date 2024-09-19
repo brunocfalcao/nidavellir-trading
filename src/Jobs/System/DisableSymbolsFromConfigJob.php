@@ -10,9 +10,10 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Str;
+use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Symbol;
-use Nidavellir\Trading\NidavellirException;
+use Throwable;
 
 /**
  * DisableSymbolsFromConfigJob is responsible for disabling
@@ -75,9 +76,11 @@ class DisableSymbolsFromConfigJob implements ShouldQueue
                     }
                 }
             }
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             // Throw a custom exception if any error occurs during processing.
-            throw new NidavellirException($e);
+            throw new TryCatchException(
+                throwable: $e
+            );
         }
     }
 }

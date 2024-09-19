@@ -8,14 +8,14 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Str;
+use Nidavellir\Trading\Exceptions\NotionalAndLeverageNotSyncedException;
+use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Exchange;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Nidavellir;
-use Nidavellir\Trading\NidavellirException;
-use Throwable;
 
 /**
  * UpsertNotionalAndLeverageJob fetches and updates notional and
@@ -58,19 +58,12 @@ class UpsertNotionalAndLeverageJob implements ShouldQueue
             // Retrieve the Binance exchange record from the database.
             $exchange = Exchange::firstWhere('canonical', 'binance');
 
-            if (! $exchange) {
-                throw new NidavellirException(
-                    title: 'Binance exchange not found',
-                    additionalData: ['exchange' => 'binance']
-                );
-            }
-
             // Fetch notional and leverage data for all symbols from Binance API.
             $symbols = $this->wrapper->getLeverageBrackets();
 
             if (! $symbols) {
-                throw new NidavellirException(
-                    title: 'No notional and leverage data received',
+                throw new NotionalAndLeverageNotSyncedException(
+                    message: 'No notional and leverage data received',
                     additionalData: ['exchange' => 'binance']
                 );
             }
@@ -89,11 +82,9 @@ class UpsertNotionalAndLeverageJob implements ShouldQueue
                     }
                 }
             }
-        } catch (Throwable $e) {
-            throw new NidavellirException(
-                originalException: $e,
-                title: 'Error occurred while updating notional and leverage data for Binance symbols',
-                loggable: $exchange ?? null
+        } catch (\Throwable $e) {
+            throw new TryCatchException(
+                throwable: $e,
             );
         }
     }

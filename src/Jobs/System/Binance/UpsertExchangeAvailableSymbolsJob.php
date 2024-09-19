@@ -8,14 +8,13 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Str;
+use Nidavellir\Trading\Exceptions\ExchangeSymbolNotSyncedException;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Exchange;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Nidavellir;
-use Nidavellir\Trading\NidavellirException;
-use Throwable;
 
 /**
  * UpsertExchangeAvailableSymbolsJob fetches symbol information
@@ -64,8 +63,8 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
             $this->symbols = $mapper->getExchangeInformation();
 
             if (empty($this->symbols)) {
-                throw new NidavellirException(
-                    title: 'No symbols fetched from Binance',
+                throw new ExchangeSymbolNotSyncedException(
+                    message: 'No symbols fetched from Binance',
                     additionalData: ['exchange' => 'binance']
                 );
             }
@@ -74,19 +73,17 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
             $this->symbols = $this->filterSymbolsWithUSDTMargin();
 
             if (empty($this->symbols)) {
-                throw new NidavellirException(
-                    title: 'No USDT margin symbols found from Binance data',
+                throw new ExchangeSymbolNotSyncedException(
+                    message: 'No USDT margin symbols found from Binance data',
                     additionalData: ['exchange' => 'binance']
                 );
             }
 
             // Sync or update the exchange symbols in the database.
             $this->syncExchangeSymbols();
-        } catch (Throwable $e) {
-            throw new NidavellirException(
-                originalException: $e,
-                title: 'Error occurred during syncing Binance symbols',
-                additionalData: ['exchange' => 'binance']
+        } catch (\Throwable $e) {
+            throw new TryCatchException(
+                throwable: $e,
             );
         }
     }
@@ -101,8 +98,8 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
         $exchange = Exchange::firstWhere('canonical', 'binance');
 
         if (! $exchange) {
-            throw new NidavellirException(
-                title: 'Binance exchange record not found',
+            throw new ExchangeSymbolNotSyncedException(
+                message: 'Binance exchange record not found',
                 additionalData: ['exchange' => 'binance']
             );
         }
@@ -145,11 +142,8 @@ class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
                     }
                 }
             } catch (Throwable $e) {
-                throw new NidavellirException(
-                    originalException: $e,
-                    title: 'Error occurred while syncing symbol: '.$symbolToken,
-                    additionalData: ['token' => $tokenData['symbol'], 'symbolData' => $data],
-                    loggable: $exchange
+                throw new TryCatchException(
+                    throwable: $e,
                 );
             }
         }

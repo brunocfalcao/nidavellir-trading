@@ -97,15 +97,10 @@ return new class extends Migration
 
         Schema::create('exceptions_log', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('loggable_id')->nullable();
-            $table->string('loggable_type')->nullable();
-            $table->longText('title')->nullable();
-            $table->longText('error_message')->nullable();
-            $table->string('exception_class')->nullable();
-            $table->string('file')->nullable();
-            $table->integer('line')->nullable();
-            $table->json('attributes')->nullable();
-            $table->longText('trace')->nullable();
+            $table->string('exception_message'); // Exception message
+            $table->string('filename'); // Filename with line number
+            $table->json('additional_data')->nullable(); // Additional data as JSON
+            $table->json('stack_trace'); // Stack trace as JSON
             $table->timestamps();
         });
 

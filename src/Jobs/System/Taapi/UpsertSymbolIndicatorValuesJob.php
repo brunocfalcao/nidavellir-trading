@@ -10,8 +10,10 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Nidavellir\Trading\Exceptions\IndicatorNotSyncedException;
+use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Models\Symbol;
-use Nidavellir\Trading\NidavellirException;
+use Throwable;
 
 /**
  * UpsertSymbolIndicatorValuesJob fetches indicator values and
@@ -53,15 +55,16 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
                 return;
             }
 
+            $currentSymbol = null;
+
             foreach ($symbols as $symbol) {
+                $currentSymbol = $symbol;
                 $this->fetchAndUpdateIndicators($symbol);
                 $this->fetchAndUpdateCandle($symbol);
             }
-        } catch (\Throwable $e) {
-            throw new NidavellirException(
-                originalException: $e,
-                title: 'Error occurred while updating indicators or candles for symbol: '.($symbols->first()->token ?? 'Unknown Symbol'),
-                loggable: $symbols->first()
+        } catch (Throwable $e) {
+            throw new TryCatchException(
+                throwable: $e
             );
         }
     }
@@ -95,14 +98,13 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
                 $this->updateIndicators($symbol, $indicator, $responseData);
             } else {
                 $errorMessage = $response->body();
-                throw new NidavellirException(
-                    title: 'Failed to fetch indicator from Taapi.io for symbol: '.$symbol->token,
+                throw new IndicatorNotSyncedException(
+                    message: 'Failed to fetch indicator from Taapi.io for symbol: '.$symbol->token,
                     additionalData: [
                         'symbol' => $symbol->token,
                         'indicator' => $indicator,
                         'api_error' => $errorMessage,
-                    ],
-                    loggable: $symbol
+                    ]
                 );
             }
         }
@@ -137,10 +139,11 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
                 ]);
             }
         } else {
-            throw new NidavellirException(
-                title: 'Failed to fetch candle data from Taapi.io for symbol: '.$symbol->token,
-                additionalData: ['symbol' => $symbol->token],
-                loggable: $symbol
+            throw new IndicatorNotSyncedException(
+                message: 'Failed to fetch candle data from Taapi.io for symbol: '.$symbol->token,
+                additionalData: [
+                    'symbol' => $symbol->token,
+                    'response' => $response->status()],
             );
         }
     }
