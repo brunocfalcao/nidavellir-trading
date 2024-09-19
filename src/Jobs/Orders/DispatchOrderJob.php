@@ -229,15 +229,22 @@ class DispatchOrderJob extends AbstractJob
     {
         // Build the API order data for a Market order.
         $this->orderData = [
-            'newClientOrderId' => 'T:'.$this->trader->id.
-                '-E:'.$this->exchange->id.
-                '-P:'.$this->position->id.
-                '-O:'.$this->order->id,
+            'newClientOrderId' => $this->generateClientOrderId(),
             'side' => strtoupper($sideDetails['orderSide']),
             'type' => 'MARKET',
             'quantity' => $orderQuantity,
             'symbol' => $this->symbol->token.'USDT',
         ];
+
+        info_multiple(
+            'newClientOrderId: ' . $this->generateClientOrderId(),
+            'side: ' . strtoupper($sideDetails['orderSide']),
+            'type: ' . 'MARKET',
+            'quantity: ' . $orderQuantity,
+            'symbol: ' . $this->symbol->token.'USDT'
+        );
+
+        return;
 
         // Dispatch the order via the trader's API.
         $result = $this->trader
@@ -251,6 +258,17 @@ class DispatchOrderJob extends AbstractJob
 
         // Update the order with the result from the exchange.
         $this->updateOrderWithExchangeResult($result);
+    }
+
+    // Generates a custom business order id saved on the order.
+    private function generateClientOrderId()
+    {
+        return
+                // Custom id generation.
+                $this->trader->id.
+                '-'.$this->exchange->id.
+                '-'.$this->position->id.
+                '-'.$this->order->id;
     }
 
     /**
@@ -270,10 +288,7 @@ class DispatchOrderJob extends AbstractJob
             'side' => strtoupper($sideDetails['orderSide']),
             'type' => 'LIMIT',
             'quantity' => $orderQuantity,
-            'newClientOrderId' => 'T:'.$this->trader->id.
-                '-E:'.$this->exchange->id.
-                '-P:'.$this->position->id.
-                '-O:'.$this->order->id,
+            'newClientOrderId' => $this->generateClientOrderId(),
             'symbol' => $this->exchangeSymbol->symbol->token.'USDT',
             'price' => $orderPrice,
         ];

@@ -16,10 +16,6 @@ class HardcodeMarketOrderJob extends AbstractJob
     // Constants for different order types: Market, Limit, and Profit.
     public const ORDER_TYPE_MARKET = 'MARKET';
 
-    public const ORDER_TYPE_LIMIT = 'LIMIT';
-
-    public const ORDER_TYPE_PROFIT = 'PROFIT';
-
     // Stores the ID of the position associated with the order.
     public $positionId;
 
@@ -95,7 +91,7 @@ class HardcodeMarketOrderJob extends AbstractJob
         $exchangeSymbol = $order->position->exchangeSymbol;
 
         // Handles both MARKET and LIMIT order types.
-        if (in_array($order->type, [self::ORDER_TYPE_MARKET, self::ORDER_TYPE_LIMIT])) {
+        if (in_array($order->type, [self::ORDER_TYPE_MARKET])) {
             // Calculate the trade amount divided by the configured amount divider.
             $amountAfterDivider = $order->position->total_trade_amount / $order->amount_divider;
 

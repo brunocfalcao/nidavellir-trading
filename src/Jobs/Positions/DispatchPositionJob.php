@@ -208,10 +208,10 @@ class DispatchPositionJob extends AbstractJob
             Bus::batch($limitJobs),
 
             // Lets hardcode a market order, so we don't spend money.
-            new HardcodeMarketOrderJob($this->position->id),
+            //new HardcodeMarketOrderJob($this->position->id),
 
             // Now the profit order, also simulated for now.
-            new DispatchOrderJob($profitOrder->id),
+            //new DispatchOrderJob($profitOrder->id),
 
         ])->dispatch();
     }
