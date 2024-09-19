@@ -2,12 +2,8 @@
 
 namespace Nidavellir\Trading\Jobs\System\Binance;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Str;
+use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\Exceptions\NotionalAndLeverageNotSyncedException;
 use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
@@ -23,15 +19,9 @@ use Nidavellir\Trading\Nidavellir;
  * the leverage data for USDT-margin pairs by updating the
  * corresponding `ExchangeSymbol` records in the database.
  */
-class UpsertNotionalAndLeverageJob implements ShouldQueue
+class UpsertNotionalAndLeverageJob extends AbstractJob
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-
-    public $timeout = 180;
-
     public ExchangeRESTWrapper $wrapper;
-
-    private $logBlock;
 
     /**
      * Constructor to initialize the API wrapper with Binance

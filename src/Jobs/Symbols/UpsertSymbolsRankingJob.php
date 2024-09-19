@@ -2,40 +2,27 @@
 
 namespace Nidavellir\Trading\Jobs\Symbols;
 
-use Illuminate\Bus\Batchable;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Str;
+use Nidavellir\Trading\Abstracts\AbstractJob;
+use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Exchanges\CoinmarketCap\CoinmarketCapRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Nidavellir;
-use Nidavellir\Trading\NidavellirException;
-use Throwable;
 
 /**
  * UpsertSymbolsRankingJob handles fetching the latest symbol
  * rankings from the CoinMarketCap API and updating the ranks
  * of the existing symbols in the database.
  */
-class UpsertSymbolsRankingJob implements ShouldQueue
+class UpsertSymbolsRankingJob extends AbstractJob
 {
-    use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-
-    public $timeout = 180;
-
-    private $logBlock;
-
     /**
      * Constructor for the job. Currently, it doesn't require
      * any specific initialization.
      */
     public function __construct()
     {
-        $this->logBlock = Str::uuid(); // Generate UUID block for log entries
+        //
     }
 
     /**
@@ -73,13 +60,9 @@ class UpsertSymbolsRankingJob implements ShouldQueue
                     }
                 }
             }
-        } catch (Throwable $e) {
-            throw new NidavellirException(
-                originalException: $e,
-                title: 'Error occurred while updating symbol ranks',
-                additionalData: [
-                    'source' => 'CoinmarketCap API',
-                ]
+        } catch (\Throwable $e) {
+            throw new TryCatchException(
+                throwable: $e,
             );
         }
     }

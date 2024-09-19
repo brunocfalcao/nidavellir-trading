@@ -2,19 +2,13 @@
 
 namespace Nidavellir\Trading\Jobs\Symbols;
 
-use Illuminate\Bus\Batchable;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Str;
+use Nidavellir\Trading\Abstracts\AbstractJob;
+use Nidavellir\Trading\Exceptions\SymbolNotSyncedException;
+use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Exchanges\CoinmarketCap\CoinmarketCapRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Nidavellir;
-use Nidavellir\Trading\NidavellirException;
-use Throwable;
 
 /**
  * UpsertSymbolsJob handles fetching symbols from CoinMarketCap
@@ -22,15 +16,9 @@ use Throwable;
  * the number of symbols fetched and performs bulk insert/update
  * for symbols to optimize database operations.
  */
-class UpsertSymbolsJob implements ShouldQueue
+class UpsertSymbolsJob extends AbstractJob
 {
-    use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-
-    public $timeout = 180;
-
     private ?int $limit;
-
-    private $logBlock;
 
     /**
      * Constructor to initialize the job with an optional
@@ -40,7 +28,6 @@ class UpsertSymbolsJob implements ShouldQueue
     {
         // Set the limit for fetching symbols.
         $this->limit = $limit;
-        $this->logBlock = Str::uuid(); // Generate UUID block for log entries
     }
 
     /**
@@ -67,9 +54,8 @@ class UpsertSymbolsJob implements ShouldQueue
 
             // If no data is returned, throw an exception.
             if (! $data) {
-                throw new NidavellirException(
-                    title: 'No symbols fetched from CoinMarketCap API',
-                    additionalData: ['limit' => $this->limit]
+                throw new SymbolNotSyncedException(
+                    title: 'No symbols fetched from CoinMarketCap API'
                 );
             }
 
@@ -92,11 +78,9 @@ class UpsertSymbolsJob implements ShouldQueue
                 ['coinmarketcap_id'],
                 ['name', 'token', 'updated_at']
             );
-        } catch (Throwable $e) {
-            throw new NidavellirException(
-                originalException: $e,
-                title: 'Error occurred during upsert of symbols',
-                additionalData: ['limit' => $this->limit]
+        } catch (\Throwable $e) {
+            throw new TryCatchException(
+                throwable: $e,
             );
         }
     }

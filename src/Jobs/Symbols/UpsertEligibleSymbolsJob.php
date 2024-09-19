@@ -2,17 +2,11 @@
 
 namespace Nidavellir\Trading\Jobs\Symbols;
 
-use Illuminate\Bus\Batchable;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Str;
+use Nidavellir\Trading\Abstracts\AbstractJob;
+use Nidavellir\Trading\Exceptions\EligibleSymbolNotSyncedException;
+use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Symbol;
-use Nidavellir\Trading\NidavellirException;
-use Throwable;
 
 /**
  * UpsertEligibleSymbolsJob determines and updates eligible
@@ -25,20 +19,11 @@ use Throwable;
  * - Excludes tokens based on the exclusion list.
  * - Marks up to 20 active symbols as eligible.
  */
-class UpsertEligibleSymbolsJob implements ShouldQueue
+class UpsertEligibleSymbolsJob extends AbstractJob
 {
-    use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-
-    public $timeout = 180;
-
-    private $logBlock;
-
-    /**
-     * Constructor generates a UUID block for logging.
-     */
     public function __construct()
     {
-        $this->logBlock = Str::uuid(); // Generate UUID block for log entries
+        //
     }
 
     /**
@@ -73,17 +58,15 @@ class UpsertEligibleSymbolsJob implements ShouldQueue
 
             // If no eligible symbols are updated, throw a custom exception.
             if ($eligibleCount === 0) {
-                throw new NidavellirException(
-                    title: 'No eligible symbols updated.',
+                throw new EligibleSymbolNotSyncedException(
+                    message: 'No eligible symbols updated.',
                     additionalData: ['excludedTokens' => $excludedTokens]
                 );
             }
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             // Handle any exceptions and throw a custom exception.
-            throw new NidavellirException(
-                originalException: $e,
-                title: 'Error occurred while updating eligible symbols.',
-                additionalData: []
+            throw new TryCatchException(
+                throwable: $e,
             );
         }
     }

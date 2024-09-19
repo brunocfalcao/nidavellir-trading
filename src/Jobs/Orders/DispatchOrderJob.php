@@ -2,16 +2,15 @@
 
 namespace Nidavellir\Trading\Jobs\Orders;
 
-use Illuminate\Support\Str;
 use Nidavellir\Trading\Abstracts\AbstractJob;
+use Nidavellir\Trading\Exceptions\DispatchOrderException;
+use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Models\Exchange;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Order;
 use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Models\Trader;
-use Nidavellir\Trading\NidavellirException;
-use Throwable;
 
 /**
  * DispatchOrderJob handles the dispatching of trading orders
@@ -37,6 +36,9 @@ class DispatchOrderJob extends AbstractJob
     // Holds the order being dispatched.
     public Order $order;
 
+    // Holds the order id argument.
+    public $orderId;
+
     // Trader associated with the position.
     public Trader $trader;
 
@@ -52,9 +54,6 @@ class DispatchOrderJob extends AbstractJob
     // The cryptocurrency symbol being traded.
     public Symbol $symbol;
 
-    // Log block for grouping log entries.
-    private $logBlock;
-
     /**
      * Initializes the job with the specific order ID.
      * Preloads necessary entities to avoid repeated queries.
@@ -62,15 +61,13 @@ class DispatchOrderJob extends AbstractJob
     public function __construct(int $orderId)
     {
         // Retrieve the order and related entities.
+        $this->orderId = $orderId;
         $this->order = Order::find($orderId);
         $this->trader = $this->order->position->trader;
         $this->position = $this->order->position;
         $this->exchangeSymbol = $this->order->position->exchangeSymbol;
         $this->symbol = $this->exchangeSymbol->symbol;
         $this->exchange = $this->order->position->trader->exchange;
-
-        // Generate a UUID block for log entries.
-        $this->logBlock = Str::uuid();
     }
 
     /**
@@ -88,10 +85,9 @@ class DispatchOrderJob extends AbstractJob
             // Handle retries and stop after 3 attempts.
             if ($this->attempts() == 3) {
                 $this->order->update(['status' => 'error']);
-                throw new NidavellirException(
-                    title: 'Max attempts: Failed to create order on exchange',
+                throw new DispatchOrderException(
+                    message: 'Max attempts: Failed to create order on exchange',
                     additionalData: ['order_id' => $this->order->id],
-                    loggable: $this->order
                 );
             }
 
@@ -112,15 +108,16 @@ class DispatchOrderJob extends AbstractJob
 
             // Proceed to process the order.
             $this->processOrder();
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             // Update order to error.
-            $this->order->update(['status' => 'error']);
+            if ($this->order) {
+                $this->order->update(['status' => 'error']);
+            }
 
             // Handle any errors and throw a custom exception.
-            throw new NidavellirException(
-                originalException: $e,
-                title: 'Error occurred during order dispatching',
-                loggable: $this->order
+            throw new TryCatchException(
+                throwable: $e,
+                additionalData: ['order_id' => $this->orderId]
             );
         }
     }

@@ -2,14 +2,9 @@
 
 namespace Nidavellir\Trading\Jobs\System;
 
-use Illuminate\Bus\Batchable;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\Exceptions\FearAndGreedIndexNotSyncedException;
 use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Models\System;
@@ -22,10 +17,8 @@ use Throwable;
  * with the latest value. If no system record exists, it creates
  * a new entry in the database.
  */
-class UpsertFearGreedIndexJob implements ShouldQueue
+class UpsertFearGreedIndexJob extends AbstractJob
 {
-    use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-
     // API URL for fetching the Fear and Greed Index.
     protected $fearGreedIndexUrl = 'https://api.alternative.me/fng/';
 

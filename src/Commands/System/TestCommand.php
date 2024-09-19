@@ -11,6 +11,7 @@ use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Jobs\Symbols\UpsertEligibleSymbolsJob;
 use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolMetadataJob;
 use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsRankingJob;
+use Nidavellir\Trading\Jobs\System\Binance\UpsertExchangeAvailableSymbolsJob;
 use Nidavellir\Trading\Jobs\System\Binance\UpsertNotionalAndLeverageJob;
 use Nidavellir\Trading\Jobs\System\Taapi\UpsertSymbolIndicatorValuesJob;
 use Nidavellir\Trading\Jobs\System\UpsertFearGreedIndexJob;
@@ -42,7 +43,7 @@ class TestCommand extends Command
 
         //UpsertFearGreedIndexJob::dispatchSync();
 
-        UpsertNotionalAndLeverageJob::dispatchSync();
+        UpsertExchangeAvailableSymbolsJob::dispatchSync();
 
         //UpsertSymbolMetadataJob::dispatchSync();
 

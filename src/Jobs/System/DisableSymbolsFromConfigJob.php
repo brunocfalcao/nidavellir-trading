@@ -2,14 +2,9 @@
 
 namespace Nidavellir\Trading\Jobs\System;
 
-use Illuminate\Bus\Batchable;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Str;
+use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Symbol;
@@ -25,13 +20,8 @@ use Throwable;
  * - Updates the `is_active` status to false for excluded symbols.
  * - Disables corresponding `ExchangeSymbol` records.
  */
-class DisableSymbolsFromConfigJob implements ShouldQueue
+class DisableSymbolsFromConfigJob extends AbstractJob
 {
-    use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-
-    // UUID block to group logs together
-    private $logBlock;
-
     /**
      * Constructor for the job. It currently does not require
      * any initialization parameters.

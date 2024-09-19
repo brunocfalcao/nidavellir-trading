@@ -2,18 +2,13 @@
 
 namespace Nidavellir\Trading\Jobs\Symbols;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Str;
+use Nidavellir\Trading\Abstracts\AbstractJob;
+use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Exchanges\CoinmarketCap\CoinmarketCapRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Nidavellir;
 use Nidavellir\Trading\NidavellirException;
-use Throwable;
 
 /**
  * UpsertSymbolMetadataJob fetches and updates metadata for
@@ -25,20 +20,11 @@ use Throwable;
  * - Uses custom exception handling to manage errors.
  * - Updates metadata efficiently using array chunks.
  */
-class UpsertSymbolMetadataJob implements ShouldQueue
+class UpsertSymbolMetadataJob extends AbstractJob
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-
-    public $timeout = 180;
-
-    private $logBlock;
-
-    /**
-     * Constructor for generating a UUID block for logging.
-     */
     public function __construct()
     {
-        $this->logBlock = Str::uuid(); // Generate UUID block for log entries
+        //
     }
 
     /**
@@ -101,12 +87,10 @@ class UpsertSymbolMetadataJob implements ShouldQueue
                         ]);
                 }
             }
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             // Catch any exceptions and rethrow a custom exception.
-            throw new NidavellirException(
-                originalException: $e,
-                title: 'Error occurred while updating symbol metadata.',
-                additionalData: []
+            throw new TryCatchException(
+                throwable: $e,
             );
         }
     }

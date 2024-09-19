@@ -3,13 +3,9 @@
 namespace Nidavellir\Trading\Jobs\System\Taapi;
 
 use Carbon\Carbon;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\Exceptions\IndicatorNotSyncedException;
 use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Models\Symbol;
@@ -22,12 +18,8 @@ use Throwable;
  * Bands, RSI, Stochastic, MACD, and the price amplitude
  * percentage for each symbol.
  */
-class UpsertSymbolIndicatorValuesJob implements ShouldQueue
+class UpsertSymbolIndicatorValuesJob extends AbstractJob
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-
-    public $timeout = 180;
-
     private $taapiEndpoint = 'https://api.taapi.io';
 
     private $taapiApiKey;
@@ -35,8 +27,6 @@ class UpsertSymbolIndicatorValuesJob implements ShouldQueue
     private $constructLimit;
 
     private $maxRank;
-
-    private $logBlock;
 
     public function __construct()
     {

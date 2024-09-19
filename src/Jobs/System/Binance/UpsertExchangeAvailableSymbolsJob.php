@@ -2,13 +2,10 @@
 
 namespace Nidavellir\Trading\Jobs\System\Binance;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Str;
+use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\Exceptions\ExchangeSymbolNotSyncedException;
+use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Exchange;
@@ -22,17 +19,11 @@ use Nidavellir\Trading\Nidavellir;
  * model. It filters symbols by USDT margin, updates symbol precision
  * data, and ensures all relevant information is stored in the system.
  */
-class UpsertExchangeAvailableSymbolsJob implements ShouldQueue
+class UpsertExchangeAvailableSymbolsJob extends AbstractJob
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-
-    public $timeout = 180;
-
     public ExchangeRESTWrapper $wrapper;
 
     protected array $symbols;
-
-    private $logBlock;
 
     /**
      * Initializes the job by setting up the API wrapper with

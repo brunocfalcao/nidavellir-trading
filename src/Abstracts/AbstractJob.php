@@ -19,6 +19,8 @@ abstract class AbstractJob implements ShouldQueue
 
     public $tries = 3;
 
+    public $timeout = 180;
+
     // Define the backoff time in seconds
     public function backoff()
     {

@@ -3,8 +3,9 @@
 namespace Nidavellir\Trading\Jobs\Positions;
 
 use Illuminate\Support\Facades\Bus;
-use Illuminate\Support\Str;
 use Nidavellir\Trading\Abstracts\AbstractJob;
+use Nidavellir\Trading\Exceptions\DispatchPositionException;
+use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
 use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
@@ -12,8 +13,6 @@ use Nidavellir\Trading\Jobs\Tests\HardcodeMarketOrderJob;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Nidavellir;
-use Nidavellir\Trading\NidavellirException;
-use Throwable;
 
 /**
  * DispatchPositionJob manages the dispatching of positions
@@ -26,15 +25,16 @@ class DispatchPositionJob extends AbstractJob
     // Holds the position being dispatched.
     public Position $position;
 
-    private $logBlock;
+    // Holds the position id argument.
+    public $positionId;
 
     /**
      * Constructor for the job.
      */
     public function __construct(int $positionId)
     {
+        $this->positionId = $positionId;
         $this->position = Position::find($positionId);
-        $this->logBlock = Str::uuid();
     }
 
     /**
@@ -67,10 +67,14 @@ class DispatchPositionJob extends AbstractJob
 
             $this->dispatchOrders($this->position);
         } catch (Throwable $e) {
-            throw new NidavellirException(
+            // Update position status to error.
+            if ($this->position) {
+                $this->position->update(['status' => 'error']);
+            }
+
+            throw new TryCatchException(
                 originalException: $e,
-                title: 'Error during dispatching position ID: '.$this->position->id,
-                loggable: $this->position
+                additionalData: ['position_id' => $this->positionId]
             );
         }
     }
@@ -80,9 +84,11 @@ class DispatchPositionJob extends AbstractJob
         if (blank($this->position->trader_id) ||
             blank($this->position->status) ||
             blank($this->position->trade_configuration)) {
-            throw new NidavellirException(
-                title: "Position ID {$this->position->id} missing mandatory fields",
-                loggable: $this->position
+            throw new DispatchPositionException(
+                message: "Position ID {$this->position->id} missing mandatory fields",
+                additionalData: [
+                    'position_id' => $this->position->id,
+                ]
             );
         }
     }
