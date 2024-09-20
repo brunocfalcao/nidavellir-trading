@@ -308,11 +308,14 @@ class DispatchOrderJob extends AbstractJob
     protected function generateClientOrderId()
     {
         return
-                // Custom id generation.
+                // Custom client order id generation.
+                /*
                 $this->trader->id.
                 '-'.$this->exchange->id.
                 '-'.$this->position->id.
-                '-'.$this->order->id;
+                '-'.
+                */
+                $this->order->id;
     }
 
     /**

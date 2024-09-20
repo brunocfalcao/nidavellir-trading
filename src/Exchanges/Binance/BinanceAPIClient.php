@@ -2,53 +2,45 @@
 
 namespace Nidavellir\Trading\Exchanges\Binance;
 
-use Binance\Exception\ClientException;
-use Binance\Exception\ServerException;
 use Binance\Util\Url;
-use Nidavellir\Trading\Exchanges\IpBalancer;
+use GuzzleHttp\Exception\ClientException as GuzzleClientException;
+use Nidavellir\Trading\Exceptions\ApiException;
+use Nidavellir\Trading\Exceptions\TryCatchException;
+use Nidavellir\Trading\Models\ApiRequestLog;
 use Nidavellir\Trading\Models\EndpointWeight;
 use Nidavellir\Trading\Models\Exchange;
-use Psr\Log\NullLogger;
+use Nidavellir\Trading\Models\IpRequestWeight;
 
-abstract class BinanceAPIClient
+class BinanceAPIClient
 {
-    protected $baseURL;
+    private $baseURL;
 
-    protected $key;
+    private $key;
 
-    protected $secret;
+    private $secret;
 
-    protected $privateKey;
+    private $privateKey;
 
-    protected $logger;
+    private $logger;
 
-    protected $timeout;
+    private $timeout;
 
-    protected $showWeightUsage;
+    private $showWeightUsage;
 
-    protected $showHeader;
+    private $showHeader;
 
-    protected $httpRequest = null;
-
-    protected $ipBalancer;
-
-    protected $exchange;
+    private $httpRequest = null;
 
     public function __construct($args = [])
     {
         $this->baseURL = $args['baseURL'] ?? null;
         $this->key = $args['key'] ?? null;
         $this->secret = $args['secret'] ?? null;
-        $this->logger = $args['logger'] ?? new NullLogger;
+        $this->logger = $args['logger'] ?? new \Psr\Log\NullLogger;
         $this->timeout = $args['timeout'] ?? 0;
         $this->showWeightUsage = $args['showWeightUsage'] ?? false;
         $this->showHeader = $args['showHeader'] ?? false;
         $this->privateKey = $args['privateKey'] ?? null;
-
-        // Hardcoded Binance exchange retrieval
-        $this->exchange = Exchange::firstWhere('canonical', 'binance');
-        $this->ipBalancer = new IpBalancer($this->exchange);
-
         $this->buildClient($args['httpClient'] ?? null);
     }
 
@@ -74,88 +66,141 @@ abstract class BinanceAPIClient
 
     protected function processRequest($method, $path, $params = [])
     {
-        $ip = $this->ipBalancer->selectIp();
-        $maxRetryAttempts = count(config('nidavellir.system.api.ips')) > 1 ? 3 : 1;
-        $attempt = 0;
+        $this->applyRateLimiter($path); // Apply rate limiting before the request
 
-        while ($attempt < $maxRetryAttempts) {
-            try {
-                $curlOptions = [];
+        $logData = [
+            'path' => $path,
+            'payload' => $params,
+            'http_method' => $method,
+            'http_headers_sent' => [
+                'Content-Type' => 'application/json',
+                'X-MBX-APIKEY' => $this->key,
+            ],
+            'hostname' => gethostname(), // Capture the server's hostname
+        ];
 
-                // Check if IP is 127.0.0.1 (local) and disable CURLOPT_INTERFACE if true
-                if ($ip !== '127.0.0.1') {
-                    $curlOptions = [
-                        'curl' => [
-                            CURLOPT_INTERFACE => $ip,
-                        ],
-                    ];
-                }
+        try {
+            // Send the request
+            $response = $this->httpRequest->request($method, $this->buildQuery($path, $params));
 
-                // Proceed with the request
-                $endpointWeight = $this->getEndpointWeight($path);
-                $response = $this->httpRequest->request($method, $this->buildQuery($path, $params), $curlOptions);
+            // Capture response details
+            $logData['http_response_code'] = $response->getStatusCode();
+            $logData['response'] = json_decode($response->getBody(), true);
+            $logData['http_headers_returned'] = $response->getHeaders();
 
-                $body = json_decode($response->getBody(), true);
-                $headers = $response->getHeaders();
-                $usedWeight = $headers['X-MBX-USED-WEIGHT-1M'][0] ?? $endpointWeight;
+            // Extract and record weight from response headers
+            $this->updateEndpointWeight($path, $response->getHeaders());
 
-                // Update the IP's weight
-                $this->ipBalancer->updateWeightWithExactValue($ip, $usedWeight);
+            // Log the request and response
+            $this->logApiRequest($logData);
+        } catch (GuzzleClientException $e) {
+            $responseBody = $e->getResponse()->getBody()->getContents();
 
-                return $this->formatResponse($response, $body);
-            } catch (\GuzzleHttp\Exception\ClientException $e) {
-                // Handle rate limit and retry logic
-                if ($e->getResponse()->getStatusCode() === 429) {
-                    $this->handleRateLimit($ip, $attempt);
-                } else {
-                    throw new ClientException($e->getMessage(), $e);
-                }
-            } catch (\GuzzleHttp\Exception\ServerException $e) {
-                throw new ServerException($e->getMessage(), $e);
+            // Capture exception details in log data
+            $logData['http_response_code'] = $e->getCode();
+            $logData['response'] = $e->getMessage();
+            $logData['http_headers_returned'] = $e instanceof \GuzzleHttp\Exception\RequestException && $e->getResponse()
+                ? $e->getResponse()->getHeaders()
+                : null;
+
+            // Log the error response, regardless of whether we skip the exception
+            $this->logApiRequest($logData);
+
+            // Handle 429 Too Many Requests
+            if ($e->getCode() === 429) {
+                throw new ApiException('Rate limit exceeded.', 429);
             }
+
+            // Handle HTTP exceptions and skip if necessary
+            if ($this->shouldSkipException($e->getCode(), $responseBody)) {
+                // Extract and record weight even if skipping the exception
+                $this->updateEndpointWeight($path, $e->getResponse()->getHeaders());
+
+                // Skip the exception and treat it as a success, return the parsed response
+                return json_decode($responseBody, true);
+            }
+
+            // Throw the exception for other cases
+            throw new TryCatchException(throwable: $e);
         }
 
-        throw new \Exception('Max retry attempts reached');
+        // Parse and return the response body
+        return json_decode($response->getBody(), true);
     }
 
-    protected function getEndpointWeight($endpoint)
+    /**
+     * Update the endpoint weight using the response headers from Binance.
+     *
+     * @param  string  $path
+     * @param  array  $headers
+     * @return void
+     */
+    protected function updateEndpointWeight($path, $headers)
     {
-        $endpointWeight = EndpointWeight::where('exchange_id', $this->exchange->id)
-            ->where('endpoint', $endpoint)
-            ->first();
+        $exchangeId = $this->getExchangeId(); // Hardcoded for Binance in your case
 
-        if (! $endpointWeight) {
-            $endpointWeight = EndpointWeight::create([
-                'exchange_id' => $this->exchange->id,
-                'endpoint' => $endpoint,
-                'weight' => 1,
-            ]);
+        // Extract weight from the headers
+        $weightHeaderKey = 'x-mbx-used-weight-1m'; // Assuming this is the weight header to use
+        $weight = isset($headers[$weightHeaderKey]) ? (int) $headers[$weightHeaderKey][0] : 1;
+
+        // Update or create the endpoint weight record
+        EndpointWeight::updateOrCreate(
+            ['exchange_id' => $exchangeId, 'endpoint' => $path],
+            ['weight' => $weight]
+        );
+    }
+
+    /**
+     * Apply rate limiting based on the IP and endpoint weight.
+     *
+     * @param  string  $path
+     * @return void
+     *
+     * @throws ApiException
+     */
+    protected function applyRateLimiter($path)
+    {
+        $ipAddress = request()->ip(); // Get the client's IP address
+        $exchangeId = $this->getExchangeId(); // Hardcoded for Binance in your case
+
+        // Get the current endpoint weight
+        $endpointWeight = EndpointWeight::where('exchange_id', $exchangeId)
+            ->where('endpoint', $path)
+            ->value('weight') ?? 1;
+
+        // Get the current IP weight usage
+        $ipRequestWeight = IpRequestWeight::firstOrCreate(
+            ['exchange_id' => $exchangeId, 'ip_address' => $ipAddress],
+            ['last_reset_at' => now(), 'current_weight' => 0]
+        );
+
+        // If last_reset_at is null or more than 1 minute has passed, reset the weight
+        if (is_null($ipRequestWeight->last_reset_at) || $ipRequestWeight->last_reset_at->lessThan(now()->subMinute())) {
+            $ipRequestWeight->current_weight = 0;
+            $ipRequestWeight->last_reset_at = now();
         }
 
-        return $endpointWeight->weight;
-    }
-
-    private function handleRateLimit($ip, &$attempt)
-    {
-        if (count(config('nidavellir.system.api.ips')) > 1) {
-            $this->ipBalancer->backOffIp($ip);
-            $ip = $this->ipBalancer->selectNextIp();
-            $attempt++;
-            sleep(2);
-        } else {
-            throw new \Exception('Rate limit exceeded with one IP');
+        // Check if the current weight exceeds the rate limit (assuming 1200 as the limit per minute)
+        $currentWeight = $ipRequestWeight->current_weight + $endpointWeight;
+        if ($currentWeight > 1200) {
+            throw new ApiException('Rate limit exceeded. Please wait before sending more requests.', 429);
         }
+
+        // Update the IP weight
+        $ipRequestWeight->current_weight = $currentWeight;
+        $ipRequestWeight->save();
     }
 
-    private function isIpAvailable($ip)
+    /**
+     * Get the exchange ID for Binance.
+     */
+    protected function getExchangeId(): int
     {
-        // This command checks if the IP is available on the server
-        $output = shell_exec("ifconfig | grep '$ip'");
-
-        return ! empty($output);
+        // This assumes you have a hardcoded method to retrieve Binance's exchange ID.
+        return Exchange::firstWhere('canonical', 'binance')->id;
     }
 
-    private function buildQuery($path, $params = []): string
+    protected function buildQuery($path, $params = []): string
     {
         if (count($params) == 0) {
             return $path;
@@ -164,7 +209,7 @@ abstract class BinanceAPIClient
         return $path.'?'.Url::buildQuery($params);
     }
 
-    private function buildClient($httpRequest)
+    protected function buildClient($httpRequest)
     {
         $this->httpRequest = $httpRequest ??
         new \GuzzleHttp\Client([
@@ -178,32 +223,44 @@ abstract class BinanceAPIClient
         ]);
     }
 
-    private function formatResponse($response, $body)
+    /**
+     * Check if an exception should be skipped based on configuration.
+     *
+     * @param  int  $httpCode
+     * @param  string  $responseBody
+     * @return bool
+     */
+    protected function shouldSkipException($httpCode, $responseBody)
     {
-        if ($this->showWeightUsage) {
-            $weights = [];
-            foreach ($response->getHeaders() as $name => $value) {
-                $name = strtolower($name);
-                if (strpos($name, 'x-mbx-used-weight') === 0 ||
-                    strpos($name, 'x-mbx-order-count') === 0 ||
-                    strpos($name, 'x-sapi-used') === 0) {
-                    $weights[$name] = $value;
-                }
+        $skipConfig = config('nidavellir.system.api.params.binance.http_errors_to_skip');
+
+        if (isset($skipConfig[$httpCode])) {
+            $errorCodesToSkip = $skipConfig[$httpCode];
+            $responseArray = json_decode($responseBody, true);
+
+            // Check if any error code in the response matches the list of codes to skip
+            if (isset($responseArray['code']) && in_array($responseArray['code'], $errorCodesToSkip)) {
+                return true;
             }
-
-            return [
-                'data' => $body,
-                'weight_usage' => $weights,
-            ];
         }
 
-        if ($this->showHeader) {
-            return [
-                'data' => $body,
-                'header' => $response->getHeaders(),
-            ];
-        }
+        return false;
+    }
 
-        return $body;
+    /**
+     * Log API requests to the database using the ApiRequestLog model.
+     */
+    protected function logApiRequest(array $logData): void
+    {
+        ApiRequestLog::create([
+            'path' => $logData['path'],
+            'payload' => $logData['payload'],
+            'http_method' => $logData['http_method'],
+            'http_headers_sent' => $logData['http_headers_sent'],
+            'http_response_code' => $logData['http_response_code'],
+            'response' => $logData['response'],
+            'http_headers_returned' => $logData['http_headers_returned'],
+            'hostname' => $logData['hostname'],
+        ]);
     }
 }

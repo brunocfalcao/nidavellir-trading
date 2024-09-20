@@ -46,7 +46,7 @@ class DispatchPositionJob extends AbstractJob
             $this->computeTotalTradeAmount();
             $this->selectEligibleSymbol();
             $this->updatePositionSide();
-            $this->updateMarginType();
+            //$this->updateMarginTypeToCrossed();
             $this->setLeverage();
             $this->setLeverageOnToken();
 
@@ -73,7 +73,7 @@ class DispatchPositionJob extends AbstractJob
             }
 
             throw new TryCatchException(
-                originalException: $e,
+                throwable: $e,
                 additionalData: ['position_id' => $this->positionId]
             );
         }
@@ -83,18 +83,19 @@ class DispatchPositionJob extends AbstractJob
      * Ensures that the token margin type is CROSS and not ISOLATED.
      * This is not configurable from the traders' side.
      */
-    protected function updateMarginType()
+    protected function updateMarginTypeToCrossed()
     {
         $this->position
             ->trader
             ->withRESTApi()
             ->withPosition($this->position)
+            ->withExchangeSymbol($this->position->exchangeSymbol)
             ->withOptions([
                 'symbol' => $this->position
                                  ->exchangeSymbol
                                  ->symbol
                                  ->token.'USDT',
-                'marginType' => 'CROSS'])
+                'margintype' => 'CROSSED'])
             ->updateMarginType();
     }
 
@@ -225,8 +226,8 @@ class DispatchPositionJob extends AbstractJob
 
         Bus::chain([
             Bus::batch($limitJobs),
-            new DispatchOrderJob($marketOrder->id),
-            new DispatchOrderJob($profitOrder->id),
+            //new DispatchOrderJob($marketOrder->id),
+            //new DispatchOrderJob($profitOrder->id),
 
             //new ConfirmPositionDataQuality($this->position->id)
 

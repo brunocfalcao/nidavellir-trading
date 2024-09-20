@@ -12,6 +12,19 @@ return new class extends Migration
      */
     public function up(): void
     {
+        Schema::create('api_requests_log', function (Blueprint $table) {
+            $table->id();
+            $table->string('path')->nullable();
+            $table->json('payload')->nullable();
+            $table->string('http_method')->nullable();
+            $table->json('http_headers_sent')->nullable();
+            $table->integer('http_response_code')->nullable();
+            $table->json('response')->nullable();
+            $table->json('http_headers_returned')->nullable();
+            $table->string('hostname')->nullable();
+            $table->timestamps();
+        });
+
         Schema::create('exchanges', function (Blueprint $table) {
             $table->id();
 
@@ -97,45 +110,10 @@ return new class extends Migration
 
         Schema::create('exceptions_log', function (Blueprint $table) {
             $table->id();
-            $table->string('exception_message'); // Exception message
+            $table->longText('exception_message'); // Exception message
             $table->string('filename'); // Filename with line number
             $table->json('additional_data')->nullable(); // Additional data as JSON
             $table->json('stack_trace'); // Stack trace as JSON
-            $table->timestamps();
-        });
-
-        Schema::create('api_logs', function (Blueprint $table) {
-            $table->id();
-
-            $table->string('caller_name');
-
-            $table->foreignId('exchange_id')
-                ->nullable();
-
-            $table->foreignId('trader_id')
-                ->nullable();
-
-            $table->foreignId('position_id')
-                ->nullable();
-
-            $table->foreignId('exchange_symbol_id')
-                ->nullable();
-
-            $table->foreignId('order_id')
-                ->nullable();
-
-            $table->longText('mapper_properties')
-                ->nullable();
-
-            $table->longText('response')
-                ->nullable();
-
-            $table->longText('exception')
-                ->nullable();
-
-            $table->string('result')
-                ->nullable();
-
             $table->timestamps();
         });
 

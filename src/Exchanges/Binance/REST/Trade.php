@@ -7,7 +7,7 @@ use Binance\Util\Strings;
 
 trait Trade
 {
-    public function updateMarginType(array $options)
+    public function updateMarginType(array $options = [])
     {
         return $this->signRequest('POST', '/fapi/v1/marginType', $options);
     }

@@ -28,12 +28,12 @@ class TestOrder extends Command
         File::put(storage_path('logs/laravel.log'), '');
         DB::table('positions')->truncate();
         DB::table('orders')->truncate();
-        DB::table('api_logs')->truncate();
+        DB::table('api_requests_log')->truncate();
         DB::table('application_logs')->truncate();
         DB::table('exceptions_log')->truncate();
 
         $amount = $this->option('amount') ?? 150;
-        $token = $this->option('token') ?? 'TON';
+        $token = $this->option('token') ?? 'BTC';
 
         $symbol = Symbol::firstWhere('token', $token);
 

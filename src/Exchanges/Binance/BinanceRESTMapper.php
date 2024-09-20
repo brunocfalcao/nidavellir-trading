@@ -11,6 +11,7 @@ use Nidavellir\Trading\Exchanges\Binance\Callers\GetLeverageBracket;
 use Nidavellir\Trading\Exchanges\Binance\Callers\GetMarkPrice;
 use Nidavellir\Trading\Exchanges\Binance\Callers\GetOpenOrders;
 use Nidavellir\Trading\Exchanges\Binance\Callers\GetOrder;
+use Nidavellir\Trading\Exchanges\Binance\Callers\GetPositions;
 use Nidavellir\Trading\Exchanges\Binance\Callers\PlaceOrder;
 use Nidavellir\Trading\Exchanges\Binance\Callers\SetDefaultLeverage;
 use Nidavellir\Trading\Exchanges\Binance\Callers\UpdateMarginType;
@@ -36,6 +37,11 @@ class BinanceRESTMapper extends AbstractMapper
             'key' => $this->credentials['api_key'],
             'exchange' => $this->exchange(),
         ];
+    }
+
+    public function getPositions()
+    {
+        return (new GetPositions($this))->result;
     }
 
     public function getExchangeInformation()

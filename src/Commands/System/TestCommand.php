@@ -36,12 +36,40 @@ class TestCommand extends Command
     public function handle()
     {
         File::put(storage_path('logs/laravel.log'), '');
-        DB::table('positions')->truncate();
-        DB::table('orders')->truncate();
-        DB::table('api_logs')->truncate();
+        //DB::table('positions')->truncate();
+        //DB::table('orders')->truncate();
+        DB::table('api_requests_log')->truncate();
         DB::table('application_logs')->truncate();
         DB::table('exceptions_log')->truncate();
-        $this->testNewPosition();
+        //$this->testNewPosition();
+
+        $position = Position::find(1);
+
+        $position
+            ->trader
+            ->withRESTApi()
+            ->withPosition($position)
+            ->withExchangeSymbol($position->exchangeSymbol)
+            ->withOptions([
+                'symbol' => $position
+                                 ->exchangeSymbol
+                                 ->symbol
+                                 ->token.'USDT',
+                'margintype' => 'CROSSED'])
+            ->updateMarginType();
+
+        // Get positions.
+        /*
+        $mapper = (new ExchangeRESTWrapper(
+            new BinanceRESTMapper(
+                credentials: Nidavellir::getSystemCredentials('binance')
+            )
+        ))->mapper;
+
+        dd(collect($mapper->getPositions())
+                          ->where('unRealizedProfit', '<>', 0)
+                          ->sum('unRealizedProfit'));
+        */
 
         //DispatchOrderJob::dispatchSync(1);
 
@@ -59,6 +87,8 @@ class TestCommand extends Command
         //$this->queryAllOrders();
         //$this->testTokenLeverage();
         //$this->getAccountBalance();
+
+        $this->info('All good. I hope.');
     }
 
     protected function getNotionalAndLeverageBrackets()

@@ -4,6 +4,7 @@ namespace Nidavellir\Trading\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\File;
 use Nidavellir\Trading\Jobs\Symbols\UpsertEligibleSymbolsJob;
 use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolMetadataJob;
 use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsJob;
@@ -21,6 +22,8 @@ class TradingGenesisSeeder extends Seeder
 {
     public function run(): void
     {
+        File::put(storage_path('logs/laravel.log'), '');
+
         $exchange = new Exchange;
         $exchange->name = 'Binance';
         $exchange->canonical = 'binance';
