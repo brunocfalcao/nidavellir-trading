@@ -5,16 +5,12 @@ namespace Nidavellir\Trading\Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\File;
-use Nidavellir\Trading\Jobs\Symbols\UpsertEligibleSymbolsJob;
 use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolMetadataJob;
 use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsJob;
-use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsRankingJob;
+use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolTradeDirectionJob;
 use Nidavellir\Trading\Jobs\System\Binance\UpsertExchangeAvailableSymbolsJob;
 use Nidavellir\Trading\Jobs\System\Binance\UpsertNotionalAndLeverageJob;
-use Nidavellir\Trading\Jobs\System\DisableSymbolsFromConfigJob;
-use Nidavellir\Trading\Jobs\System\Taapi\UpsertSymbolIndicatorValuesJob;
 use Nidavellir\Trading\Jobs\System\Taapi\UpsertTaapiAvailableSymbols;
-use Nidavellir\Trading\Jobs\System\UpsertFearGreedIndexJob;
 use Nidavellir\Trading\Models\Exchange;
 use Nidavellir\Trading\Models\System;
 use Nidavellir\Trading\Models\Trader;
@@ -58,30 +54,20 @@ class TradingGenesisSeeder extends Seeder
 
         Bus::chain([
             // System jobs.
-            new UpsertSymbolsJob(50),
+            new UpsertSymbolsJob(500),
             new UpsertSymbolMetadataJob,
-            new UpsertSymbolsRankingJob,
 
             // Exchange-based jobs (Binance)
             new UpsertExchangeAvailableSymbolsJob,
 
-            // Globally disable symbols from the config file.
-            new DisableSymbolsFromConfigJob,
-
             // Upsert notional and leverage data.
             new UpsertNotionalAndLeverageJob,
-
-            // Disable non-eligible & non-ranked symbols.
-            new UpsertEligibleSymbolsJob,
-
-            // Update fear and greed index.
-            new UpsertFearGreedIndexJob,
 
             // Sync Taapi.io symbols with exchange.
             new UpsertTaapiAvailableSymbols(1),
 
-            // Update some symbols indicators.
-            new UpsertSymbolIndicatorValuesJob(1),
+            // Get daily EMA's and update eligible symbols trade direction.
+            new UpsertSymbolTradeDirectionJob,
         ])->dispatch();
     }
 }

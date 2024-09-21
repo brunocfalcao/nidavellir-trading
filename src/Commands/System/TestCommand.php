@@ -12,6 +12,7 @@ use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
 use Nidavellir\Trading\Jobs\Symbols\UpsertEligibleSymbolsJob;
 use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolMetadataJob;
 use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsRankingJob;
+use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolTradeDirection;
 use Nidavellir\Trading\Jobs\System\Binance\UpsertExchangeAvailableSymbolsJob;
 use Nidavellir\Trading\Jobs\System\Binance\UpsertNotionalAndLeverageJob;
 use Nidavellir\Trading\Jobs\System\Taapi\UpsertSymbolIndicatorValuesJob;
@@ -44,6 +45,8 @@ class TestCommand extends Command
         DB::table('exceptions_log')->truncate();
         //$this->testNewPosition();
 
+        UpsertSymbolTradeDirection::dispatchSync();
+
         // Get positions.
         /*
         $mapper = (new ExchangeRESTWrapper(
@@ -67,7 +70,7 @@ class TestCommand extends Command
         //UpsertEligibleSymbolsJob::dispatchSync();
         //UpsertSymbolsRankingJob::dispatchSync();
         //UpsertTaapiAvailableSymbols::dispatchSync(1);
-        UpsertSymbolIndicatorValuesJob::dispatchSync(1);
+        //UpsertSymbolIndicatorValuesJob::dispatchSync(1);
         //$this->getNotionalAndLeverageBrackets();
         //HardcodeMarketOrderJob::dispatchSync(Position::find(1)->id);
         //$this->queryOpenOrders();

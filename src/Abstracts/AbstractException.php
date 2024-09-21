@@ -18,9 +18,10 @@ abstract class AbstractException extends Exception
             $message = $throwable->getMessage();
         }
 
-        parent::__construct($message, 0, $throwable);
-        $this->previous = $throwable;
         $this->additionalData = $additionalData;
+        $this->previous = $throwable;
+
+        parent::__construct($message, 0, $throwable);
     }
 
     public function getAdditionalData(): array

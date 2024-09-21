@@ -150,10 +150,6 @@ return new class extends Migration
             $table->string('token')
                 ->comment('E.g.: ETH');
 
-            $table->boolean('is_active')
-                ->default(true)
-                ->comment('Master status that will define if a symbol is globally active or not');
-
             $table->string('website')
                 ->nullable()
                 ->comment('Token website');
@@ -167,31 +163,25 @@ return new class extends Migration
             $table->string('image_url')
                 ->nullable();
 
-            $table->decimal('ema_7', 20, 8)
+            $table->decimal('ema_28_2days_ago', 20, 8)
                 ->nullable()
-                ->comment('EMA 7 value for the symbol');
+                ->comment('EMA 28 1D closed candle, 2 days ago');
 
-            $table->decimal('ema_14', 20, 8)
+            $table->decimal('ema_28_yesterday', 20, 8)
                 ->nullable()
-                ->comment('EMA 14 value for the symbol');
+                ->comment('EMA 28 1D closed candle, yesterday');
 
-            $table->decimal('ema_28', 20, 8)
+            $table->decimal('ema_56_2days_ago', 20, 8)
                 ->nullable()
-                ->comment('EMA 28 value for the symbol');
+                ->comment('EMA 56 1D closed candle, 2 days ago');
 
-            $table->decimal('ema_56', 20, 8)
+            $table->decimal('ema_56_yesterday', 20, 8)
                 ->nullable()
-                ->comment('EMA 56 value for the symbol');
+                ->comment('EMA 56 1D closed candle, yesterday');
 
-            $table->decimal('price_amplitude_highest', 10, 4)
-                ->nullable();
-
-            $table->decimal('price_amplitude_lowest', 10, 4)
-                ->nullable();
-
-            $table->decimal('price_amplitude_percentage', 10, 4)
-                ->nullable()
-                ->comment('Price amplitude percentage (high - low / low * 100) for the symbol on the day');
+            $table->string('side')
+                ->default('long')
+                ->comment('Defines the direction of the trade when using it');
 
             $table->timestamp('indicator_last_synced_at')->nullable();
 
