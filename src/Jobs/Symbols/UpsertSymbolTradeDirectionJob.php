@@ -15,7 +15,7 @@ use Nidavellir\Trading\Models\Symbol;
  */
 class UpsertSymbolTradeDirectionJob extends AbstractJob
 {
-    private $taapiEndpoint = 'https://api.taapi.io/ema';
+    private $taapiEndpoint = 'https://api.taapi.io/ma';
 
     private $taapiApiKey;
 
@@ -51,17 +51,19 @@ class UpsertSymbolTradeDirectionJob extends AbstractJob
                         'indicator_last_synced_at' => Carbon::now(),
                     ]);
 
-                    // Determine if the trade direction should be updated to "long" (BUY)
+                    // Determine if the trade direction should be updated to "BUY"
                     if ($ema28Values[0] < $ema28Values[1] && // EMA 28 from 2 days ago is less than EMA 28 from yesterday
                         $ema56Values[0] < $ema56Values[1] && // EMA 56 from 2 days ago is less than EMA 56 from yesterday
-                        $ema56Values[1] <= $ema28Values[1]   // EMA 56 from yesterday is less than or equal to EMA 28 from yesterday
+                        $ema56Values[1] <= $ema28Values[1] && // EMA 56 from yesterday is less than or equal to EMA 28 from yesterday
+                        $ema56Values[1] < $ema28Values[1]     // EMA 56 is lower than EMA 28
                     ) {
-                        $symbol->update(['side' => 'long']); // Set to BUY
+                        $symbol->update(['side' => 'BUY']); // Set to BUY
                     } elseif ($ema28Values[0] > $ema28Values[1] && // EMA 28 from 2 days ago is greater than EMA 28 from yesterday
                         $ema56Values[0] > $ema56Values[1] && // EMA 56 from 2 days ago is greater than EMA 56 from yesterday
-                        $ema56Values[1] >= $ema28Values[1]   // EMA 56 from yesterday is greater than or equal to EMA 28 from yesterday
+                        $ema56Values[1] >= $ema28Values[1] && // EMA 56 from yesterday is greater than or equal to EMA 28 from yesterday
+                        $ema56Values[1] > $ema28Values[1]     // EMA 56 is higher than EMA 28
                     ) {
-                        $symbol->update(['side' => 'short']); // Set to SELL
+                        $symbol->update(['side' => 'SELL']); // Set to SELL
                     }
                     // If neither condition is met, the trade direction remains unchanged.
                 }

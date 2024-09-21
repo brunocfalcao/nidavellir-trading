@@ -6,6 +6,11 @@ use Nidavellir\Trading\Abstracts\AbstractRESTWrapper;
 
 class ExchangeRESTWrapper extends AbstractRESTWrapper
 {
+    public function cancelOrder()
+    {
+        return $this->mapper->cancelOrder($this);
+    }
+
     public function getAccountInformation()
     {
         return $this->mapper->getAccountInformation($this);

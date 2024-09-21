@@ -180,8 +180,8 @@ return new class extends Migration
                 ->comment('EMA 56 1D closed candle, yesterday');
 
             $table->string('side')
-                ->default('long')
-                ->comment('Defines the direction of the trade when using it');
+                ->default('BUY')
+                ->comment('Defines the direction of the trade when using it (BUY as long/SELL as short)');
 
             $table->timestamp('indicator_last_synced_at')->nullable();
 

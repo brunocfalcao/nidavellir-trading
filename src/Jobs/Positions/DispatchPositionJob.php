@@ -46,7 +46,7 @@ class DispatchPositionJob extends AbstractJob
             $this->computeTotalTradeAmount();
             $this->selectEligibleSymbol();
             $this->updatePositionSide();
-            //$this->updateMarginTypeToCrossed();
+            $this->updateMarginTypeToCrossed();
             $this->setLeverage();
             $this->setLeverageOnToken();
 
@@ -56,6 +56,7 @@ class DispatchPositionJob extends AbstractJob
 
             info_multiple(
                 '=== POSITION ID '.$this->position->id,
+                'Side: '.$this->position->side,
                 'Initial Mark Price: '.$this->position->initial_mark_price,
                 'Leverage: '.$this->position->leverage,
                 'Symbol: '.$this->position->exchangeSymbol->symbol->token,
@@ -147,26 +148,38 @@ class DispatchPositionJob extends AbstractJob
     protected function selectEligibleSymbol()
     {
         if (blank($this->position->exchange_symbol_id)) {
-            $eligibleSymbols = ExchangeSymbol::where('is_active', true)
-                ->where('is_eligible', true)
-                ->where('exchange_id', $this->position->trader->exchange_id)
+            // Get all included symbol exchange symbols from the trader exchange.
+            $eligibleSymbols = ExchangeSymbol::where(
+                'exchange_id',
+                $this->position->trader->exchange_id
+            )
+                ->whereHas('symbol', function ($query) {
+                    $query->whereIn(
+                        'token',
+                        config('nidavellir.symbols.included')
+                    );
+                })
                 ->get();
 
-            $excludedTokensFromConfig = config('nidavellir.symbols.excluded.tokens');
-            $eligibleSymbols = $eligibleSymbols->reject(fn ($symbol) => in_array($symbol->symbol->token, $excludedTokensFromConfig));
+            // Remove symbols where the trader already has an opened position.
+            $beingTradedSymbols = $this->position->trader->positions()
+                ->whereNotIn('status', ['error', 'closed'])
+                ->pluck('exchange_symbol_id')
+                ->toArray();
 
-            $otherTradeSymbolIds = $this->position->trader->positions->pluck('exchange_symbol_id')->toArray();
-            $eligibleSymbols = $eligibleSymbols->reject(fn ($symbol) => in_array($symbol->id, $otherTradeSymbolIds));
+            $eligibleSymbols = $eligibleSymbols->reject(fn ($symbol) => in_array($symbol->id, $beingTradedSymbols));
 
             $exchangeSymbol = $eligibleSymbols->random();
-            $this->position->update(['exchange_symbol_id' => $exchangeSymbol->id]);
+
+            $this->position->update([
+                'exchange_symbol_id' => $exchangeSymbol->id]);
         }
     }
 
     protected function updatePositionSide()
     {
         $this->position->update([
-            'side' => $this->position->trade_configuration['positions']['current_side'],
+            'side' => $this->position->exchangeSymbol->symbol->side,
         ]);
     }
 
@@ -224,14 +237,17 @@ class DispatchPositionJob extends AbstractJob
             fn ($limitOrder) => new DispatchOrderJob($limitOrder->id)
         )->toArray();
 
-        Bus::chain([
-            Bus::batch($limitJobs),
-            //new DispatchOrderJob($marketOrder->id),
-            //new DispatchOrderJob($profitOrder->id),
+        $this->position->update(['status' => 'syncing']);
 
-            //new ConfirmPositionDataQuality($this->position->id)
-
-        ])->dispatch();
+        try {
+            Bus::chain([
+                Bus::batch($limitJobs),
+                new DispatchOrderJob($marketOrder->id),
+                new DispatchOrderJob($profitOrder->id),
+            ])->dispatch();
+        } catch (\Throwable $e) {
+            dd('error on creating orders!');
+        }
     }
 
     protected function updatePositionError(string $message)

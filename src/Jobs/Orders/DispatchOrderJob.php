@@ -33,6 +33,8 @@ class DispatchOrderJob extends AbstractJob
 
     public const ORDER_TYPE_PROFIT = 'PROFIT';
 
+    public const ORDER_TYPE_POSITION_CANCELLATION = 'POSITION-CANCELLATION';
+
     // Holds the order being dispatched.
     public Order $order;
 
@@ -91,23 +93,28 @@ class DispatchOrderJob extends AbstractJob
                 );
             }
 
-            // Stop processing if any sibling orders have errors.
-            if ($siblings->contains('status', 'error')) {
+            /**
+             * Verify it is a position cancellation order. On this case
+             * we might have a trade in error, so we can't get the
+             * next check verified.
+             */
+            if ($this->order->type == self::ORDER_TYPE_POSITION_CANCELLATION) {
+                $this->syncPositionCancellationOrder();
+
                 return;
             }
 
-            // For Market orders, wait for all Limit orders to finish processing.
-            if ($this->shouldWaitForLimitOrdersToFinish($siblingsLimitOnly)) {
-                return;
+            /**
+             * Only process order if the siblings are not in error,
+             * there aren't pending limit orders to be processed,
+             * and the last order is the one for profit and
+             * everything else is complete.
+             */
+            if (! $siblings->contains('status', 'error') &&
+                ! $this->shouldWaitForLimitOrdersToFinish($siblingsLimitOnly) &&
+                ! $this->shouldWaitForAllOrdersExceptProfit($siblings)) {
+                $this->processOrder();
             }
-
-            // For Profit orders, wait for other orders to finish.
-            if ($this->shouldWaitForAllOrdersExceptProfit($siblings)) {
-                return;
-            }
-
-            // Proceed to process the order.
-            $this->processOrder();
         } catch (\Throwable $e) {
             // Update order to error.
             if ($this->order) {
@@ -120,6 +127,38 @@ class DispatchOrderJob extends AbstractJob
                 additionalData: ['order_id' => $this->orderId]
             );
         }
+    }
+
+    protected function syncPositionCancellationOrder()
+    {
+        /**
+         * Get position order for this position. On this case
+         * we assume that the trader will not have the same
+         * position token opened by himself. So we can
+         * cancel the full position right away.
+         */
+        $positions = $this->trader
+            ->withRESTApi()
+            ->withPosition($this->order->position)
+            ->withTrader($this->trader)
+            ->withExchangeSymbol($this->exchangeSymbol)
+            ->withOrder($this->order)
+            ->getPositions();
+
+        $positionAmount = collect($positions)
+            ->where('positionAmt', '<>', 0)
+            ->where(
+                'symbol',
+                $this->exchangeSymbol->symbol->token.'USDT'
+            )
+            ->sum('positionAmt');
+
+        // With the position amount, lets open a contrary market order.
+        $side = $positionAmount < 0 ? 'BUY' : 'SELL';
+        $positionAmount = -$positionAmount;
+
+        $sideDetails = $this->getOrderSideDetails($side);
+        $this->placePositionCancellationOrder($positionAmount, $sideDetails);
     }
 
     /**
@@ -163,9 +202,7 @@ class DispatchOrderJob extends AbstractJob
     protected function processOrder()
     {
         // Get the side of the order (buy/sell).
-        $sideDetails = $this->getOrderSideDetails(
-            config('nidavellir.positions.current_side')
-        );
+        $sideDetails = $this->getOrderSideDetails($this->symbol->side);
 
         // Build the payload for dispatching the order.
         $payload = $this->trader
@@ -176,7 +213,7 @@ class DispatchOrderJob extends AbstractJob
             ->withOrder($this->order);
 
         // Determine the price and quantity for the order.
-        $orderPrice = $this->getPriceByRatio($this->position->initial_mark_price);
+        $orderPrice = $this->getPriceByRatio();
         $orderQuantity = $this->computeOrderAmount($orderPrice);
 
         // Dispatch the order to the exchange.
@@ -222,6 +259,64 @@ class DispatchOrderJob extends AbstractJob
         }
     }
 
+    protected function placePositionCancellationOrder($orderQuantity, $sideDetails)
+    {
+        // Build the API order data for a Market order.
+        $this->orderData = [
+            'newClientOrderId' => $this->generateClientOrderId(),
+            'side' => strtoupper($sideDetails['orderMarketSide']),
+            'type' => 'MARKET',
+            'quantity' => $orderQuantity,
+            'symbol' => $this->symbol->token.'USDT',
+        ];
+
+        info_multiple(
+            '-- Order Placement (POSITION CANCELLATION) --',
+            'Nidavellir Order id:'.$this->order->id,
+            'newClientOrderId: '.$this->orderData['newClientOrderId'],
+            'side: '.$this->orderData['side'],
+            'type: '.'MARKET',
+            'quantity: '.$this->orderData['quantity'],
+            'symbol: '.$this->orderData['symbol'],
+            ' '
+        );
+
+        // Dispatch the order via the trader's API.
+        $result = $this->trader
+            ->withRESTApi()
+            ->withOptions($this->orderData)
+            ->withPosition($this->position)
+            ->withTrader($this->trader)
+            ->withExchangeSymbol($this->exchangeSymbol)
+            ->withOrder($this->order)
+            ->placeSingleOrder();
+
+        // Update the order with the result from the exchange.
+        $this->updateOrderWithExchangeResult($result);
+
+        /**
+         * The average price, and the filled quantity is not returned.
+         * So, we need to synchronously query the market order to
+         * obtain the remaining data. Synchronously because the profit
+         * order needs the market order quantity.
+         */
+        $this->updateOrderWithQueryOnOrderId($this->order->id);
+
+        /**
+         * Finally, everything went well, lets update the status
+         * of the profit order to cancelled.
+         */
+        $this->order
+            ->position
+            ->orders()
+            ->where(
+                'type',
+                'PROFIT'
+            )->update([
+                 'status' => 'cancelled',
+             ]);
+    }
+
     /**
      * Places a Market order on the exchange.
      */
@@ -246,6 +341,8 @@ class DispatchOrderJob extends AbstractJob
             'symbol: '.$this->orderData['symbol'],
             ' '
         );
+
+        //return;
 
         // Dispatch the order via the trader's API.
         $result = $this->trader
@@ -352,6 +449,8 @@ class DispatchOrderJob extends AbstractJob
             ' '
         );
 
+        //return;
+
         // Dispatch the order via the trader's API.
         $result = $this->trader
             ->withRESTApi()
@@ -371,6 +470,11 @@ class DispatchOrderJob extends AbstractJob
      */
     protected function placeProfitOrder($orderPrice, $sideDetails)
     {
+        // Update the order with the computed entry data.
+        $this->order->update([
+            'entry_average_price' => $orderPrice,
+        ]);
+
         /**
          * This profit order placed, will be with the same filled quantity
          * as the market order, since we will just start by
@@ -461,8 +565,9 @@ class DispatchOrderJob extends AbstractJob
      * Calculates the price for the order by adjusting
      * the mark price according to a configured ratio.
      */
-    protected function getPriceByRatio($markPrice)
+    protected function getPriceByRatio()
     {
+        $markPrice = $this->position->initial_mark_price;
         $precision = $this->exchangeSymbol->precision_price;
         $priceRatio = $this->order->price_ratio_percentage / 100;
         $side = $this->position->side;
