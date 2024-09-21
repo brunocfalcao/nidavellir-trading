@@ -18,6 +18,9 @@ class ExchangeSymbol extends AbstractModel
     protected $casts = [
         'api_symbol_information' => 'array',
         'api_notional_and_leverage_symbol_information' => 'array',
+        'is_eligible' => 'boolean',
+        'is_taapi_available' => 'boolean',
+        'is_active' => 'boolean',
     ];
 
     public function symbol()

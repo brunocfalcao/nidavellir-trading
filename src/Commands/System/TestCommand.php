@@ -15,6 +15,7 @@ use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsRankingJob;
 use Nidavellir\Trading\Jobs\System\Binance\UpsertExchangeAvailableSymbolsJob;
 use Nidavellir\Trading\Jobs\System\Binance\UpsertNotionalAndLeverageJob;
 use Nidavellir\Trading\Jobs\System\Taapi\UpsertSymbolIndicatorValuesJob;
+use Nidavellir\Trading\Jobs\System\Taapi\UpsertTaapiAvailableSymbols;
 use Nidavellir\Trading\Jobs\System\UpsertFearGreedIndexJob;
 use Nidavellir\Trading\Jobs\Tests\HardcodeMarketOrderJob;
 use Nidavellir\Trading\Models\Position;
@@ -43,21 +44,6 @@ class TestCommand extends Command
         DB::table('exceptions_log')->truncate();
         //$this->testNewPosition();
 
-        $position = Position::find(1);
-
-        $position
-            ->trader
-            ->withRESTApi()
-            ->withPosition($position)
-            ->withExchangeSymbol($position->exchangeSymbol)
-            ->withOptions([
-                'symbol' => $position
-                                 ->exchangeSymbol
-                                 ->symbol
-                                 ->token.'USDT',
-                'margintype' => 'CROSSED'])
-            ->updateMarginType();
-
         // Get positions.
         /*
         $mapper = (new ExchangeRESTWrapper(
@@ -80,7 +66,8 @@ class TestCommand extends Command
         //UpsertNotionalAndLeverageJob::dispatchSync();
         //UpsertEligibleSymbolsJob::dispatchSync();
         //UpsertSymbolsRankingJob::dispatchSync();
-        //UpsertSymbolIndicatorValuesJob::dispatchSync();
+        //UpsertTaapiAvailableSymbols::dispatchSync(1);
+        UpsertSymbolIndicatorValuesJob::dispatchSync(1);
         //$this->getNotionalAndLeverageBrackets();
         //HardcodeMarketOrderJob::dispatchSync(Position::find(1)->id);
         //$this->queryOpenOrders();
@@ -89,6 +76,24 @@ class TestCommand extends Command
         //$this->getAccountBalance();
 
         $this->info('All good. I hope.');
+    }
+
+    protected function updateMarginType()
+    {
+        $position = Position::find(1);
+
+        $position
+            ->trader
+            ->withRESTApi()
+            ->withPosition($position)
+            ->withExchangeSymbol($position->exchangeSymbol)
+            ->withOptions([
+                'symbol' => $position
+                                 ->exchangeSymbol
+                                 ->symbol
+                                 ->token.'USDT',
+                'margintype' => 'CROSSED'])
+            ->updateMarginType();
     }
 
     protected function getNotionalAndLeverageBrackets()

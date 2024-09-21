@@ -49,6 +49,9 @@ return new class extends Migration
             $table->string('futures_url_websockets_prefix')
                 ->nullable();
 
+            $table->string('taapi_exchange_canonical')
+                ->nullable();
+
             $table->string('generic_url_prefix')
                 ->nullable()
                 ->comment('Used for fallback cases, like for coinmarketcap calls');
@@ -164,47 +167,21 @@ return new class extends Migration
             $table->string('image_url')
                 ->nullable();
 
-            // New indicator columns
-            $table->decimal('indicator_atr', 20, 8)
+            $table->decimal('ema_7', 20, 8)
                 ->nullable()
-                ->comment('Average True Range (ATR) value for the symbol');
+                ->comment('EMA 7 value for the symbol');
 
-            $table->decimal('indicator_bbands_upper', 20, 8)
+            $table->decimal('ema_14', 20, 8)
                 ->nullable()
-                ->comment('Bollinger Bands upper value for the symbol');
+                ->comment('EMA 14 value for the symbol');
 
-            $table->decimal('indicator_bbands_middle', 20, 8)
+            $table->decimal('ema_28', 20, 8)
                 ->nullable()
-                ->comment('Bollinger Bands middle value for the symbol');
+                ->comment('EMA 28 value for the symbol');
 
-            $table->decimal('indicator_bbands_lower', 20, 8)
+            $table->decimal('ema_56', 20, 8)
                 ->nullable()
-                ->comment('Bollinger Bands lower value for the symbol');
-
-            $table->decimal('indicator_rsi', 20, 8)
-                ->nullable()
-                ->comment('Relative Strength Index (RSI) value for the symbol');
-
-            $table->decimal('indicator_stochastic_k', 20, 8)
-                ->nullable()
-                ->comment('Stochastic Oscillator %K value for the symbol');
-
-            $table->decimal('indicator_stochastic_d', 20, 8)
-                ->nullable()
-                ->comment('Stochastic Oscillator %D value for the symbol');
-
-            // MACD values
-            $table->decimal('indicator_macd', 20, 8)
-                ->nullable()
-                ->comment('MACD value for the symbol');
-
-            $table->decimal('indicator_macd_signal', 20, 8)
-                ->nullable()
-                ->comment('MACD Signal value for the symbol');
-
-            $table->decimal('indicator_macd_hist', 20, 8)
-                ->nullable()
-                ->comment('MACD Histogram value for the symbol');
+                ->comment('EMA 56 value for the symbol');
 
             $table->decimal('price_amplitude_highest', 10, 4)
                 ->nullable();
@@ -215,6 +192,8 @@ return new class extends Migration
             $table->decimal('price_amplitude_percentage', 10, 4)
                 ->nullable()
                 ->comment('Price amplitude percentage (high - low / low * 100) for the symbol on the day');
+
+            $table->timestamp('indicator_last_synced_at')->nullable();
 
             $table->timestamps();
         });
@@ -245,6 +224,10 @@ return new class extends Migration
             $table->boolean('is_eligible')
                 ->default(true)
                 ->comment('Eligible means the symbol is a candidate to be traded at the moment');
+
+            $table->boolean('is_taapi_available')
+                ->default(false)
+                ->comment('If this symbol is taapi-available for this exchange id');
 
             $table->decimal('last_mark_price', 20, 8)
                 ->nullable()

@@ -1,6 +1,6 @@
 <?php
 
-namespace Nidavellir\Trading\Exchanges;
+namespace Nidavellir\Trading\ApiSystems;
 
 use Nidavellir\Trading\Models\Exchange;
 use Nidavellir\Trading\Models\IpRequestWeight;

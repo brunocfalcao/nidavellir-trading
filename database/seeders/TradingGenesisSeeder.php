@@ -13,6 +13,7 @@ use Nidavellir\Trading\Jobs\System\Binance\UpsertExchangeAvailableSymbolsJob;
 use Nidavellir\Trading\Jobs\System\Binance\UpsertNotionalAndLeverageJob;
 use Nidavellir\Trading\Jobs\System\DisableSymbolsFromConfigJob;
 use Nidavellir\Trading\Jobs\System\Taapi\UpsertSymbolIndicatorValuesJob;
+use Nidavellir\Trading\Jobs\System\Taapi\UpsertTaapiAvailableSymbols;
 use Nidavellir\Trading\Jobs\System\UpsertFearGreedIndexJob;
 use Nidavellir\Trading\Models\Exchange;
 use Nidavellir\Trading\Models\System;
@@ -31,6 +32,7 @@ class TradingGenesisSeeder extends Seeder
         $exchange->full_qualified_class_name_websocket = "Nidavellir\Trading\ApiSystems\Binance\BinanceWebsocketMapper";
         $exchange->futures_url_rest_prefix = 'https://fapi.binance.com';
         $exchange->futures_url_websockets_prefix = 'wss://fstream.binance.com';
+        $exchange->taapi_exchange_canonical = 'binancefutures';
         $exchange->save();
 
         $cmc = new Exchange;
@@ -75,8 +77,11 @@ class TradingGenesisSeeder extends Seeder
             // Update fear and greed index.
             new UpsertFearGreedIndexJob,
 
+            // Sync Taapi.io symbols with exchange.
+            new UpsertTaapiAvailableSymbols(1),
+
             // Update some symbols indicators.
-            new UpsertSymbolIndicatorValuesJob,
+            new UpsertSymbolIndicatorValuesJob(1),
         ])->dispatch();
     }
 }

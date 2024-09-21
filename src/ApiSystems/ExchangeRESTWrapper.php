@@ -1,6 +1,6 @@
 <?php
 
-namespace Nidavellir\Trading\Exchanges;
+namespace Nidavellir\Trading\ApiSystems;
 
 use Nidavellir\Trading\Abstracts\AbstractRESTWrapper;
 

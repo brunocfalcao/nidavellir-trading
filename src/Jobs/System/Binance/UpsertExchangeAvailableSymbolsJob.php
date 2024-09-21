@@ -4,10 +4,10 @@ namespace Nidavellir\Trading\Jobs\System\Binance;
 
 use Illuminate\Support\Str;
 use Nidavellir\Trading\Abstracts\AbstractJob;
-use Nidavellir\Trading\Exceptions\ExchangeSymbolNotSyncedException;
-use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\ApiSystems\ExchangeRESTWrapper;
+use Nidavellir\Trading\Exceptions\ExchangeSymbolNotSyncedException;
+use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Models\Exchange;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Symbol;

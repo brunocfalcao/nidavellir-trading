@@ -1,0 +1,161 @@
+<?php
+
+namespace Nidavellir\Trading\Jobs\System\Taapi;
+
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
+use Nidavellir\Trading\Abstracts\AbstractJob;
+use Nidavellir\Trading\Exceptions\IndicatorNotSyncedException;
+use Nidavellir\Trading\Exceptions\TryCatchException;
+use Nidavellir\Trading\Models\Symbol;
+
+/**
+ * UpsertSymbolIndicatorValuesJob fetches EMA values and candle
+ * data from the Taapi.io API for symbols within a specified
+ * rank. It updates EMA values for periods 7, 14, 28, and 56,
+ * along with the price amplitude percentage for each symbol.
+ */
+class UpsertSymbolIndicatorValuesJob extends AbstractJob
+{
+    private $taapiEndpoint = 'https://api.taapi.io';
+
+    private $taapiApiKey;
+
+    private $constructLimit;
+
+    private $maxRank;
+
+    public function __construct()
+    {
+        $this->taapiApiKey = config('nidavellir.system.api.credentials.taapi.api_key');
+        $this->constructLimit = config('nidavellir.system.api.params.taapi.max_symbols_per_job');
+        $this->maxRank = config('nidavellir.system.api.params.taapi.max_rank');
+        $this->logBlock = Str::uuid();
+    }
+
+    public function handle()
+    {
+        try {
+            $symbols = $this->fetchOldestSymbols();
+
+            if ($symbols->isEmpty()) {
+                return;
+            }
+
+            $currentSymbol = null;
+
+            foreach ($symbols as $symbol) {
+                $currentSymbol = $symbol;
+                $this->fetchAndUpdateEMAs($symbol);
+                $this->fetchAndUpdateCandle($symbol);
+            }
+        } catch (\Throwable $e) {
+            throw new TryCatchException(
+                throwable: $e
+            );
+        }
+    }
+
+    private function fetchOldestSymbols()
+    {
+        return Symbol::where('rank', '<=', $this->maxRank)
+            ->where('is_active', true)
+            ->orderBy('updated_at', 'asc')
+            ->limit($this->constructLimit)
+            ->get();
+    }
+
+    private function fetchAndUpdateEMAs(Symbol $symbol)
+    {
+        $emaPeriods = [7, 14, 28, 56];
+
+        foreach ($emaPeriods as $period) {
+            $url = "{$this->taapiEndpoint}/ema";
+            $params = [
+                'secret' => $this->taapiApiKey,
+                'exchange' => 'binance',
+                'symbol' => $symbol->token.'/USDT',
+                'interval' => '1d',
+                'optInTimePeriod' => $period,
+                'backtrack' => 1,
+            ];
+
+            $response = Http::get($url, $params);
+
+            if ($response->successful()) {
+                $responseData = $response->json();
+                $this->updateEMA($symbol, $period, $responseData);
+            } else {
+                $errorMessage = $response->body();
+                throw new IndicatorNotSyncedException(
+                    message: 'Failed to fetch EMA from Taapi.io for symbol: '.$symbol->token,
+                    additionalData: [
+                        'symbol' => $symbol->token,
+                        'period' => $period,
+                        'api_error' => $errorMessage,
+                    ]
+                );
+            }
+        }
+    }
+
+    private function fetchAndUpdateCandle(Symbol $symbol)
+    {
+        $url = "{$this->taapiEndpoint}/candle";
+        $params = [
+            'secret' => $this->taapiApiKey,
+            'exchange' => 'binance',
+            'symbol' => $symbol->token.'/USDT',
+            'interval' => '1d',
+            'backtrack' => 1,
+        ];
+
+        $response = Http::get($url, $params);
+
+        if ($response->successful()) {
+            $data = $response->json();
+            $high = $data['high'] ?? null;
+            $low = $data['low'] ?? null;
+
+            if ($high !== null && $low !== null && $low > 0) {
+                $priceAmplitudePercentage = (($high - $low) / $low) * 100;
+
+                $symbol->update([
+                    'price_amplitude_highest' => $high,
+                    'price_amplitude_lowest' => $low,
+                    'price_amplitude_percentage' => $priceAmplitudePercentage,
+                    'updated_at' => Carbon::now(),
+                ]);
+            }
+        } else {
+            throw new IndicatorNotSyncedException(
+                message: 'Failed to fetch candle data from Taapi.io for symbol: '.$symbol->token,
+                additionalData: [
+                    'symbol' => $symbol->token,
+                    'response' => $response->status()],
+            );
+        }
+    }
+
+    private function updateEMA(Symbol $symbol, $period, $data)
+    {
+        $emaValue = $data['value'] ?? null;
+        if ($emaValue !== null) {
+            $column = $this->getEMAColumnName($period);
+            $symbol->update([$column => $emaValue, 'updated_at' => Carbon::now()]);
+        }
+    }
+
+    private function getEMAColumnName($period)
+    {
+        $mapping = [
+            7 => 'ema_7',
+            14 => 'ema_14',
+            28 => 'ema_28',
+            56 => 'ema_56',
+        ];
+
+        return $mapping[$period] ?? null;
+    }
+}
