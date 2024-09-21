@@ -4,8 +4,8 @@ namespace Nidavellir\Trading\Jobs\Symbols;
 
 use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\Exceptions\TryCatchException;
-use Nidavellir\Trading\Exchanges\CoinmarketCap\CoinmarketCapRESTMapper;
-use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
+use Nidavellir\Trading\ApiSystems\CoinmarketCap\CoinmarketCapRESTMapper;
+use Nidavellir\Trading\ApiSystems\ExchangeRESTWrapper;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Nidavellir;
 

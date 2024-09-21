@@ -37,11 +37,11 @@ return new class extends Migration
 
             $table->string('full_qualified_class_name_rest')
                 ->nullable()
-                ->comment('E.g: Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper');
+                ->comment('E.g: Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper');
 
             $table->string('full_qualified_class_name_websocket')
                 ->nullable()
-                ->comment('E.g: Nidavellir\Trading\Exchanges\Binance\BinanceWebsocketMapper');
+                ->comment('E.g: Nidavellir\Trading\ApiSystems\Binance\BinanceWebsocketMapper');
 
             $table->string('futures_url_rest_prefix')
                 ->nullable();
@@ -61,6 +61,7 @@ return new class extends Migration
             $table->foreignId('exchange_id');
             $table->string('ip_address');
             $table->integer('current_weight')->default(0);
+            $table->boolean('is_backed_off')->default(false);
             $table->timestamp('last_reset_at')->nullable();
             $table->timestamps();
         });

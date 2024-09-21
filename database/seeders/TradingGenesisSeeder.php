@@ -27,8 +27,8 @@ class TradingGenesisSeeder extends Seeder
         $exchange = new Exchange;
         $exchange->name = 'Binance';
         $exchange->canonical = 'binance';
-        $exchange->full_qualified_class_name_rest = "Nidavellir\Trading\Exchanges\Binance\BinanceRESTMapper";
-        $exchange->full_qualified_class_name_websocket = "Nidavellir\Trading\Exchanges\Binance\BinanceWebsocketMapper";
+        $exchange->full_qualified_class_name_rest = "Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper";
+        $exchange->full_qualified_class_name_websocket = "Nidavellir\Trading\ApiSystems\Binance\BinanceWebsocketMapper";
         $exchange->futures_url_rest_prefix = 'https://fapi.binance.com';
         $exchange->futures_url_websockets_prefix = 'wss://fstream.binance.com';
         $exchange->save();
@@ -36,7 +36,7 @@ class TradingGenesisSeeder extends Seeder
         $cmc = new Exchange;
         $cmc->name = 'CoinmarketCap';
         $cmc->canonical = 'coinmarketcap';
-        $cmc->full_qualified_class_name_rest = "Nidavellir\Trading\Exchanges\Coin\BinanceRESTMapper";
+        $cmc->full_qualified_class_name_rest = "Nidavellir\Trading\ApiSystems\Coin\BinanceRESTMapper";
         $cmc->generic_url_prefix = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency';
         $cmc->save();
 

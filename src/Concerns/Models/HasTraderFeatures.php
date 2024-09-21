@@ -2,7 +2,7 @@
 
 namespace Nidavellir\Trading\Concerns\Models;
 
-use Nidavellir\Trading\Exchanges\ExchangeRESTWrapper;
+use Nidavellir\Trading\ApiSystems\ExchangeRESTWrapper;
 
 trait HasTraderFeatures
 {

@@ -3,8 +3,8 @@
 namespace Nidavellir\Trading\Commands\System;
 
 use Illuminate\Console\Command;
-use Nidavellir\Trading\Exchanges\Binance\BinanceWebsocketMapper;
-use Nidavellir\Trading\Exchanges\ExchangeWebsocketMapper;
+use Nidavellir\Trading\ApiSystems\Binance\BinanceWebsocketMapper;
+use Nidavellir\Trading\ApiSystems\ExchangeWebsocketMapper;
 use Nidavellir\Trading\Models\Exchange;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Symbol;
