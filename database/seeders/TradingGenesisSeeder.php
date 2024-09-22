@@ -48,10 +48,6 @@ class TradingGenesisSeeder extends Seeder
         $trader->exchange_id = $exchange->id;
         $trader->save();
 
-        System::create([
-            'fear_greed_index_threshold' => 85,
-        ]);
-
         Bus::chain([
             // System jobs.
             new UpsertSymbolsJob(500),

@@ -124,17 +124,6 @@ return new class extends Migration
         Schema::create('system', function (Blueprint $table) {
             $table->id();
 
-            $table->unsignedTinyInteger('fear_greed_index')
-                ->default(0)
-                ->comment('Updated daily, so nidavellir knows what trade configuration should be used');
-
-            $table->timestamp('fear_greed_index_updated_at')
-                ->default(now())
-                ->comment('Last F&G update date');
-
-            $table->unsignedTinyInteger('fear_greed_index_threshold')
-                ->comment('F&G threshold to change from bearish trading configuration to bullish trading configuration, or vice-versa');
-
             $table->timestamps();
         });
 

@@ -25,7 +25,7 @@ abstract class AbstractCaller
 
         try {
             $this->call();
-        } catch (\TryCatchException $e) {
+        } catch (\Throwable $e) {
             if (! $this->throwSilently) {
                 throw new TryCatchException(
                     throwable: $e,

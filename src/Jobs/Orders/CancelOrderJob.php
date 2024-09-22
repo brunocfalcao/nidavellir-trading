@@ -11,10 +11,13 @@ use Nidavellir\Trading\Models\Trader;
 
 /**
  * This jobs cancels an order given a nidavellir order id.
- * Also updates the order to cancelled.
+ * It can also cancel the market order (position).
+ * Also updates the order to cancelled, and in case of
+ * the position cancellation, a POSITION-CANCELLATION
+ * order type is created on the system.
  *
- * This job also cancels market orders (positions), by
- * opening a market order in the opposite side with the
+ * To cancel market orders (positions), it
+ * opens a market order in the opposite side with the
  * same position amount.
  */
 class CancelOrderJob extends AbstractJob
