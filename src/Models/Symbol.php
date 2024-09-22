@@ -19,6 +19,11 @@ class Symbol extends AbstractModel
         'is_active' => 'boolean',
     ];
 
+    public function apiRequestLogs()
+    {
+        return $this->morphMany(ApiRequestsLog::class, 'loggable');
+    }
+
     public function exchanges()
     {
         return $this->belongsToMany(Exchange::class);

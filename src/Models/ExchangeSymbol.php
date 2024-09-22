@@ -32,4 +32,9 @@ class ExchangeSymbol extends AbstractModel
     {
         return $this->belongsTo(Exchange::class);
     }
+
+    public function apiRequestLogs()
+    {
+        return $this->morphMany(ApiRequestsLog::class, 'loggable');
+    }
 }

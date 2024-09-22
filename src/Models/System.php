@@ -12,4 +12,9 @@ use Nidavellir\Trading\Abstracts\AbstractModel;
 class System extends AbstractModel
 {
     protected $table = 'system';
+
+    public function apiRequestLogs()
+    {
+        return $this->morphMany(ApiRequestsLog::class, 'loggable');
+    }
 }

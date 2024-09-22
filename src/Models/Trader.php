@@ -51,6 +51,11 @@ class Trader extends Authenticatable
         ];
     }
 
+    public function apiRequestLogs()
+    {
+        return $this->morphMany(ApiRequestsLog::class, 'loggable');
+    }
+
     public function positions()
     {
         return $this->hasMany(Position::class);

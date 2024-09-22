@@ -30,7 +30,11 @@ class Exchange extends AbstractModel
         return $this->belongsToMany(Symbol::class);
     }
 
-    // Returns the specific exchange-symbol with more symbol data.
+    public function apiRequestLogs()
+    {
+        return $this->morphMany(ApiRequestsLog::class, 'loggable');
+    }
+
     public function exchangeSymbols()
     {
         return $this->hasMany(ExchangeSymbol::class);
