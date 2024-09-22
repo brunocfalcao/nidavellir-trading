@@ -72,11 +72,6 @@ class Nidavellir
     {
         // Start by grabbing the fear and greed index.
         $system = System::all()->first();
-        $fearAndGreedIndex = $system->fear_greed_index;
-
-        // Detect if we are in a bearish or bullish sentiment.
-        $marketTrend = $fearAndGreedIndex <= $system->fear_greed_index_threshold
-            ? 'bearish' : 'bullish';
 
         // Construct the trade configuration based on the market sentiment.
         $ordersGroup = config('nidavellir.positions.current_order_ratio_group');

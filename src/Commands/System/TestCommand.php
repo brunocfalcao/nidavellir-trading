@@ -38,17 +38,17 @@ class TestCommand extends Command
     public function handle()
     {
         File::put(storage_path('logs/laravel.log'), '');
-        //DB::table('positions')->truncate();
-        //DB::table('orders')->truncate();
+        DB::table('positions')->truncate();
+        DB::table('orders')->truncate();
         DB::table('api_requests_log')->truncate();
         DB::table('application_logs')->truncate();
         DB::table('exceptions_log')->truncate();
 
-        CancelOrderJob::dispatchSync(1);
-        CancelOrderJob::dispatchSync(2);
-        CancelOrderJob::dispatchSync(3);
-        CancelOrderJob::dispatchSync(4);
-        CancelOrderJob::dispatchSync(5);
+        //CancelOrderJob::dispatchSync(1);
+        //CancelOrderJob::dispatchSync(2);
+        //CancelOrderJob::dispatchSync(3);
+        //CancelOrderJob::dispatchSync(4);
+        //CancelOrderJob::dispatchSync(5);
 
         /*
         $mapper = (new ExchangeRESTWrapper(
@@ -63,7 +63,7 @@ class TestCommand extends Command
                           //->sum('unRealizedProfit'));
         */
 
-        //$this->testNewPosition();
+        $this->testNewPosition();
 
         //UpsertSymbolTradeDirection::dispatchSync();
 

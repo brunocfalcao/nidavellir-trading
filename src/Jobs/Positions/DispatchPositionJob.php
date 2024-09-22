@@ -239,15 +239,12 @@ class DispatchPositionJob extends AbstractJob
 
         $this->position->update(['status' => 'syncing']);
 
-        try {
-            Bus::chain([
-                Bus::batch($limitJobs),
-                new DispatchOrderJob($marketOrder->id),
-                new DispatchOrderJob($profitOrder->id),
-            ])->dispatch();
-        } catch (\Throwable $e) {
-            dd('error on creating orders!');
-        }
+        Bus::chain([
+            Bus::batch($limitJobs),
+            new DispatchOrderJob($marketOrder->id),
+            new DispatchOrderJob($profitOrder->id),
+            new ValidatePositionJob($this->position->id),
+        ])->dispatch();
     }
 
     protected function updatePositionError(string $message)

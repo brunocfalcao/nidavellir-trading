@@ -116,7 +116,12 @@ class DispatchOrderJob extends AbstractJob
                 $this->processOrder();
             }
         } catch (\Throwable $e) {
-            // Update order to error.
+            /**
+             * Update order to error. Later the parent process
+             * will deal with the trade coherency to cancel
+             * any other orders that will be needed to
+             * cancel or fill.
+             */
             if ($this->order) {
                 $this->order->update(['status' => 'error']);
             }
@@ -313,8 +318,8 @@ class DispatchOrderJob extends AbstractJob
                 'type',
                 'PROFIT'
             )->update([
-                 'status' => 'cancelled',
-             ]);
+                'status' => 'cancelled',
+            ]);
     }
 
     /**
@@ -420,6 +425,16 @@ class DispatchOrderJob extends AbstractJob
      */
     protected function placeLimitOrder($orderPrice, $orderQuantity, $sideDetails)
     {
+        /**
+         * Error generation to test the exception handling.
+         */
+        $generateError = rand(0, 100) > 50;
+
+        if ($generateError) {
+            \Log::info('!!== ERROR GENERATED ==!!');
+            $orderPrice = 432984768326784632846378;
+        }
+
         // Update the order with the computed entry data.
         $this->order->update([
             'entry_average_price' => $orderPrice,
