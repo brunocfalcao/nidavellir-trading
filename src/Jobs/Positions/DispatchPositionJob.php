@@ -53,6 +53,8 @@ class DispatchPositionJob extends AbstractJob
             $this->setLeverage();
             $this->setLeverageOnToken();
 
+            return;
+
             if (blank($this->position->initial_mark_price)) {
                 $this->fetchAndSetMarkPrice();
             }

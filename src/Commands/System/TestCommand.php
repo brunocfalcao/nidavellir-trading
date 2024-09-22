@@ -4,26 +4,25 @@ namespace Nidavellir\Trading\Commands\System;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use Nidavellir\Trading\Nidavellir;
 use Illuminate\Support\Facades\File;
-use Nidavellir\Trading\Models\Trader;
 use Illuminate\Support\Facades\Storage;
-use Nidavellir\Trading\Models\Position;
+use Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper;
+use Nidavellir\Trading\ApiSystems\ExchangeRESTWrapper;
 use Nidavellir\Trading\Jobs\Orders\CancelOrderJob;
 use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
-use Nidavellir\Trading\ApiSystems\ExchangeRESTWrapper;
-use Nidavellir\Trading\Jobs\Tests\HardcodeMarketOrderJob;
-use Nidavellir\Trading\Jobs\System\UpsertFearGreedIndexJob;
-use Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper;
+use Nidavellir\Trading\Jobs\Symbols\UpsertEligibleSymbolsJob;
 use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolMetadataJob;
 use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsRankingJob;
-use Nidavellir\Trading\Jobs\Symbols\UpsertEligibleSymbolsJob;
-use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolTradeDirection;
 use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolTradeDirectionJob;
-use Nidavellir\Trading\Jobs\System\Taapi\UpsertTaapiAvailableSymbols;
+use Nidavellir\Trading\Jobs\System\Binance\UpsertExchangeAvailableSymbolsJob;
 use Nidavellir\Trading\Jobs\System\Binance\UpsertNotionalAndLeverageJob;
 use Nidavellir\Trading\Jobs\System\Taapi\UpsertSymbolIndicatorValuesJob;
-use Nidavellir\Trading\Jobs\System\Binance\UpsertExchangeAvailableSymbolsJob;
+use Nidavellir\Trading\Jobs\System\Taapi\UpsertTaapiAvailableSymbols;
+use Nidavellir\Trading\Jobs\System\UpsertFearGreedIndexJob;
+use Nidavellir\Trading\Jobs\Tests\HardcodeMarketOrderJob;
+use Nidavellir\Trading\Models\Position;
+use Nidavellir\Trading\Models\Trader;
+use Nidavellir\Trading\Nidavellir;
 
 class TestCommand extends Command
 {
@@ -66,7 +65,17 @@ class TestCommand extends Command
 
         //$this->testNewPosition();
 
-        UpsertSymbolTradeDirectionJob::dispatchSync();
+        $trader = Trader::find(1);
+
+        $trader
+            ->withRESTApi()
+            ->withLoggable($trader)
+            ->withOptions([
+                'symbol' => 'TONUSDT',
+                'margintype' => 'CROSSED'])
+            ->updateMarginType();
+
+        //UpsertSymbolTradeDirectionJob::dispatchSync();
 
         /*
         $mapper = (new ExchangeRESTWrapper(
@@ -212,9 +221,9 @@ class TestCommand extends Command
     {
         $position = Position::create([
             'trader_id' => Trader::find(1)->id,
-            'exchange_symbol_id' => 19,
+            'exchange_symbol_id' => 55,
             //'initial_mark_price' => 134.79,
-            'total_trade_amount' => 100,
+            'total_trade_amount' => 75,
         ]);
     }
 }

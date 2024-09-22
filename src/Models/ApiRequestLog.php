@@ -2,22 +2,11 @@
 
 namespace Nidavellir\Trading\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Nidavellir\Trading\Abstracts\AbstractModel;
 
-class ApiRequestLog extends Model
+class ApiRequestLog extends AbstractModel
 {
     protected $table = 'api_requests_log';
-
-    protected $fillable = [
-        'path',
-        'payload',
-        'http_method',
-        'http_headers_sent',
-        'http_response_code',
-        'response',
-        'http_headers_returned',
-        'hostname',
-    ];
 
     protected $casts = [
         'payload' => 'array',

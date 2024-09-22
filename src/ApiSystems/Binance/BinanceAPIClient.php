@@ -44,57 +44,55 @@ class BinanceAPIClient
         $this->buildClient($args['httpClient'] ?? null);
     }
 
-    protected function publicRequest($method, $path, array $params = [])
+    protected function publicRequest($method, $path, array $properties = [])
     {
-        return $this->processRequest($method, $path, $params);
+        return $this->processRequest($method, $path, $properties);
     }
 
-    protected function signRequest($method, $path, array $params = [])
+    protected function signRequest($method, $path, array $properties = [])
     {
-        $params['options']['timestamp'] = round(microtime(true) * 1000);
-        $query = Url::buildQuery($params['options']);
+        $properties['options']['timestamp'] = round(microtime(true) * 1000);
+        $query = Url::buildQuery($properties['options']);
 
         if ($this->privateKey) {
             openssl_sign($query, $binary_signature, $this->privateKey, OPENSSL_ALGO_SHA256);
-            $params['options']['signature'] = base64_encode($binary_signature);
+            $properties['options']['signature'] = base64_encode($binary_signature);
         } else {
-            $params['options']['signature'] = hash_hmac('sha256', $query, $this->secret);
+            $properties['options']['signature'] = hash_hmac('sha256', $query, $this->secret);
         }
 
-        return $this->processRequest($method, $path, $params);
+        return $this->processRequest($method, $path, $properties);
     }
 
-    protected function processRequest($method, $path, $params = [])
+    protected function processRequest($method, $path, $properties = [])
     {
         $logData = [];
         // Verify if we have a loggable eloquent model.
-        if (array_key_exists('loggable', $params)) {
-            $model = $params['loggable'];
+        if (array_key_exists('loggable', $properties)) {
+            $model = $properties['loggable'];
             $logData['loggable_id'] = $model->id;
             $logData['loggable_type'] = get_class($model);
         }
 
-        // Recalibrate $params to just have 'options' (fi exists).
-        if (array_key_exists('options', $params)) {
-            $params = $params['options'];
+        // Recalibrate $properties to just have 'options' (fi exists).
+        if (array_key_exists('options', $properties)) {
+            $properties = $properties['options'];
         }
 
         $this->applyRateLimiter($path);
 
-        $logData = [
-            'path' => $path,
-            'payload' => $params,
-            'http_method' => $method,
-            'http_headers_sent' => [
-                'Content-Type' => 'application/json',
-                'X-MBX-APIKEY' => $this->key,
-            ],
-            'hostname' => gethostname(), // Capture the server's hostname
+        $logData['path'] = $path;
+        $logData['payload'] = $properties;
+        $logData['http_method'] = $method;
+        $logData['http_headers_sent'] = [
+            'Content-Type' => 'application/json',
+            'X-MBX-APIKEY' => $this->key,
         ];
+        $logData['hostname'] = gethostname();
 
         try {
             // Send the request.
-            $response = $this->httpRequest->request($method, $this->buildQuery($path, $params));
+            $response = $this->httpRequest->request($method, $this->buildQuery($path, $properties));
 
             // Capture response details.
             $logData['http_response_code'] = $response->getStatusCode();
@@ -216,13 +214,13 @@ class BinanceAPIClient
         return Exchange::firstWhere('canonical', 'binance')->id;
     }
 
-    protected function buildQuery($path, $params = []): string
+    protected function buildQuery($path, $properties = []): string
     {
-        if (count($params) == 0) {
+        if (count($properties) == 0) {
             return $path;
         }
 
-        return $path.'?'.Url::buildQuery($params);
+        return $path.'?'.Url::buildQuery($properties);
     }
 
     protected function buildClient($httpRequest)
@@ -267,15 +265,6 @@ class BinanceAPIClient
      */
     protected function logApiRequest(array $logData): void
     {
-        ApiRequestLog::create([
-            'path' => $logData['path'],
-            'payload' => $logData['payload'],
-            'http_method' => $logData['http_method'],
-            'http_headers_sent' => $logData['http_headers_sent'],
-            'http_response_code' => $logData['http_response_code'],
-            'response' => $logData['response'],
-            'http_headers_returned' => $logData['http_headers_returned'],
-            'hostname' => $logData['hostname'],
-        ]);
+        ApiRequestLog::create($logData);
     }
 }
