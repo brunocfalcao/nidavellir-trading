@@ -89,16 +89,17 @@ class DispatchPositionJob extends AbstractJob
      */
     protected function updateMarginTypeToCrossed()
     {
+        $exchangeSymbol = $this->position->exchangeSymbol;
+
         $this->position
             ->trader
             ->withRESTApi()
+            ->withLoggable($this->position)
             ->withPosition($this->position)
-            ->withExchangeSymbol($this->position->exchangeSymbol)
+            ->withExchangeSymbol($exchangeSymbol)
             ->withOptions([
-                'symbol' => $this->position
-                                 ->exchangeSymbol
-                                 ->symbol
-                                 ->token.'USDT',
+                'symbol' => $exchangeSymbol->symbol
+                                           ->token.'USDT',
                 'margintype' => 'CROSSED'])
             ->updateMarginType();
     }
@@ -124,6 +125,7 @@ class DispatchPositionJob extends AbstractJob
         if (blank($this->position->total_trade_amount)) {
             $availableBalance = $this->position->trader
                 ->withRESTApi()
+                ->withLoggable($this->position)
                 ->withPosition($this->position)
                 ->getAccountBalance();
 
@@ -212,6 +214,7 @@ class DispatchPositionJob extends AbstractJob
     {
         $this->position->trader
             ->withRESTApi()
+            ->withLoggable($this->position)
             ->withPosition($this->position)
             ->withExchangeSymbol($this->position->exchangeSymbol)
             ->withOptions(['symbol' => $this->position->exchangeSymbol->symbol->token.'USDT', 'leverage' => $this->position->leverage])
@@ -222,6 +225,7 @@ class DispatchPositionJob extends AbstractJob
     {
         $markPrice = round($this->position->trader
             ->withRESTApi()
+            ->withLoggable($this->position)
             ->withExchangeSymbol($this->position->exchangeSymbol)
             ->withPosition($this->position)
             ->withSymbol($this->position->exchangeSymbol->symbol->token.'USDT')

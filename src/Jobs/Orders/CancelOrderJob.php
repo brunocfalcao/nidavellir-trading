@@ -103,6 +103,7 @@ class CancelOrderJob extends AbstractJob
     {
         $this->trader
             ->withRESTApi()
+            ->withLoggable($this->order)
             ->withOptions([
                 'symbol' => $this->exchangeSymbol->symbol->token.'USDT',
                 'orderId' => $this->order->order_exchange_system_id])

@@ -121,6 +121,7 @@ class TestCommand extends Command
         $position
             ->trader
             ->withRESTApi()
+            ->withLoggable($position->exchangeSymbol)
             ->withPosition($position)
             ->withExchangeSymbol($position->exchangeSymbol)
             ->withOptions([
@@ -154,6 +155,7 @@ class TestCommand extends Command
         $trader = Trader::find(1);
 
         $openOrders = $trader->withRESTApi()
+            ->withLoggable($trader)
             ->getOpenOrders();
 
         dd($openOrders);
@@ -163,9 +165,12 @@ class TestCommand extends Command
     {
         $trader = Trader::find(1);
 
-        $allOrders = collect($trader->withRESTApi()
-            ->withOptions(['symbol' => 'SUNUSDT'])
-            ->getAllOrders());
+        $allOrders = collect(
+            $trader->withRESTApi()
+                ->withLoggable($trader)
+                ->withOptions(['symbol' => 'SUNUSDT'])
+                ->getAllOrders()
+        );
 
         dd(
             $allOrders->where('status', 'NEW')->pluck('origQty')->sum()

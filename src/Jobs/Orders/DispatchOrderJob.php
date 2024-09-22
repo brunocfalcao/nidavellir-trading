@@ -152,6 +152,7 @@ class DispatchOrderJob extends AbstractJob
          */
         $positions = $this->trader
             ->withRESTApi()
+            ->withLoggable($this->order)
             ->withPosition($this->order->position)
             ->withTrader($this->trader)
             ->withExchangeSymbol($this->exchangeSymbol)
@@ -220,6 +221,7 @@ class DispatchOrderJob extends AbstractJob
         // Build the payload for dispatching the order.
         $payload = $this->trader
             ->withRESTApi()
+            ->withLoggable($this->order)
             ->withPosition($this->position)
             ->withTrader($this->trader)
             ->withExchangeSymbol($this->exchangeSymbol)
@@ -297,6 +299,7 @@ class DispatchOrderJob extends AbstractJob
         // Dispatch the order via the trader's API.
         $result = $this->trader
             ->withRESTApi()
+            ->withLoggable($this->order)
             ->withOptions($this->orderData)
             ->withPosition($this->position)
             ->withTrader($this->trader)
@@ -360,6 +363,7 @@ class DispatchOrderJob extends AbstractJob
         // Dispatch the order via the trader's API.
         $result = $this->trader
             ->withRESTApi()
+            ->withLoggable($this->order)
             ->withOptions($this->orderData)
             ->withPosition($this->position)
             ->withTrader($this->trader)
@@ -389,6 +393,7 @@ class DispatchOrderJob extends AbstractJob
 
         $result = $this->trader
             ->withRESTApi()
+            ->withLoggable($this->order)
             ->withPosition($this->position)
             ->withTrader($this->trader)
             ->withExchangeSymbol($this->exchangeSymbol)
@@ -471,6 +476,7 @@ class DispatchOrderJob extends AbstractJob
         // Dispatch the order via the trader's API.
         $result = $this->trader
             ->withRESTApi()
+            ->withLoggable($this->order)
             ->withOptions($this->orderData)
             ->withPosition($this->position)
             ->withTrader($this->trader)
@@ -530,6 +536,7 @@ class DispatchOrderJob extends AbstractJob
         // Dispatch the order via the trader's API.
         $result = $this->trader
             ->withRESTApi()
+            ->withLoggable($this->order)
             ->withOptions($this->orderData)
             ->withPosition($this->position)
             ->withTrader($this->trader)
