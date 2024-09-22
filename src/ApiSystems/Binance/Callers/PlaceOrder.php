@@ -11,15 +11,7 @@ class PlaceOrder extends AbstractCaller
 
     public function call()
     {
-        $futures = new Futures(
-            $this->mapper->connectionDetails()
-        );
-
-        $this->result = $futures->newOrder(
-            $this->mapper->properties['options']['symbol'],
-            $this->mapper->properties['options']['side'],
-            $this->mapper->properties['options']['type'],
-            $this->mapper->properties['options']
-        );
+        $futures = new Futures($this->mapper->connectionDetails());
+        $this->result = $futures->newOrder($this->mapper->properties);
     }
 }

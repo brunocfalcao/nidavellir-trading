@@ -13,8 +13,7 @@ class GetOrder extends AbstractCaller
     {
         $futures = new Futures($this->mapper->connectionDetails());
         $this->result = $futures->getOrder(
-            $this->mapper->properties['options']['symbol'],
-            $this->mapper->properties['options']
+            $this->mapper->properties
         );
     }
 }

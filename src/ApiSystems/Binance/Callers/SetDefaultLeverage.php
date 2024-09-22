@@ -12,8 +12,6 @@ class SetDefaultLeverage extends AbstractCaller
     public function call()
     {
         $futures = new Futures($this->mapper->connectionDetails());
-        $this->result = $futures->setLeverage(
-            $this->mapper->properties['options']
-        );
+        $this->result = $futures->setLeverage($this->mapper->properties);
     }
 }
