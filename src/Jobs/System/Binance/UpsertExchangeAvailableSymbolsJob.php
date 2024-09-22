@@ -2,7 +2,6 @@
 
 namespace Nidavellir\Trading\Jobs\System\Binance;
 
-use Illuminate\Support\Str;
 use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\ApiSystems\ExchangeRESTWrapper;
@@ -36,8 +35,6 @@ class UpsertExchangeAvailableSymbolsJob extends AbstractJob
                 credentials: Nidavellir::getSystemCredentials('binance')
             )
         );
-
-        $this->logBlock = Str::uuid(); // Generate UUID block for log entries
     }
 
     /**
@@ -51,7 +48,9 @@ class UpsertExchangeAvailableSymbolsJob extends AbstractJob
             $mapper = $this->wrapper->mapper;
 
             // Fetch symbols from Binance API.
-            $this->symbols = $mapper->getExchangeInformation();
+            $this->symbols = $mapper
+                ->withLoggable(Exchange::find(1))
+                ->getExchangeInformation()['symbols'];
 
             if (empty($this->symbols)) {
                 throw new ExchangeSymbolNotSyncedException(

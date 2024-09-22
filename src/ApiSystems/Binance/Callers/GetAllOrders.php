@@ -12,6 +12,8 @@ class GetAllOrders extends AbstractCaller
     public function call()
     {
         $futures = new Futures($this->mapper->connectionDetails());
-        $this->result = $futures->allOrders($this->mapper->properties['options']['symbol'], $this->mapper->properties['options']);
+        $this->result = $futures->allOrders(
+            $this->mapper->properties
+        );
     }
 }

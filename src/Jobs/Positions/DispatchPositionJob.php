@@ -3,18 +3,18 @@
 namespace Nidavellir\Trading\Jobs\Positions;
 
 use Illuminate\Bus\Batch;
-use Nidavellir\Trading\Nidavellir;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Log;
-use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Abstracts\AbstractJob;
-use Nidavellir\Trading\Models\ExchangeSymbol;
-use Nidavellir\Trading\Exceptions\TryCatchException;
-use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
-use Nidavellir\Trading\ApiSystems\ExchangeRESTWrapper;
 use Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper;
+use Nidavellir\Trading\ApiSystems\ExchangeRESTWrapper;
 use Nidavellir\Trading\Exceptions\DispatchPositionException;
 use Nidavellir\Trading\Exceptions\PositionOrderChainException;
+use Nidavellir\Trading\Exceptions\TryCatchException;
+use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
+use Nidavellir\Trading\Models\ExchangeSymbol;
+use Nidavellir\Trading\Models\Position;
+use Nidavellir\Trading\Nidavellir;
 
 /**
  * DispatchPositionJob manages the dispatching of positions
@@ -249,43 +249,43 @@ class DispatchPositionJob extends AbstractJob
 
         // Dispatch the $limitJobs asynchronously
         Bus::batch($limitJobs)
-        ->then(function (Batch $batch) use ($position, $marketOrder, $profitOrder) {
-            Log::info('All LIMIT jobs completed. Now processing MARKET and PROFIT jobs.');
+            ->then(function (Batch $batch) use ($position, $marketOrder, $profitOrder) {
+                Log::info('All LIMIT jobs completed. Now processing MARKET and PROFIT jobs.');
 
-            // Dispatch the chain for the MARKET and PROFIT jobs in sequence, followed by ValidatePositionJob
-            Bus::chain([
-                new DispatchOrderJob($marketOrder->id),
-                new DispatchOrderJob($profitOrder->id),
-                new ValidatePositionJob($position->id), // Ensure this job always runs last
-            ])
+                // Dispatch the chain for the MARKET and PROFIT jobs in sequence, followed by ValidatePositionJob
+                Bus::chain([
+                    new DispatchOrderJob($marketOrder->id),
+                    new DispatchOrderJob($profitOrder->id),
+                    new ValidatePositionJob($position->id), // Ensure this job always runs last
+                ])
+                    ->catch(function (Throwable $e) use ($position) {
+                        // Log any failures from the chain
+                        Log::error('Market or Profit job failed', ['error' => $e->getMessage()]);
+
+                        // Ensure ValidatePositionJob runs even if the chain fails
+                        dispatch(new ValidatePositionJob($position->id));
+                    })
+                    ->dispatch();
+            })
             ->catch(function (Throwable $e) use ($position) {
-                // Log any failures from the chain
-                Log::error('Market or Profit job failed', ['error' => $e->getMessage()]);
+                // Log any failure that occurred during the batch execution of $limitJobs
+                Log::error('Batch of LIMIT jobs failed', ['error' => $e->getMessage()]);
 
-                // Ensure ValidatePositionJob runs even if the chain fails
+                // Ensure ValidatePositionJob runs if the batch fails
+                dispatch(new ValidatePositionJob($position->id));
+
+                // Optionally, rethrow the exception or handle it as needed
+                throw new PositionOrderChainException(
+                    throwable: $e,
+                    additionalData: ['position_id' => $position->id]
+                );
+            })
+            ->finally(function (Batch $batch) use ($position) {
+                // This ensures ValidatePositionJob runs even if the batch succeeds
+                Log::info('Batch of LIMIT jobs completed, executing validation.');
                 dispatch(new ValidatePositionJob($position->id));
             })
             ->dispatch();
-        })
-        ->catch(function (Throwable $e) use ($position) {
-            // Log any failure that occurred during the batch execution of $limitJobs
-            Log::error('Batch of LIMIT jobs failed', ['error' => $e->getMessage()]);
-
-            // Ensure ValidatePositionJob runs if the batch fails
-            dispatch(new ValidatePositionJob($position->id));
-
-            // Optionally, rethrow the exception or handle it as needed
-            throw new PositionOrderChainException(
-                throwable: $e,
-                additionalData: ['position_id' => $position->id]
-            );
-        })
-        ->finally(function (Batch $batch) use ($position) {
-            // This ensures ValidatePositionJob runs even if the batch succeeds
-            Log::info('Batch of LIMIT jobs completed, executing validation.');
-            dispatch(new ValidatePositionJob($position->id));
-        })
-        ->dispatch();
 
         /*
         Bus::chain([

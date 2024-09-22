@@ -13,7 +13,7 @@ class GetLeverageBracket extends AbstractCaller
     {
         $futures = new Futures($this->mapper->connectionDetails());
         $this->result = $futures->leverageBracket(
-            $this->mapper->properties['options']
+            $this->mapper->properties
         );
     }
 }

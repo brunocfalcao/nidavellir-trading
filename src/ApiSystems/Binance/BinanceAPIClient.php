@@ -51,14 +51,14 @@ class BinanceAPIClient
 
     protected function signRequest($method, $path, array $params = [])
     {
-        $params['timestamp'] = round(microtime(true) * 1000);
+        $params['options']['timestamp'] = round(microtime(true) * 1000);
         $query = Url::buildQuery($params);
 
         if ($this->privateKey) {
             openssl_sign($query, $binary_signature, $this->privateKey, OPENSSL_ALGO_SHA256);
-            $params['signature'] = base64_encode($binary_signature);
+            $params['options']['signature'] = base64_encode($binary_signature);
         } else {
-            $params['signature'] = hash_hmac('sha256', $query, $this->secret);
+            $params['options']['signature'] = hash_hmac('sha256', $query, $this->secret);
         }
 
         return $this->processRequest($method, $path, $params);
@@ -66,6 +66,19 @@ class BinanceAPIClient
 
     protected function processRequest($method, $path, $params = [])
     {
+        $logData = [];
+        // Verify if we have a loggable eloquent model.
+        if (array_key_exists('loggable', $params)) {
+            $model = $params['loggable'];
+            $logData['loggable_id'] = $model->id;
+            $logData['loggable_type'] = get_class($model);
+        }
+
+        // Recalibrate $params to just have 'options' (fi exists).
+        if (array_key_exists('options', $params)) {
+            $params = $params['options'];
+        }
+
         $this->applyRateLimiter($path);
 
         $logData = [

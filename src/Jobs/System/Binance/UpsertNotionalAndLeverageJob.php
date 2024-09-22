@@ -2,7 +2,6 @@
 
 namespace Nidavellir\Trading\Jobs\System\Binance;
 
-use Illuminate\Support\Str;
 use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\ApiSystems\ExchangeRESTWrapper;
@@ -34,8 +33,6 @@ class UpsertNotionalAndLeverageJob extends AbstractJob
                 credentials: Nidavellir::getSystemCredentials('binance')
             )
         );
-
-        $this->logBlock = Str::uuid(); // Generate UUID block for log entries
     }
 
     /**

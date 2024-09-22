@@ -3,7 +3,6 @@
 namespace Nidavellir\Trading\Jobs\System\Taapi;
 
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Models\Exchange;
@@ -27,7 +26,6 @@ class UpsertTaapiAvailableSymbols extends AbstractJob
     {
         $this->exchangeId = $exchangeId;
         $this->taapiApiKey = config('nidavellir.system.api.credentials.taapi.api_key');
-        $this->logBlock = Str::uuid();
     }
 
     public function handle()

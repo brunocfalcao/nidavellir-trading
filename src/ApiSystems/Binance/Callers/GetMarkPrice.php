@@ -12,7 +12,9 @@ class GetMarkPrice extends AbstractCaller
     public function call()
     {
         $futures = new Futures($this->mapper->connectionDetails());
-        $this->result = $futures->markPrice($this->mapper->properties['symbol']);
+        $this->result = $futures->markPrice(
+            $this->mapper->properties
+        );
     }
 
     public function parseResult()

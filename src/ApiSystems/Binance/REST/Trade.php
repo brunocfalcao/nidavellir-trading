@@ -2,10 +2,10 @@
 
 namespace Nidavellir\Trading\ApiSystems\Binance\REST;
 
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
 use Binance\Exception\MissingArgumentException;
 use Binance\Util\Strings;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 trait Trade
 {
@@ -119,6 +119,7 @@ trait Trade
             ['symbol' => $properties['options']['symbol']]
         ));
     }
+
     /**
      * Cancel all Open Orders on a Symbol (TRADE)
      *
@@ -198,16 +199,21 @@ trait Trade
      *
      * Weight(IP): 10
      */
-    public function allOrders(string $symbol, array $options = [])
+    public function allOrders(array $properties = [])
     {
-        if (Strings::isEmpty($symbol)) {
-            throw new MissingArgumentException('symbol');
+        // Validate the properties using the Validator facade
+        $validator = Validator::make($properties, [
+            'options.symbol' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            throw new ValidationException($validator);
         }
 
         return $this->signRequest('GET', '/fapi/v1/allOrders', array_merge(
-            $options,
+            $properties,
             [
-                'symbol' => $symbol,
+                'symbol' => $properties['options']['symbol'],
             ]
         ));
     }

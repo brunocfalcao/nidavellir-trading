@@ -3,15 +3,15 @@
 namespace Nidavellir\Trading\Jobs\Orders;
 
 use Illuminate\Support\Facades\Log;
+use Nidavellir\Trading\Abstracts\AbstractJob;
+use Nidavellir\Trading\Exceptions\DispatchOrderException;
+use Nidavellir\Trading\Exceptions\TryCatchException;
+use Nidavellir\Trading\Models\Exchange;
+use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Order;
+use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Models\Trader;
-use Nidavellir\Trading\Models\Exchange;
-use Nidavellir\Trading\Models\Position;
-use Nidavellir\Trading\Abstracts\AbstractJob;
-use Nidavellir\Trading\Models\ExchangeSymbol;
-use Nidavellir\Trading\Exceptions\TryCatchException;
-use Nidavellir\Trading\Exceptions\DispatchOrderException;
 
 /**
  * DispatchOrderJob handles the dispatching of trading orders
@@ -109,6 +109,7 @@ class DispatchOrderJob extends AbstractJob
              */
             if ($this->order->type == self::ORDER_TYPE_POSITION_CANCELLATION) {
                 $this->syncPositionCancellationOrder();
+
                 return;
             }
 
@@ -130,7 +131,7 @@ class DispatchOrderJob extends AbstractJob
              * any other orders that will be needed to
              * cancel or fill.
              */
-            Log::info('Setting order id '. $this->order->id . ' to status ERROR');
+            Log::info('Setting order id '.$this->order->id.' to status ERROR');
             $this->order->update(['status' => 'error']);
 
             // Handle any errors and throw a custom exception.

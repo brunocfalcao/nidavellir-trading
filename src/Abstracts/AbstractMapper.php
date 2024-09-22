@@ -33,6 +33,13 @@ abstract class AbstractMapper
         }
     }
 
+    public function withLoggable($model)
+    {
+        $this->properties['loggable'] = $model;
+
+        return $this;
+    }
+
     public function exchange() {}
 
     public function connectionDetails() {}
