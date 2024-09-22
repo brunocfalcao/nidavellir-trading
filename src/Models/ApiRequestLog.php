@@ -25,4 +25,10 @@ class ApiRequestLog extends Model
         'response' => 'array',
         'http_headers_returned' => 'array',
     ];
+
+    // Define the polymorphic relationship
+    public function loggable()
+    {
+        return $this->morphTo();
+    }
 }

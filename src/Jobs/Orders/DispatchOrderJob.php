@@ -2,15 +2,16 @@
 
 namespace Nidavellir\Trading\Jobs\Orders;
 
-use Nidavellir\Trading\Abstracts\AbstractJob;
-use Nidavellir\Trading\Exceptions\DispatchOrderException;
-use Nidavellir\Trading\Exceptions\TryCatchException;
-use Nidavellir\Trading\Models\Exchange;
-use Nidavellir\Trading\Models\ExchangeSymbol;
+use Illuminate\Support\Facades\Log;
 use Nidavellir\Trading\Models\Order;
-use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Models\Trader;
+use Nidavellir\Trading\Models\Exchange;
+use Nidavellir\Trading\Models\Position;
+use Nidavellir\Trading\Abstracts\AbstractJob;
+use Nidavellir\Trading\Models\ExchangeSymbol;
+use Nidavellir\Trading\Exceptions\TryCatchException;
+use Nidavellir\Trading\Exceptions\DispatchOrderException;
 
 /**
  * DispatchOrderJob handles the dispatching of trading orders
@@ -94,13 +95,20 @@ class DispatchOrderJob extends AbstractJob
             }
 
             /**
+             * If this order was previously retried and is already
+             * in error, then don't retry again.
+             */
+            if ($this->order->status == 'error') {
+                return;
+            }
+
+            /**
              * Verify it is a position cancellation order. On this case
              * we might have a trade in error, so we can't get the
              * next check verified.
              */
             if ($this->order->type == self::ORDER_TYPE_POSITION_CANCELLATION) {
                 $this->syncPositionCancellationOrder();
-
                 return;
             }
 
@@ -122,9 +130,8 @@ class DispatchOrderJob extends AbstractJob
              * any other orders that will be needed to
              * cancel or fill.
              */
-            if ($this->order) {
-                $this->order->update(['status' => 'error']);
-            }
+            Log::info('Setting order id '. $this->order->id . ' to status ERROR');
+            $this->order->update(['status' => 'error']);
 
             // Handle any errors and throw a custom exception.
             throw new TryCatchException(
@@ -425,14 +432,8 @@ class DispatchOrderJob extends AbstractJob
      */
     protected function placeLimitOrder($orderPrice, $orderQuantity, $sideDetails)
     {
-        /**
-         * Error generation to test the exception handling.
-         */
-        $generateError = rand(0, 100) > 50;
-
-        if ($generateError) {
-            \Log::info('!!== ERROR GENERATED ==!!');
-            $orderPrice = 432984768326784632846378;
+        if ($this->order->id == 3) {
+            throw new \Exception('!!! Forced Order Exception !!!');
         }
 
         // Update the order with the computed entry data.

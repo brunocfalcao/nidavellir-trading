@@ -2,6 +2,8 @@
 
 namespace Nidavellir\Trading\ApiSystems\Binance\REST;
 
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 use Binance\Exception\MissingArgumentException;
 use Binance\Util\Strings;
 
@@ -101,20 +103,22 @@ trait Trade
      *
      * Weight(IP): 1
      */
-    public function cancelOrder(string $symbol, array $options = [])
+    public function cancelOrder(array $properties = [])
     {
-        if (Strings::isEmpty($symbol)) {
-            throw new MissingArgumentException('symbol');
+        // Validate the properties using the Validator facade
+        $validator = Validator::make($properties, [
+            'options.symbol' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            throw new ValidationException($validator);
         }
 
         return $this->signRequest('DELETE', '/fapi/v1/order', array_merge(
-            $options,
-            [
-                'symbol' => $symbol,
-            ]
+            $properties['options'],
+            ['symbol' => $properties['options']['symbol']]
         ));
     }
-
     /**
      * Cancel all Open Orders on a Symbol (TRADE)
      *

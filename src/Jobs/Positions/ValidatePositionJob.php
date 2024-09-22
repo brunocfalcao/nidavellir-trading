@@ -46,6 +46,13 @@ class ValidatePositionJob extends AbstractJob
             }
 
             /**
+             * Position already in synced or closed state? Return.
+             */
+            if (in_array($this->position->status, ['synced', 'closed'])) {
+                return;
+            }
+
+            /**
              * Verify if there are errors with status = error.
              * If so, cancel the order.
              */
@@ -53,7 +60,7 @@ class ValidatePositionJob extends AbstractJob
                 $syncedJobsToCancel = [];
 
                 // Cancel all the orders that were already synced.
-                foreach ($this->position->orders->where('status', 'synced')->get() as $order) {
+                foreach ($this->position->orders->where('status', 'synced') as $order) {
                     $syncedJobsToCancel[] = new CancelOrderJob($order->id);
                 }
 
@@ -66,15 +73,17 @@ class ValidatePositionJob extends AbstractJob
                 // Update position to inform that was an error, but all good.
                 $this->position->update(['status' => 'complete-error']);
             } else {
+                // All good. Position status can be changed to synced.
+                $this->position->update(['status' => 'synced']);
             }
         } catch (\Throwable $e) {
             // If an error occurs, update the status to 'error', log it and throw a custom exception.
-            $position->update(['status' => 'error']);
+            $this->position->update(['status' => 'error']);
 
             throw new TryCatchException(
                 throwable: $e,
                 additionalData: [
-                    'position_id' => $positionId]
+                    'position_id' => $this->positionId]
             );
         }
     }

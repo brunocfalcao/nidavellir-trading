@@ -66,7 +66,7 @@ class BinanceAPIClient
 
     protected function processRequest($method, $path, $params = [])
     {
-        $this->applyRateLimiter($path); // Apply rate limiting before the request
+        $this->applyRateLimiter($path);
 
         $logData = [
             'path' => $path,

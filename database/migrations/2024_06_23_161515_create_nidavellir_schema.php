@@ -14,6 +14,7 @@ return new class extends Migration
     {
         Schema::create('api_requests_log', function (Blueprint $table) {
             $table->id();
+            $table->morphs('loggable');
             $table->string('path')->nullable();
             $table->json('payload')->nullable();
             $table->string('http_method')->nullable();

@@ -35,6 +35,12 @@ class Order extends AbstractModel
         ];
     }
 
+    // Define the polymorphic relationship
+    public function apiRequestLogs()
+    {
+        return $this->morphMany(ApiRequestsLog::class, 'loggable');
+    }
+
     public function position()
     {
         return $this->belongsTo(Position::class);
