@@ -32,7 +32,7 @@ class QueryOrder extends Command
 
         $orderInfo = $trader
             ->withRESTApi()
-            ->withOrder($order)
+            ->withLoggable($order)
             ->withOptions([
                 'symbol' => $symbol,
                 'orderId' => $order->order_exchange_system_id,

@@ -95,8 +95,6 @@ class DispatchPositionJob extends AbstractJob
             ->trader
             ->withRESTApi()
             ->withLoggable($this->position)
-            ->withPosition($this->position)
-            ->withExchangeSymbol($exchangeSymbol)
             ->withOptions([
                 'symbol' => $exchangeSymbol->symbol
                                            ->token.'USDT',
@@ -126,7 +124,6 @@ class DispatchPositionJob extends AbstractJob
             $availableBalance = $this->position->trader
                 ->withRESTApi()
                 ->withLoggable($this->position)
-                ->withPosition($this->position)
                 ->getAccountBalance();
 
             $minimumTradeAmount = config('nidavellir.positions.minimum_trade_amount');
@@ -215,8 +212,6 @@ class DispatchPositionJob extends AbstractJob
         $this->position->trader
             ->withRESTApi()
             ->withLoggable($this->position)
-            ->withPosition($this->position)
-            ->withExchangeSymbol($this->position->exchangeSymbol)
             ->withOptions(['symbol' => $this->position->exchangeSymbol->symbol->token.'USDT', 'leverage' => $this->position->leverage])
             ->setDefaultLeverage();
     }
@@ -226,9 +221,7 @@ class DispatchPositionJob extends AbstractJob
         $markPrice = round($this->position->trader
             ->withRESTApi()
             ->withLoggable($this->position)
-            ->withExchangeSymbol($this->position->exchangeSymbol)
-            ->withPosition($this->position)
-            ->withSymbol($this->position->exchangeSymbol->symbol->token.'USDT')
+            ->withOptions(['symbol' => $this->position->exchangeSymbol->symbol->token.'USDT'])
             ->getMarkPrice(), $this->position->exchangeSymbol->precision_price);
 
         $this->position->update(['initial_mark_price' => $markPrice]);

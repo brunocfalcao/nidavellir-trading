@@ -52,7 +52,7 @@ class BinanceAPIClient
     protected function signRequest($method, $path, array $params = [])
     {
         $params['options']['timestamp'] = round(microtime(true) * 1000);
-        $query = Url::buildQuery($params);
+        $query = Url::buildQuery($params['options']);
 
         if ($this->privateKey) {
             openssl_sign($query, $binary_signature, $this->privateKey, OPENSSL_ALGO_SHA256);

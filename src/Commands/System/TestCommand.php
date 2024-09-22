@@ -4,25 +4,26 @@ namespace Nidavellir\Trading\Commands\System;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Nidavellir\Trading\Nidavellir;
 use Illuminate\Support\Facades\File;
+use Nidavellir\Trading\Models\Trader;
 use Illuminate\Support\Facades\Storage;
-use Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper;
-use Nidavellir\Trading\ApiSystems\ExchangeRESTWrapper;
+use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Jobs\Orders\CancelOrderJob;
 use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
-use Nidavellir\Trading\Jobs\Symbols\UpsertEligibleSymbolsJob;
+use Nidavellir\Trading\ApiSystems\ExchangeRESTWrapper;
+use Nidavellir\Trading\Jobs\Tests\HardcodeMarketOrderJob;
+use Nidavellir\Trading\Jobs\System\UpsertFearGreedIndexJob;
+use Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolMetadataJob;
 use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsRankingJob;
+use Nidavellir\Trading\Jobs\Symbols\UpsertEligibleSymbolsJob;
 use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolTradeDirection;
-use Nidavellir\Trading\Jobs\System\Binance\UpsertExchangeAvailableSymbolsJob;
+use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolTradeDirectionJob;
+use Nidavellir\Trading\Jobs\System\Taapi\UpsertTaapiAvailableSymbols;
 use Nidavellir\Trading\Jobs\System\Binance\UpsertNotionalAndLeverageJob;
 use Nidavellir\Trading\Jobs\System\Taapi\UpsertSymbolIndicatorValuesJob;
-use Nidavellir\Trading\Jobs\System\Taapi\UpsertTaapiAvailableSymbols;
-use Nidavellir\Trading\Jobs\System\UpsertFearGreedIndexJob;
-use Nidavellir\Trading\Jobs\Tests\HardcodeMarketOrderJob;
-use Nidavellir\Trading\Models\Position;
-use Nidavellir\Trading\Models\Trader;
-use Nidavellir\Trading\Nidavellir;
+use Nidavellir\Trading\Jobs\System\Binance\UpsertExchangeAvailableSymbolsJob;
 
 class TestCommand extends Command
 {
@@ -63,9 +64,9 @@ class TestCommand extends Command
                           //->sum('unRealizedProfit'));
         */
 
-        $this->testNewPosition();
+        //$this->testNewPosition();
 
-        //UpsertSymbolTradeDirection::dispatchSync();
+        UpsertSymbolTradeDirectionJob::dispatchSync();
 
         /*
         $mapper = (new ExchangeRESTWrapper(
@@ -122,8 +123,6 @@ class TestCommand extends Command
             ->trader
             ->withRESTApi()
             ->withLoggable($position->exchangeSymbol)
-            ->withPosition($position)
-            ->withExchangeSymbol($position->exchangeSymbol)
             ->withOptions([
                 'symbol' => $position
                                  ->exchangeSymbol

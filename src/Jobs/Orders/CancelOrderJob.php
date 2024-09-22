@@ -107,10 +107,6 @@ class CancelOrderJob extends AbstractJob
             ->withOptions([
                 'symbol' => $this->exchangeSymbol->symbol->token.'USDT',
                 'orderId' => $this->order->order_exchange_system_id])
-            ->withPosition($this->order->position)
-            ->withTrader($this->trader)
-            ->withExchangeSymbol($this->exchangeSymbol)
-            ->withOrder($this->order)
             ->cancelOrder();
     }
 }

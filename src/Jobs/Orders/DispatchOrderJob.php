@@ -153,10 +153,6 @@ class DispatchOrderJob extends AbstractJob
         $positions = $this->trader
             ->withRESTApi()
             ->withLoggable($this->order)
-            ->withPosition($this->order->position)
-            ->withTrader($this->trader)
-            ->withExchangeSymbol($this->exchangeSymbol)
-            ->withOrder($this->order)
             ->getPositions();
 
         $positionAmount = collect($positions)
@@ -217,15 +213,6 @@ class DispatchOrderJob extends AbstractJob
     {
         // Get the side of the order (buy/sell).
         $sideDetails = $this->getOrderSideDetails($this->symbol->side);
-
-        // Build the payload for dispatching the order.
-        $payload = $this->trader
-            ->withRESTApi()
-            ->withLoggable($this->order)
-            ->withPosition($this->position)
-            ->withTrader($this->trader)
-            ->withExchangeSymbol($this->exchangeSymbol)
-            ->withOrder($this->order);
 
         // Determine the price and quantity for the order.
         $orderPrice = $this->getPriceByRatio();
