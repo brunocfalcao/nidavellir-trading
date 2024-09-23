@@ -118,7 +118,7 @@ return new class extends Migration
             $table->decimal('ema_28_yesterday', 20, 8)->nullable()->comment('EMA 28 1D closed candle, yesterday');
             $table->decimal('ema_56_2days_ago', 20, 8)->nullable()->comment('EMA 56 1D closed candle, 2 days ago');
             $table->decimal('ema_56_yesterday', 20, 8)->nullable()->comment('EMA 56 1D closed candle, yesterday');
-            $table->string('side')->default('BUY')->comment('Defines the direction of the trade when using it (BUY as long/SELL as short)');
+            $table->string('side')->default('LONG')->comment('Defines the direction of the trade when using it (BUY as long/SELL as short)');
             $table->timestamp('indicator_last_synced_at')->nullable();
             $table->timestamps();
 

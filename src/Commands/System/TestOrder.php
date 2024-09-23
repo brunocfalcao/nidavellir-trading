@@ -44,7 +44,9 @@ class TestOrder extends Command
             ->first();
 
         // Info message including mark price if provided
-        $infoMessage = "Placing order with amount: $amount and token: $token";
+        $infoMessage = 'Placing '.
+                       $symbol->side.
+                       " order with amount: $amount and token: $token";
         if ($markPrice) {
             $infoMessage .= " at mark price: $markPrice";
         }

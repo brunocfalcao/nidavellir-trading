@@ -162,7 +162,7 @@ class DispatchOrderJob extends AbstractJob
             ->sum('positionAmt');
 
         // With the position amount, lets open a contrary market order.
-        $side = $positionAmount < 0 ? 'BUY' : 'SELL';
+        $side = $positionAmount < 0 ? 'LONG' : 'SHORT';
         $positionAmount = abs($positionAmount);
 
         $sideDetails = $this->getOrderSideDetails($side);
@@ -567,7 +567,7 @@ class DispatchOrderJob extends AbstractJob
      */
     protected function getOrderSideDetails($side)
     {
-        if ($side === 'BUY') {
+        if ($side == 'LONG') {
             return [
                 'orderMarketSide' => 'BUY',
                 'orderLimitBuy' => 'BUY',
@@ -575,11 +575,18 @@ class DispatchOrderJob extends AbstractJob
             ];
         }
 
-        return [
-            'orderMarketSide' => 'SELL',
-            'orderLimitBuy' => 'SELL',
-            'orderLimitProfit' => 'BUY',
-        ];
+        if ($side == 'SHORT') {
+            return [
+                'orderMarketSide' => 'SELL',
+                'orderLimitBuy' => 'SELL',
+                'orderLimitProfit' => 'BUY',
+            ];
+        }
+
+        throw new DispatchOrderException(
+            message: 'Symbol side empty, null, or unknown',
+            additionalData: ['order_id' => $this->order->id]
+        );
     }
 
     /**
@@ -596,13 +603,13 @@ class DispatchOrderJob extends AbstractJob
         $orderPrice = 0;
 
         // Determine the order price based on whether it's a Buy or Sell.
-        if ($side === 'BUY') {
+        if ($side === 'LONG') {
             $orderPrice = $this->order->type !== self::ORDER_TYPE_PROFIT
                 ? round($markPrice - ($markPrice * $priceRatio), $precision)
                 : round($markPrice + ($markPrice * $priceRatio), $precision);
         }
 
-        if ($side === 'SELL') {
+        if ($side === 'SHORT') {
             $orderPrice = $this->order->type !== self::ORDER_TYPE_PROFIT
                 ? round($markPrice + ($markPrice * $priceRatio), $precision)
                 : round($markPrice - ($markPrice * $priceRatio), $precision);

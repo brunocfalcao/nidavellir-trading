@@ -57,13 +57,13 @@ class UpsertSymbolTradeDirectionJob extends AbstractJob
                         $ema56Values[1] <= $ema28Values[1] && // EMA 56 from yesterday is less than or equal to EMA 28 from yesterday
                         $ema56Values[1] < $ema28Values[1]     // EMA 56 is lower than EMA 28
                     ) {
-                        $symbol->update(['side' => 'BUY']); // Set to BUY
+                        $symbol->update(['side' => 'LONG']); // Set to BUY
                     } elseif ($ema28Values[0] > $ema28Values[1] && // EMA 28 from 2 days ago is greater than EMA 28 from yesterday
                         $ema56Values[0] > $ema56Values[1] && // EMA 56 from 2 days ago is greater than EMA 56 from yesterday
                         $ema56Values[1] >= $ema28Values[1] && // EMA 56 from yesterday is greater than or equal to EMA 28 from yesterday
                         $ema56Values[1] > $ema28Values[1]     // EMA 56 is higher than EMA 28
                     ) {
-                        $symbol->update(['side' => 'SELL']); // Set to SELL
+                        $symbol->update(['side' => 'SHORT']); // Set to SELL
                     }
                     // If neither condition is met, the trade direction remains unchanged.
                 }

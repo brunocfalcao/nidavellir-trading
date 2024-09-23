@@ -178,7 +178,10 @@ class DispatchPositionJob extends AbstractJob
     protected function updatePositionSide()
     {
         $this->position->update([
-            'side' => $this->position->exchangeSymbol->symbol->side,
+            'side' => $this->position
+                     ->exchangeSymbol
+                     ->symbol
+                     ->side,
         ]);
     }
 
