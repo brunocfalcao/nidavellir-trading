@@ -46,7 +46,9 @@ class UpsertNotionalAndLeverageJob extends AbstractJob
             $exchange = Exchange::firstWhere('canonical', 'binance');
 
             // Fetch notional and leverage data for all symbols from Binance API.
-            $symbols = $this->wrapper->getLeverageBrackets();
+            $symbols = $this->wrapper
+                ->withLoggable($exchange)
+                ->getLeverageBrackets();
 
             if (! $symbols) {
                 throw new NotionalAndLeverageNotSyncedException(

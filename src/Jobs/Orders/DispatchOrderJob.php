@@ -2,10 +2,11 @@
 
 namespace Nidavellir\Trading\Jobs\Orders;
 
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\Exceptions\DispatchOrderException;
 use Nidavellir\Trading\Exceptions\TryCatchException;
+use Nidavellir\Trading\Jobs\Positions\ValidatePositionJob;
 use Nidavellir\Trading\Models\Exchange;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Order;
@@ -125,14 +126,11 @@ class DispatchOrderJob extends AbstractJob
                 $this->processOrder();
             }
         } catch (\Throwable $e) {
-            /**
-             * Update order to error. Later the parent process
-             * will deal with the trade coherency to cancel
-             * any other orders that will be needed to
-             * cancel or fill.
-             */
-            Log::info('Setting order id '.$this->order->id.' to status ERROR');
+            // Set this order on error.
             $this->order->update(['status' => 'error']);
+
+            // Trigger the orders rollback via the validatePositionJob.
+            ValidatePositionJob::dispatch($this->position->id);
 
             // Handle any errors and throw a custom exception.
             throw new TryCatchException(
@@ -165,7 +163,7 @@ class DispatchOrderJob extends AbstractJob
 
         // With the position amount, lets open a contrary market order.
         $side = $positionAmount < 0 ? 'BUY' : 'SELL';
-        $positionAmount = -$positionAmount;
+        $positionAmount = abs($positionAmount);
 
         $sideDetails = $this->getOrderSideDetails($side);
         $this->placePositionCancellationOrder($positionAmount, $sideDetails);
@@ -216,7 +214,7 @@ class DispatchOrderJob extends AbstractJob
 
         // Determine the price and quantity for the order.
         $orderPrice = $this->getPriceByRatio();
-        $orderQuantity = $this->computeOrderAmount($orderPrice);
+        $orderQuantity = $this->computeOrderQuantity($orderPrice);
 
         // Dispatch the order to the exchange.
         $this->dispatchOrder($orderPrice, $orderQuantity, $sideDetails);
@@ -226,7 +224,7 @@ class DispatchOrderJob extends AbstractJob
      * Computes the amount of the token to be traded based on
      * total trade amount, leverage, and the price of the token.
      */
-    protected function computeOrderAmount($price)
+    protected function computeOrderQuantity($price)
     {
         // For Market and Limit orders, calculate the token amount.
         if (in_array($this->order->type, [self::ORDER_TYPE_MARKET, self::ORDER_TYPE_LIMIT])) {
@@ -237,9 +235,16 @@ class DispatchOrderJob extends AbstractJob
             return round($tokenAmountToBuy, $this->exchangeSymbol->precision_quantity);
         }
 
-        // For Profit orders, use a predefined amount.
+        /**
+         * For the profit order, will be with the same filled quantity
+         * as the market order, since we will just start by
+         * selling what we had filled.
+         */
         if ($this->order->type == self::ORDER_TYPE_PROFIT) {
-            return 100;  // Example hardcoded value, adjust as necessary.
+            return $this->order
+                ->position
+                ->orders
+                ->firstWhere('type', 'MARKET')->filled_quantity;
         }
     }
 
@@ -256,6 +261,11 @@ class DispatchOrderJob extends AbstractJob
                 $this->placeMarketOrder($orderQuantity, $sideDetails);
                 break;
             case self::ORDER_TYPE_PROFIT:
+                throw new DispatchOrderException(
+                    message: 'Forced error on the profit order',
+                    additionalData: ['order_id' => $this->order->id]
+                );
+
                 $this->placeProfitOrder($orderPrice, $sideDetails);
                 break;
         }
@@ -307,7 +317,9 @@ class DispatchOrderJob extends AbstractJob
 
         /**
          * Finally, everything went well, lets update the status
-         * of the profit order to cancelled.
+         * of the profit order to cancelled because the position
+         * was closed and binance automatically closes the
+         * profit order.
          */
         $this->order
             ->position
@@ -399,6 +411,13 @@ class DispatchOrderJob extends AbstractJob
             );
         }
 
+        info_multiple(
+            '=== ORDER '.$this->order->type.' ===',
+            'Order Exchange Id: '.$result['orderId'],
+            'Filled quantity: '.$result['executedQty'],
+            'Average Price: '.$result['avgPrice']
+        );
+
         // Update the order details with exchange result.
         $this->order->update([
             'filled_quantity' => $result['executedQty'],
@@ -417,7 +436,7 @@ class DispatchOrderJob extends AbstractJob
                 '-'.$this->position->id.
                 '-'.
                 */
-                $this->order->id;
+                Str::random(30);
     }
 
     /**
@@ -425,9 +444,11 @@ class DispatchOrderJob extends AbstractJob
      */
     protected function placeLimitOrder($orderPrice, $orderQuantity, $sideDetails)
     {
+        /*
         if ($this->order->id == 3) {
             throw new \Exception('!!! Forced Order Exception !!!');
         }
+        */
 
         // Update the order with the computed entry data.
         $this->order->update([
@@ -484,17 +505,6 @@ class DispatchOrderJob extends AbstractJob
         $this->order->update([
             'entry_average_price' => $orderPrice,
         ]);
-
-        /**
-         * This profit order placed, will be with the same filled quantity
-         * as the market order, since we will just start by
-         * selling what we had filled.
-         */
-        $marketOrderQuantity = $this->order
-            ->position
-            ->orders
-            ->firstWhere('type', 'MARKET')
-                                    ->filled_quantity;
 
         // Build the API order data for a Limit order.
         $this->orderData = [

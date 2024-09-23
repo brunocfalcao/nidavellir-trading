@@ -14,7 +14,8 @@ class TestOrder extends Command
 {
     protected $signature = 'nidavellir:order
                             {--amount= : The amount to be traded}
-                            {--token= : The token symbol to trade}';
+                            {--token= : The token symbol to trade}
+                            {--mark-price= : The initial mark price}';
 
     protected $description = 'Places a test order';
 
@@ -32,8 +33,9 @@ class TestOrder extends Command
         DB::table('application_logs')->truncate();
         DB::table('exceptions_log')->truncate();
 
-        $amount = $this->option('amount') ?? 150;
-        $token = $this->option('token') ?? 'BTC';
+        $amount = $this->option('amount') ?? 75;
+        $token = $this->option('token') ?? collect(config('nidavellir.symbols.included'))->random();
+        $markPrice = $this->option('mark-price');
 
         $symbol = Symbol::firstWhere('token', $token);
 
@@ -41,13 +43,25 @@ class TestOrder extends Command
             ->where('exchange_id', 1)
             ->first();
 
-        $this->info("Placing order with amount: $amount and token: $token");
+        // Info message including mark price if provided
+        $infoMessage = "Placing order with amount: $amount and token: $token";
+        if ($markPrice) {
+            $infoMessage .= " at mark price: $markPrice";
+        }
 
-        $position = Position::create([
+        $this->info($infoMessage);
+
+        $positionData = [
             'trader_id' => Trader::find(1)->id,
             'exchange_symbol_id' => $exchangeSymbol->id,
-            //'initial_mark_price' => 134.79,
             'total_trade_amount' => $amount,
-        ]);
+        ];
+
+        // Include initial_mark_price if provided
+        if ($markPrice) {
+            $positionData['initial_mark_price'] = $markPrice;
+        }
+
+        $position = Position::create($positionData);
     }
 }
