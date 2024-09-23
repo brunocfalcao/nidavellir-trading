@@ -19,7 +19,11 @@ trait Market
             throw new ValidationException($validator);
         }
 
-        return $this->publicRequest('GET', 'fapi/v1/premiumIndex', ['symbol' => $properties['options']['symbol']]);
+        return $this->publicRequest(
+            'GET',
+            'fapi/v1/premiumIndex',
+            $properties
+        );
     }
 
     // https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api

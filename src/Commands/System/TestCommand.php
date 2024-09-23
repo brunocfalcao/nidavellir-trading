@@ -63,8 +63,9 @@ class TestCommand extends Command
                           //->sum('unRealizedProfit'));
         */
 
-        //$this->testNewPosition();
+        $this->testNewPosition();
 
+        /*
         $trader = Trader::find(1);
 
         $trader
@@ -74,7 +75,7 @@ class TestCommand extends Command
                 'symbol' => 'TONUSDT',
                 'margintype' => 'CROSSED'])
             ->updateMarginType();
-
+        */
         //UpsertSymbolTradeDirectionJob::dispatchSync();
 
         /*
