@@ -38,6 +38,7 @@ return new class extends Migration
             $table->string('full_qualified_class_name_websocket')->nullable()->comment('E.g: Nidavellir\Trading\ApiSystems\Binance\BinanceWebsocketMapper');
             $table->string('futures_url_rest_prefix')->nullable();
             $table->string('futures_url_websockets_prefix')->nullable();
+            $table->string('taapi_url_rest_prefix')->nullable();
             $table->string('taapi_exchange_canonical')->nullable();
             $table->string('generic_url_prefix')->nullable()->comment('Used for fallback cases, like for coinmarketcap calls');
             $table->timestamps();

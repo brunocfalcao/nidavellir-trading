@@ -2,7 +2,7 @@
 
 namespace Nidavellir\Trading\Concerns\Models;
 
-use Nidavellir\Trading\ApiSystems\ExchangeRESTWrapper;
+use Nidavellir\Trading\ApiSystems\ApiSystemRESTWrapper;
 
 trait HasTraderFeatures
 {
@@ -26,7 +26,7 @@ trait HasTraderFeatures
 
     public function withRESTApi()
     {
-        return new ExchangeRESTWrapper($this->getExchangeWrapperInUse());
+        return new ApiSystemRESTWrapper($this->getExchangeWrapperInUse());
     }
 
     // Returns the exchange class REST name to be instanciated.

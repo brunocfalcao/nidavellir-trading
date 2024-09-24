@@ -18,7 +18,7 @@ class UpsertBinanceMarkPricesCommand extends Command
     {
         $exchange = ApiSystem::firstWhere('canonical', 'binance');
 
-        $client = new ExchangeWebsocketMapper(
+        $client = new ApiSystemWebsocketMapper(
             new BinanceWebsocketMapper(
                 credentials: config('nidavellir.system.api.credentials.binance')
             ),

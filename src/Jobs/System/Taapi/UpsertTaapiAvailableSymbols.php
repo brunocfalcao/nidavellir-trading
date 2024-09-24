@@ -3,9 +3,10 @@
 namespace Nidavellir\Trading\Jobs\System\Taapi;
 
 use Illuminate\Support\Facades\Http;
-use Nidavellir\Trading\Abstracts\AbstractJob;
-use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Models\ApiSystem;
+use Nidavellir\Trading\Abstracts\AbstractJob;
+use Nidavellir\Trading\Models\ExchangeSymbol;
+use Nidavellir\Trading\Exceptions\TryCatchException;
 
 /**
  * UpsertTaapiAvailableSymbols updates the `is_taapi_available`

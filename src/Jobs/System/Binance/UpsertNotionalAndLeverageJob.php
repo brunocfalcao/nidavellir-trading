@@ -2,14 +2,15 @@
 
 namespace Nidavellir\Trading\Jobs\System\Binance;
 
-use Nidavellir\Trading\Abstracts\AbstractJob;
-use Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper;
-use Nidavellir\Trading\ApiSystems\ExchangeRESTWrapper;
-use Nidavellir\Trading\Exceptions\NotionalAndLeverageNotSyncedException;
-use Nidavellir\Trading\Exceptions\TryCatchException;
-use Nidavellir\Trading\Models\ApiSystem;
-use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Nidavellir;
+use Nidavellir\Trading\Models\Symbol;
+use Nidavellir\Trading\Models\ApiSystem;
+use Nidavellir\Trading\Abstracts\AbstractJob;
+use Nidavellir\Trading\Models\ExchangeSymbol;
+use Nidavellir\Trading\Exceptions\TryCatchException;
+use Nidavellir\Trading\ApiSystems\ApiSystemRESTWrapper;
+use Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper;
+use Nidavellir\Trading\Exceptions\NotionalAndLeverageNotSyncedException;
 
 /**
  * UpsertNotionalAndLeverageJob fetches and updates notional and
@@ -19,7 +20,7 @@ use Nidavellir\Trading\Nidavellir;
  */
 class UpsertNotionalAndLeverageJob extends AbstractJob
 {
-    public ExchangeRESTWrapper $wrapper;
+    public ApiSystemRESTWrapper $wrapper;
 
     /**
      * Constructor to initialize the API wrapper with Binance
@@ -27,7 +28,7 @@ class UpsertNotionalAndLeverageJob extends AbstractJob
      */
     public function __construct()
     {
-        $this->wrapper = new ExchangeRESTWrapper(
+        $this->wrapper = new ApiSystemRESTWrapper(
             new BinanceRESTMapper(
                 credentials: Nidavellir::getSystemCredentials('binance')
             )

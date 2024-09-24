@@ -4,7 +4,7 @@ namespace Nidavellir\Trading\ApiSystems;
 
 use Nidavellir\Trading\Abstracts\AbstractRESTWrapper;
 
-class ExchangeRESTWrapper extends AbstractRESTWrapper
+class ApiSystemRESTWrapper extends AbstractRESTWrapper
 {
     public function updateSymbolDirection()
     {

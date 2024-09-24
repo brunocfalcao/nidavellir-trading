@@ -10,7 +10,7 @@ use Nidavellir\Trading\Models\ApiSystem;
 
 class CoinmarketCapRESTMapper extends AbstractMapper
 {
-    public function exchange()
+    public function apiSystem()
     {
         return ApiSystem::firstWhere('canonical', 'coinmarketcap');
     }
@@ -18,7 +18,7 @@ class CoinmarketCapRESTMapper extends AbstractMapper
     public function connectionDetails()
     {
         return [
-            'url' => $this->exchange()->generic_url_prefix,
+            'url' => $this->apiSystem()->generic_url_prefix,
             'api_key' => $this->credentials['api_key'],
         ];
     }

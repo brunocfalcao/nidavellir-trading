@@ -16,7 +16,7 @@ class BinanceWebsocketMapper extends AbstractMapper
     /**
      * Returns the exchange model instance by canonical.
      */
-    public function exchange(): Exchange
+    public function apiSystem(): Exchange
     {
         return ApiSystem::firstWhere('canonical', 'binance');
     }
@@ -27,7 +27,7 @@ class BinanceWebsocketMapper extends AbstractMapper
     public function credentials(): array
     {
         return [
-            'url' => $this->exchange()->futures_url_websockets_prefix,
+            'url' => $this->apiSystem()->futures_url_websockets_prefix,
             'secret' => $this->credentials['secret_key'],
             'key' => $this->credentials['api_key'],
         ];

@@ -11,7 +11,7 @@ use Nidavellir\Trading\Models\Symbol;
 /**
  * UpsertSymbolTradeDirection fetches MA indicators for
  * a single symbol token defined in the job constructor
- * and updates the trade direction based on trend and amplitude.
+ * or processes all included symbols if no token is provided.
  */
 class UpsertSymbolTradeDirectionJob extends AbstractJob
 {
@@ -21,66 +21,81 @@ class UpsertSymbolTradeDirectionJob extends AbstractJob
 
     private $exchange = 'binance';
 
-    private $interval = '1d';
+    private $interval = '4h';
 
     private $symbolToken;
 
     private $amplitudeThreshold;
 
-    public function __construct(string $symbolToken)
+    public function __construct(string $symbolToken = null)
     {
         $this->symbolToken = $symbolToken;
         $this->taapiApiKey = config('nidavellir.system.api.credentials.taapi.api_key');
-        $this->amplitudeThreshold = config('nidavellir.system.ma_min_amplitude_percentage'); // Get from config
+        $this->amplitudeThreshold = config('nidavellir.system.taapi.ma_min_amplitude_percentage');
+        $this->interval = config('nidavellir.system.taapi.interval');
     }
 
     public function handle()
     {
         try {
-            // Fetch the symbol model using the provided token
-            $symbol = Symbol::where('token', $this->symbolToken)->first();
+            // If symbolToken is provided, process only that symbol.
+            if ($this->symbolToken) {
+                $this->processSymbol($this->symbolToken);
+            } else {
+                // Otherwise, process all symbols from the config.
+                $includedSymbols = config('nidavellir.symbols.included');
 
-            if (! $symbol) {
-                throw new \Exception("Symbol not found for token: {$this->symbolToken}");
-            }
-
-            // Fetch the latest MA values for both periods (28 and 56)
-            $ma28Values = $this->fetchMa($this->symbolToken, 28, 2);
-            $ma56Values = $this->fetchMa($this->symbolToken, 56, 2);
-
-            // Ensure both sets of values are returned correctly
-            if (count($ma28Values) === 2 && count($ma56Values) === 2) {
-                // Calculate amplitude percentage and absolute difference
-                $amplitudeData = $this->calculateAmplitudePercentage($ma28Values[1], $ma56Values[1]);
-
-                // Always update the symbol data including indicator_last_synced_at
-                $symbol->update([
-                    'ma_28_2days_ago' => $ma28Values[0], // Oldest value
-                    'ma_28_yesterday' => $ma28Values[1], // Most recent value
-                    'ma_56_2days_ago' => $ma56Values[0], // Oldest value
-                    'ma_56_yesterday' => $ma56Values[1], // Most recent value
-                    'ma_amplitude_interval_percentage' => $amplitudeData['absolute_percentage'], // Calculated percentage
-                    'ma_amplitude_interval_absolute' => $amplitudeData['absolute_difference'],   // Calculated absolute difference
-                    'indicator_last_synced_at' => Carbon::now(),
-                ]);
-
-                // Refresh the model instance to get the latest changes
-                $symbol->refresh();
-
-                // Encapsulate the trade direction logic into a separate method
-                $this->updateTradeDirection($symbol, $ma28Values, $ma56Values);
+                foreach ($includedSymbols as $token) {
+                    $this->processSymbol($token);
+                }
             }
         } catch (\Throwable $e) {
             throw new TryCatchException(throwable: $e);
         }
     }
 
+    private function processSymbol(string $symbolToken)
+    {
+        // Fetch the symbol model using the provided token.
+        $symbol = Symbol::where('token', $symbolToken)->first();
+
+        if (!$symbol) {
+            throw new \Exception("Symbol not found for token: {$symbolToken}");
+        }
+
+        // Fetch the latest MA values for both periods (28 and 56).
+        $ma28Values = $this->fetchMa($symbolToken, 28, 2);
+        $ma56Values = $this->fetchMa($symbolToken, 56, 2);
+
+        // Ensure both sets of values are returned correctly.
+        if (count($ma28Values) === 2 && count($ma56Values) === 2) {
+            // Calculate amplitude percentage and absolute difference
+            $amplitudeData = $this->calculateAmplitudePercentage($ma28Values[1], $ma56Values[1]);
+
+            $symbol->update([
+                'ma_28_2days_ago' => $ma28Values[0], // Oldest value
+                'ma_28_yesterday' => $ma28Values[1], // Most recent value
+                'ma_56_2days_ago' => $ma56Values[0], // Oldest value
+                'ma_56_yesterday' => $ma56Values[1], // Most recent value
+                'ma_amplitude_interval_percentage' => $amplitudeData['absolute_percentage'], // Calculated percentage
+                'ma_amplitude_interval_absolute' => $amplitudeData['absolute_difference'],   // Calculated absolute difference
+                'indicator_last_synced_at' => Carbon::now(),
+            ]);
+
+            // Refresh the model instance to get the latest changes
+            $symbol->refresh();
+
+            // Encapsulate the trade direction logic into a separate method
+            $this->updateTradeDirection($symbol, $ma28Values, $ma56Values);
+        }
+    }
+
     private function updateTradeDirection(Symbol $symbol, array $ma28Values, array $ma56Values)
     {
-        // Use the already calculated amplitude percentage from the symbol
+        // Use the already calculated amplitude percentage from the symbol.
         $amplitudePercentage = $symbol->ma_amplitude_interval_percentage;
 
-        // Verify upward trend and amplitude for LONG
+        // Verify upward trend and amplitude for LONG.
         if ($ma28Values[0] <= $ma28Values[1] && // MA 28 from 2 days ago is less than or equal to MA 28 from yesterday
             $ma56Values[0] <= $ma56Values[1] && // MA 56 from 2 days ago is less than or equal to MA 56 from yesterday
             $ma56Values[1] <= $ma28Values[1] && // MA 56 from yesterday is less than or equal to MA 28 from yesterday
@@ -89,7 +104,7 @@ class UpsertSymbolTradeDirectionJob extends AbstractJob
         ) {
             $symbol->update(['side' => 'LONG']); // Set to LONG
         }
-        // Verify downward trend and amplitude for SHORT
+        // Verify downward trend and amplitude for SHORT.
         elseif ($ma28Values[0] >= $ma28Values[1] && // MA 28 from 2 days ago is greater than or equal to MA 28 from yesterday
             $ma56Values[0] >= $ma56Values[1] && // MA 56 from 2 days ago is greater than or equal to MA 56 from yesterday
             $ma56Values[1] >= $ma28Values[1] && // MA 56 from yesterday is greater than or equal to MA 28 from yesterday

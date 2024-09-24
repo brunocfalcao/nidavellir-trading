@@ -17,14 +17,14 @@ abstract class AbstractJob implements ShouldQueue
         Queueable,
         SerializesModels;
 
-    public $tries = 3;
+    public $tries = 0;
 
     public $timeout = 180;
 
     // Define the backoff time in seconds
     public function backoff()
     {
-        return [1];
+        return [15];
     }
 
     // Define the retry time in seconds

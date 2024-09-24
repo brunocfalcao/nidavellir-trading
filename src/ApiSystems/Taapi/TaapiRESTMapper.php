@@ -10,7 +10,7 @@ use Nidavellir\Trading\Models\ApiSystem;
 
 class TaapiRESTMapper extends AbstractMapper
 {
-    public function exchange()
+    public function apiSystem()
     {
         return ApiSystem::firstWhere('canonical', 'taapi');
     }
@@ -18,23 +18,8 @@ class TaapiRESTMapper extends AbstractMapper
     public function connectionDetails()
     {
         return [
-            'url' => $this->exchange()->generic_url_prefix,
+            'url' => $this->apiSystem()->generic_url_prefix,
             'api_key' => $this->credentials['api_key'],
         ];
-    }
-
-    public function getSymbols()
-    {
-        return (new GetSymbols($this))->result;
-    }
-
-    public function getSymbolsMetadata()
-    {
-        return (new GetSymbolsMetadata($this))->result;
-    }
-
-    public function getSymbolsRanking()
-    {
-        return (new GetSymbolsRanking($this))->result;
     }
 }

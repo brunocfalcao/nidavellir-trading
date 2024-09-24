@@ -4,7 +4,7 @@ namespace Nidavellir\Trading\Jobs\Symbols;
 
 use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\ApiSystems\CoinmarketCap\CoinmarketCapRESTMapper;
-use Nidavellir\Trading\ApiSystems\ExchangeRESTWrapper;
+use Nidavellir\Trading\ApiSystems\ApiSystemRESTWrapper;
 use Nidavellir\Trading\Exceptions\SymbolNotSyncedException;
 use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Models\Symbol;
@@ -38,7 +38,7 @@ class UpsertSymbolsJob extends AbstractJob
     {
         try {
             // Initialize the CoinMarketCap API wrapper using system credentials.
-            $api = new ExchangeRESTWrapper(
+            $api = new ApiSystemRESTWrapper(
                 new CoinmarketCapRESTMapper(
                     credentials: Nidavellir::getSystemCredentials('coinmarketcap')
                 )

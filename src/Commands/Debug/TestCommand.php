@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper;
-use Nidavellir\Trading\ApiSystems\ExchangeRESTWrapper;
+use Nidavellir\Trading\ApiSystems\ApiSystemRESTWrapper;
 use Nidavellir\Trading\Jobs\Orders\CancelOrderJob;
 use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
 use Nidavellir\Trading\Jobs\Symbols\UpsertEligibleSymbolsJob;
@@ -51,7 +51,7 @@ class TestCommand extends Command
         //CancelOrderJob::dispatchSync(5);
 
         /*
-        $mapper = (new ExchangeRESTWrapper(
+        $mapper = (new ApiSystemRESTWrapper(
             new BinanceRESTMapper(
                 credentials: Nidavellir::getSystemCredentials('binance')
             )
@@ -79,7 +79,7 @@ class TestCommand extends Command
         //UpsertSymbolTradeDirectionJob::dispatchSync();
 
         /*
-        $mapper = (new ExchangeRESTWrapper(
+        $mapper = (new ApiSystemRESTWrapper(
             new BinanceRESTMapper(
                 credentials: Nidavellir::getSystemCredentials('binance')
             )
@@ -91,7 +91,7 @@ class TestCommand extends Command
 
         // Get positions.
         /*
-        $mapper = (new ExchangeRESTWrapper(
+        $mapper = (new ApiSystemRESTWrapper(
             new BinanceRESTMapper(
                 credentials: Nidavellir::getSystemCredentials('binance')
             )
@@ -144,7 +144,7 @@ class TestCommand extends Command
 
     protected function getNotionalAndLeverageBrackets()
     {
-        $mapper = (new ExchangeRESTWrapper(
+        $mapper = (new ApiSystemRESTWrapper(
             new BinanceRESTMapper(
                 credentials: Nidavellir::getSystemCredentials('binance')
             )

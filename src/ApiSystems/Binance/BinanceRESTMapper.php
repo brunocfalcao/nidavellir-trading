@@ -25,7 +25,7 @@ use Nidavellir\Trading\Models\ApiSystem;
  */
 class BinanceRESTMapper extends AbstractMapper
 {
-    public function exchange()
+    public function apiSystem()
     {
         return ApiSystem::firstWhere('canonical', 'binance');
     }
@@ -33,10 +33,10 @@ class BinanceRESTMapper extends AbstractMapper
     public function connectionDetails()
     {
         return [
-            'baseURL' => $this->exchange()->futures_url_rest_prefix,
+            'baseURL' => $this->apiSystem()->futures_url_rest_prefix,
             'secret' => $this->credentials['secret_key'],
             'key' => $this->credentials['api_key'],
-            'exchange' => $this->exchange(),
+            'exchange' => $this->apiSystem(),
         ];
     }
 

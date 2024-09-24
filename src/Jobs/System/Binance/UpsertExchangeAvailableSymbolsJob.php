@@ -2,14 +2,15 @@
 
 namespace Nidavellir\Trading\Jobs\System\Binance;
 
-use Nidavellir\Trading\Abstracts\AbstractJob;
-use Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper;
-use Nidavellir\Trading\ApiSystems\ExchangeRESTWrapper;
-use Nidavellir\Trading\Exceptions\ExchangeSymbolNotSyncedException;
-use Nidavellir\Trading\Exceptions\TryCatchException;
-use Nidavellir\Trading\Models\ApiSystem;
-use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Nidavellir;
+use Nidavellir\Trading\Models\Symbol;
+use Nidavellir\Trading\Models\ApiSystem;
+use Nidavellir\Trading\Abstracts\AbstractJob;
+use Nidavellir\Trading\Models\ExchangeSymbol;
+use Nidavellir\Trading\Exceptions\TryCatchException;
+use Nidavellir\Trading\ApiSystems\ApiSystemRESTWrapper;
+use Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper;
+use Nidavellir\Trading\Exceptions\ExchangeSymbolNotSyncedException;
 
 /**
  * UpsertExchangeAvailableSymbolsJob fetches symbol information
@@ -19,7 +20,7 @@ use Nidavellir\Trading\Nidavellir;
  */
 class UpsertExchangeAvailableSymbolsJob extends AbstractJob
 {
-    public ExchangeRESTWrapper $wrapper;
+    public ApiSystemRESTWrapper $wrapper;
 
     protected array $symbols;
 
@@ -29,7 +30,7 @@ class UpsertExchangeAvailableSymbolsJob extends AbstractJob
      */
     public function __construct()
     {
-        $this->wrapper = new ExchangeRESTWrapper(
+        $this->wrapper = new ApiSystemRESTWrapper(
             new BinanceRESTMapper(
                 credentials: Nidavellir::getSystemCredentials('binance')
             )
@@ -79,7 +80,7 @@ class UpsertExchangeAvailableSymbolsJob extends AbstractJob
 
     /**
      * Syncs the fetched symbols with the database by either
-     * updating or creating new ExchangeSymbol records.
+     * updating or creating new ApiSystemSymbol records.
      */
     protected function syncExchangeSymbols()
     {
