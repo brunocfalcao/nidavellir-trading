@@ -2,15 +2,16 @@
 
 namespace Nidavellir\Trading\Jobs\Positions;
 
+use Nidavellir\Trading\Nidavellir;
 use Illuminate\Support\Facades\Bus;
+use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Abstracts\AbstractJob;
-use Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper;
-use Nidavellir\Trading\ApiSystems\ApiSystemRESTWrapper;
-use Nidavellir\Trading\Exceptions\DispatchPositionException;
+use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
-use Nidavellir\Trading\Models\Position;
-use Nidavellir\Trading\Nidavellir;
+use Nidavellir\Trading\ApiSystems\ApiSystemRESTWrapper;
+use Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper;
+use Nidavellir\Trading\Exceptions\DispatchPositionException;
 
 /**
  * DispatchPositionJob manages the dispatching of positions

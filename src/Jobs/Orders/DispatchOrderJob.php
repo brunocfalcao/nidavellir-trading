@@ -3,15 +3,16 @@
 namespace Nidavellir\Trading\Jobs\Orders;
 
 use Illuminate\Support\Str;
-use Nidavellir\Trading\Abstracts\AbstractJob;
-use Nidavellir\Trading\Exceptions\DispatchOrderException;
-use Nidavellir\Trading\Exceptions\TryCatchException;
-use Nidavellir\Trading\Jobs\Positions\ValidatePositionJob;
-use Nidavellir\Trading\Models\ApiSystem;
 use Nidavellir\Trading\Models\Order;
-use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Models\Trader;
+use Nidavellir\Trading\Models\Position;
+use Nidavellir\Trading\Models\ApiSystem;
+use Nidavellir\Trading\Abstracts\AbstractJob;
+use Nidavellir\Trading\Models\ExchangeSymbol;
+use Nidavellir\Trading\Exceptions\TryCatchException;
+use Nidavellir\Trading\Exceptions\DispatchOrderException;
+use Nidavellir\Trading\Jobs\Positions\ValidatePositionJob;
 
 /**
  * DispatchOrderJob handles the dispatching of trading orders
@@ -260,12 +261,7 @@ class DispatchOrderJob extends AbstractJob
                 $this->placeMarketOrder($orderQuantity, $sideDetails);
                 break;
             case self::ORDER_TYPE_PROFIT:
-                throw new DispatchOrderException(
-                    message: 'Forced error on the profit order',
-                    additionalData: ['order_id' => $this->order->id]
-                );
-
-                $this->placeProfitOrder($orderPrice, $sideDetails);
+                $this->placeProfitOrder($orderPrice, $orderQuantity, $sideDetails);
                 break;
         }
     }
@@ -498,7 +494,7 @@ class DispatchOrderJob extends AbstractJob
     /**
      * Places a Profit order on the exchange.
      */
-    protected function placeProfitOrder($orderPrice, $sideDetails)
+    protected function placeProfitOrder($orderPrice, $orderQuantity, $sideDetails)
     {
         // Update the order with the computed entry data.
         $this->order->update([
@@ -511,7 +507,7 @@ class DispatchOrderJob extends AbstractJob
             'side' => strtoupper($sideDetails['orderLimitProfit']),
             'type' => 'LIMIT',
             'reduceOnly' => 'true',
-            'quantity' => $marketOrderQuantity,
+            'quantity' => $orderQuantity,
             'newClientOrderId' => $this->generateClientOrderId(),
             'symbol' => $this->exchangeSymbol->symbol->token.'USDT',
             'price' => $orderPrice,

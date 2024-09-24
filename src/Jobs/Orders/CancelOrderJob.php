@@ -2,11 +2,13 @@
 
 namespace Nidavellir\Trading\Jobs\Orders;
 
-use Nidavellir\Trading\Abstracts\AbstractJob;
-use Nidavellir\Trading\Exceptions\CancelOrderException;
-use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Models\Order;
+use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Models\Trader;
+use Nidavellir\Trading\Abstracts\AbstractJob;
+use Nidavellir\Trading\Models\ExchangeSymbol;
+use Nidavellir\Trading\Exceptions\TryCatchException;
+use Nidavellir\Trading\Exceptions\CancelOrderException;
 
 /**
  * This jobs cancels an order given a nidavellir order id.
@@ -26,6 +28,8 @@ class CancelOrderJob extends AbstractJob
     public Trader $trader;
 
     public ExchangeSymbol $exchangeSymbol;
+
+    public Symbol $symbol;
 
     public $orderId;
 
@@ -54,8 +58,8 @@ class CancelOrderJob extends AbstractJob
             $result = $this->trader->withRESTApi()
                 ->withLoggable($this->order)
                 ->withOptions([
-                    'symbol' => $symbol->token.'USDT',
-                    'orderId' => $order->order_exchange_system_id,
+                    'symbol' => $this->symbol->token.'USDT',
+                    'orderId' => $this->order->order_exchange_system_id,
                 ])->getOrder();
 
             if ($result['executedQty'] > 0) {

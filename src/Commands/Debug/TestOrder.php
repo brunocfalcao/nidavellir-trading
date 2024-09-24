@@ -5,9 +5,10 @@ namespace Nidavellir\Trading\Commands\Debug;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Models\Trader;
+use Nidavellir\Trading\Models\Position;
+use Nidavellir\Trading\Models\ExchangeSymbol;
 
 class TestOrder extends Command
 {
