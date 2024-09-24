@@ -5,7 +5,6 @@ namespace Nidavellir\Trading\Jobs\Orders;
 use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\Exceptions\CancelOrderException;
 use Nidavellir\Trading\Exceptions\TryCatchException;
-use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Order;
 use Nidavellir\Trading\Models\Trader;
 
@@ -45,22 +44,25 @@ class CancelOrderJob extends AbstractJob
 
         $this->trader = $this->order->position->trader;
         $this->exchangeSymbol = $this->order->position->exchangeSymbol;
+        $this->symbol = $this->exchangeSymbol->symbol;
     }
 
     public function handle()
     {
         try {
-            switch ($this->order->type) {
-                case 'LIMIT':
-                case 'PROFIT':
-                    $this->cancelLimitOrder();
-                    break;
+            // Query order to understand if it's filled or not.
+            $result = $this->trader->withRESTApi()
+                ->withLoggable($this->order)
+                ->withOptions([
+                    'symbol' => $symbol->token.'USDT',
+                    'orderId' => $order->order_exchange_system_id,
+                ])->getOrder();
 
-                case 'MARKET':
-                    $this->cancelPosition();
-                    break;
+            if ($result['executedQty'] > 0) {
+                $this->cancelPosition();
+            } else {
+                $this->cancelLimitOrder();
             }
-
             $this->order->update(['status' => 'cancelled']);
         } catch (\Throwable $e) {
             throw new TryCatchException(

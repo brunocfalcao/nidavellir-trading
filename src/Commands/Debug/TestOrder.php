@@ -1,11 +1,10 @@
 <?php
 
-namespace Nidavellir\Trading\Commands\System;
+namespace Nidavellir\Trading\Commands\Debug;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Models\Trader;
@@ -40,7 +39,7 @@ class TestOrder extends Command
         $symbol = Symbol::firstWhere('token', $token);
 
         $exchangeSymbol = ExchangeSymbol::where('symbol_id', $symbol->id)
-            ->where('exchange_id', 1)
+            ->where('api_system_id', 1)
             ->first();
 
         // Info message including mark price if provided

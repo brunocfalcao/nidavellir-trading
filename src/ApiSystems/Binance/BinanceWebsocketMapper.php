@@ -4,7 +4,7 @@ namespace Nidavellir\Trading\ApiSystems\Binance;
 
 use Nidavellir\Trading\Abstracts\AbstractMapper;
 use Nidavellir\Trading\ApiSystems\Binance\Websockets\Futures;
-use Nidavellir\Trading\Models\Exchange;
+use Nidavellir\Trading\Models\ApiSystem;
 
 /**
  * The Mapper translates actions into methods, in a standard
@@ -18,7 +18,7 @@ class BinanceWebsocketMapper extends AbstractMapper
      */
     public function exchange(): Exchange
     {
-        return Exchange::firstWhere('canonical', 'binance');
+        return ApiSystem::firstWhere('canonical', 'binance');
     }
 
     /**

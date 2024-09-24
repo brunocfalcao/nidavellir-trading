@@ -41,9 +41,9 @@ class Nidavellir
      * This method retrieves system credentials for the
      * given exchange configuration.
      */
-    public static function getSystemCredentials(string $exchangeConfigCanonical)
+    public static function getSystemCredentials(string $apiSystemConfigCanonical)
     {
-        return config('nidavellir.system.api.credentials.'.$exchangeConfigCanonical);
+        return config('nidavellir.system.api.credentials.'.$apiSystemConfigCanonical);
     }
 
     /**

@@ -104,6 +104,26 @@ trait Trade
         );
     }
 
+    // https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Cancel-Multiple-Orders
+    public function cancelMultipleOrders(array $properties = [])
+    {
+        // Validate the properties using the Validator facade
+        $validator = Validator::make($properties['options'], [
+            'symbol' => 'required',
+            'orderIdList' => 'required|array',
+        ]);
+
+        if ($validator->fails()) {
+            throw new ValidationException($validator);
+        }
+
+        return $this->signRequest(
+            'DELETE',
+            '/fapi/v1/batchOrders',
+            $properties
+        );
+    }
+
     // https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Cancel-All-Open-Orders
     public function cancelOpenOrders(array $properties = [])
     {

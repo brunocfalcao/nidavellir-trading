@@ -7,8 +7,8 @@ use GuzzleHttp\Exception\ClientException as GuzzleClientException;
 use Nidavellir\Trading\Exceptions\ApiException;
 use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Models\ApiRequestLog;
+use Nidavellir\Trading\Models\ApiSystem;
 use Nidavellir\Trading\Models\EndpointWeight;
-use Nidavellir\Trading\Models\Exchange;
 use Nidavellir\Trading\Models\IpRequestWeight;
 
 class BinanceAPIClient
@@ -156,7 +156,7 @@ class BinanceAPIClient
 
         // Update or create the endpoint weight record.
         EndpointWeight::updateOrCreate(
-            ['exchange_id' => $exchangeId, 'endpoint' => $path],
+            ['api_system_id' => $exchangeId, 'endpoint' => $path],
             ['weight' => $weight]
         );
     }
@@ -175,13 +175,13 @@ class BinanceAPIClient
         $exchangeId = $this->getExchangeId(); // Hardcoded for Binance in your case
 
         // Get the current endpoint weight
-        $endpointWeight = EndpointWeight::where('exchange_id', $exchangeId)
+        $endpointWeight = EndpointWeight::where('api_system_id', $exchangeId)
             ->where('endpoint', $path)
             ->value('weight') ?? 1;
 
         // Get the current IP weight usage
         $ipRequestWeight = IpRequestWeight::firstOrCreate(
-            ['exchange_id' => $exchangeId, 'ip_address' => $ipAddress],
+            ['api_system_id' => $exchangeId, 'ip_address' => $ipAddress],
             ['last_reset_at' => now(), 'current_weight' => 0]
         );
 
@@ -211,7 +211,7 @@ class BinanceAPIClient
     protected function getExchangeId(): int
     {
         // Hardcoded for Binance.
-        return Exchange::firstWhere('canonical', 'binance')->id;
+        return ApiSystem::firstWhere('canonical', 'binance')->id;
     }
 
     protected function buildQuery($path, $properties = []): string

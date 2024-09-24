@@ -16,7 +16,7 @@ use Nidavellir\Trading\ApiSystems\Binance\Callers\GetPositions;
 use Nidavellir\Trading\ApiSystems\Binance\Callers\PlaceOrder;
 use Nidavellir\Trading\ApiSystems\Binance\Callers\SetDefaultLeverage;
 use Nidavellir\Trading\ApiSystems\Binance\Callers\UpdateMarginType;
-use Nidavellir\Trading\Models\Exchange;
+use Nidavellir\Trading\Models\ApiSystem;
 
 /**
  * The Mapper translates actions into methods, in a standard
@@ -27,7 +27,7 @@ class BinanceRESTMapper extends AbstractMapper
 {
     public function exchange()
     {
-        return Exchange::firstWhere('canonical', 'binance');
+        return ApiSystem::firstWhere('canonical', 'binance');
     }
 
     public function connectionDetails()

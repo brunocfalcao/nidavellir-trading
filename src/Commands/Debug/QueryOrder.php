@@ -1,6 +1,6 @@
 <?php
 
-namespace Nidavellir\Trading\Commands\System;
+namespace Nidavellir\Trading\Commands\Debug;
 
 use Illuminate\Console\Command;
 use Nidavellir\Trading\Models\Order;

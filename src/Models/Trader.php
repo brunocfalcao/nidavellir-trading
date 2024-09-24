@@ -16,7 +16,7 @@ use Nidavellir\Trading\Concerns\Models\HasTraderFeatures;
  * @property string $remember_token
  * @property string $previous_logged_in_at
  * @property string $last_logged_in_at
- * @property int $exchange_id
+ * @property int $api_system_id
  * @property string $binance_api_key
  * @property string $binance_secret_key
  */
@@ -63,7 +63,7 @@ class Trader extends Authenticatable
 
     public function exchange()
     {
-        return $this->belongsTo(Exchange::class);
+        return $this->belongsTo(ApiSystem::class, 'api_system_id');
     }
 
     public function canBeDeleted()

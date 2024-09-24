@@ -1,6 +1,6 @@
 <?php
 
-namespace Nidavellir\Trading\ApiSystems\CoinmarketCap;
+namespace Nidavellir\Trading\ApiSystems\Taapi;
 
 use Nidavellir\Trading\Abstracts\AbstractMapper;
 use Nidavellir\Trading\ApiSystems\CoinmarketCap\Callers\GetSymbols;
@@ -8,11 +8,11 @@ use Nidavellir\Trading\ApiSystems\CoinmarketCap\Callers\GetSymbolsMetadata;
 use Nidavellir\Trading\ApiSystems\CoinmarketCap\Callers\GetSymbolsRanking;
 use Nidavellir\Trading\Models\ApiSystem;
 
-class CoinmarketCapRESTMapper extends AbstractMapper
+class TaapiRESTMapper extends AbstractMapper
 {
     public function exchange()
     {
-        return ApiSystem::firstWhere('canonical', 'coinmarketcap');
+        return ApiSystem::firstWhere('canonical', 'taapi');
     }
 
     public function connectionDetails()

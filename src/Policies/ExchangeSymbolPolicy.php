@@ -3,7 +3,6 @@
 namespace Nidavellir\Trading\Policies;
 
 use Illuminate\Auth\Access\HandlesAuthorization;
-use Nidavellir\Trading\Models\ExchangeSymbol;
 
 class ExchangeSymbolPolicy
 {

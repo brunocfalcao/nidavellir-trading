@@ -13,7 +13,7 @@ use Nidavellir\Trading\Abstracts\AbstractModel;
  * @property string $futures_url_websockets_prefix
  * @property string $generic_url_prefix
  */
-class Exchange extends AbstractModel
+class ApiSystem extends AbstractModel
 {
     public function ipRequestWeights()
     {
@@ -27,7 +27,12 @@ class Exchange extends AbstractModel
 
     public function symbols()
     {
-        return $this->belongsToMany(Symbol::class);
+        return $this->belongsToMany(
+            Symbol::class,
+            'exchange_symbols',
+            'api_system_id',
+            'symbol_id'
+        );
     }
 
     public function apiRequestLogs()

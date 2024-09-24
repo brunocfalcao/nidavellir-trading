@@ -9,9 +9,9 @@ use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Models\Symbol;
 
 /**
- * UpsertSymbolTradeDirection fetches EMA indicators for
- * symbols defined in the nidavellir config and updates
- * the trade direction.
+ * UpsertSymbolTradeDirection fetches MA indicators for
+ * a single symbol token defined in the job constructor
+ * and updates the trade direction based on trend and amplitude.
  */
 class UpsertSymbolTradeDirectionJob extends AbstractJob
 {
@@ -23,57 +23,99 @@ class UpsertSymbolTradeDirectionJob extends AbstractJob
 
     private $interval = '1d';
 
-    private $includedSymbols;
+    private $symbolToken;
 
-    public function __construct()
+    private $amplitudeThreshold;
+
+    public function __construct(string $symbolToken)
     {
+        $this->symbolToken = $symbolToken;
         $this->taapiApiKey = config('nidavellir.system.api.credentials.taapi.api_key');
-        $this->includedSymbols = config('nidavellir.symbols.included');
+        $this->amplitudeThreshold = config('nidavellir.system.ma_min_amplitude_percentage'); // Get from config
     }
 
     public function handle()
     {
         try {
-            $symbols = Symbol::whereIn('token', $this->includedSymbols)->get();
+            // Fetch the symbol model using the provided token
+            $symbol = Symbol::where('token', $this->symbolToken)->first();
 
-            foreach ($symbols as $symbol) {
-                // Fetch the latest EMA values for both periods (28 and 56)
-                $ema28Values = $this->fetchEma($symbol->token, 28, 2);
-                $ema56Values = $this->fetchEma($symbol->token, 56, 2);
+            if (! $symbol) {
+                throw new \Exception("Symbol not found for token: {$this->symbolToken}");
+            }
 
-                // Ensure both sets of values are returned correctly
-                if (count($ema28Values) === 2 && count($ema56Values) === 2) {
-                    $symbol->update([
-                        'ema_28_2days_ago' => $ema28Values[0], // Oldest value
-                        'ema_28_yesterday' => $ema28Values[1], // Most recent value
-                        'ema_56_2days_ago' => $ema56Values[0], // Oldest value
-                        'ema_56_yesterday' => $ema56Values[1], // Most recent value
-                        'indicator_last_synced_at' => Carbon::now(),
-                    ]);
+            // Fetch the latest MA values for both periods (28 and 56)
+            $ma28Values = $this->fetchMa($this->symbolToken, 28, 2);
+            $ma56Values = $this->fetchMa($this->symbolToken, 56, 2);
 
-                    // Determine if the trade direction should be updated to "BUY"
-                    if ($ema28Values[0] < $ema28Values[1] && // EMA 28 from 2 days ago is less than EMA 28 from yesterday
-                        $ema56Values[0] < $ema56Values[1] && // EMA 56 from 2 days ago is less than EMA 56 from yesterday
-                        $ema56Values[1] <= $ema28Values[1] && // EMA 56 from yesterday is less than or equal to EMA 28 from yesterday
-                        $ema56Values[1] < $ema28Values[1]     // EMA 56 is lower than EMA 28
-                    ) {
-                        $symbol->update(['side' => 'LONG']); // Set to BUY
-                    } elseif ($ema28Values[0] > $ema28Values[1] && // EMA 28 from 2 days ago is greater than EMA 28 from yesterday
-                        $ema56Values[0] > $ema56Values[1] && // EMA 56 from 2 days ago is greater than EMA 56 from yesterday
-                        $ema56Values[1] >= $ema28Values[1] && // EMA 56 from yesterday is greater than or equal to EMA 28 from yesterday
-                        $ema56Values[1] > $ema28Values[1]     // EMA 56 is higher than EMA 28
-                    ) {
-                        $symbol->update(['side' => 'SHORT']); // Set to SELL
-                    }
-                    // If neither condition is met, the trade direction remains unchanged.
-                }
+            // Ensure both sets of values are returned correctly
+            if (count($ma28Values) === 2 && count($ma56Values) === 2) {
+                // Calculate amplitude percentage and absolute difference
+                $amplitudeData = $this->calculateAmplitudePercentage($ma28Values[1], $ma56Values[1]);
+
+                // Always update the symbol data including indicator_last_synced_at
+                $symbol->update([
+                    'ma_28_2days_ago' => $ma28Values[0], // Oldest value
+                    'ma_28_yesterday' => $ma28Values[1], // Most recent value
+                    'ma_56_2days_ago' => $ma56Values[0], // Oldest value
+                    'ma_56_yesterday' => $ma56Values[1], // Most recent value
+                    'ma_amplitude_interval_percentage' => $amplitudeData['absolute_percentage'], // Calculated percentage
+                    'ma_amplitude_interval_absolute' => $amplitudeData['absolute_difference'],   // Calculated absolute difference
+                    'indicator_last_synced_at' => Carbon::now(),
+                ]);
+
+                // Refresh the model instance to get the latest changes
+                $symbol->refresh();
+
+                // Encapsulate the trade direction logic into a separate method
+                $this->updateTradeDirection($symbol, $ma28Values, $ma56Values);
             }
         } catch (\Throwable $e) {
             throw new TryCatchException(throwable: $e);
         }
     }
 
-    private function fetchEma(string $symbolToken, int $period, int $results)
+    private function updateTradeDirection(Symbol $symbol, array $ma28Values, array $ma56Values)
+    {
+        // Use the already calculated amplitude percentage from the symbol
+        $amplitudePercentage = $symbol->ma_amplitude_interval_percentage;
+
+        // Verify upward trend and amplitude for LONG
+        if ($ma28Values[0] <= $ma28Values[1] && // MA 28 from 2 days ago is less than or equal to MA 28 from yesterday
+            $ma56Values[0] <= $ma56Values[1] && // MA 56 from 2 days ago is less than or equal to MA 56 from yesterday
+            $ma56Values[1] <= $ma28Values[1] && // MA 56 from yesterday is less than or equal to MA 28 from yesterday
+            $ma56Values[1] < $ma28Values[1] &&  // MA 56 is lower than MA 28
+            $amplitudePercentage >= $this->amplitudeThreshold // Check amplitude percentage
+        ) {
+            $symbol->update(['side' => 'LONG']); // Set to LONG
+        }
+        // Verify downward trend and amplitude for SHORT
+        elseif ($ma28Values[0] >= $ma28Values[1] && // MA 28 from 2 days ago is greater than or equal to MA 28 from yesterday
+            $ma56Values[0] >= $ma56Values[1] && // MA 56 from 2 days ago is greater than or equal to MA 56 from yesterday
+            $ma56Values[1] >= $ma28Values[1] && // MA 56 from yesterday is greater than or equal to MA 28 from yesterday
+            $ma56Values[1] > $ma28Values[1] &&  // MA 56 is higher than MA 28
+            $amplitudePercentage >= $this->amplitudeThreshold // Check amplitude percentage
+        ) {
+            $symbol->update(['side' => 'SHORT']); // Set to SHORT
+        }
+        // If neither condition is met, the trade direction remains unchanged.
+    }
+
+    /**
+     * Calculate the absolute percentage amplitude between two values.
+     */
+    private function calculateAmplitudePercentage(float $ma28, float $ma56): array
+    {
+        $absoluteDifference = abs($ma28 - $ma56);
+        $absolutePercentage = ($absoluteDifference / $ma28) * 100;
+
+        return [
+            'absolute_difference' => $absoluteDifference,
+            'absolute_percentage' => $absolutePercentage,
+        ];
+    }
+
+    private function fetchMa(string $symbolToken, int $period, int $results)
     {
         try {
             $params = [
@@ -100,7 +142,7 @@ class UpsertSymbolTradeDirectionJob extends AbstractJob
             return [];
         } catch (\Throwable $e) {
             throw new TryCatchException(
-                message: "Error occurred while fetching EMA for symbol: {$symbolToken} with period: {$period} on endpoint: {$this->taapiEndpoint}",
+                message: "Error occurred while fetching MA for symbol: {$symbolToken} with period: {$period} on endpoint: {$this->taapiEndpoint}",
                 throwable: $e,
                 additionalData: [
                     'symbol' => $symbolToken,

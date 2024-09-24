@@ -7,8 +7,7 @@ use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\Exceptions\DispatchOrderException;
 use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Jobs\Positions\ValidatePositionJob;
-use Nidavellir\Trading\Models\Exchange;
-use Nidavellir\Trading\Models\ExchangeSymbol;
+use Nidavellir\Trading\Models\ApiSystem;
 use Nidavellir\Trading\Models\Order;
 use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Models\Symbol;
@@ -53,7 +52,7 @@ class DispatchOrderJob extends AbstractJob
     public ExchangeSymbol $exchangeSymbol;
 
     // The exchange where the order will be placed.
-    public Exchange $exchange;
+    public ApiSystem $apiSystem;
 
     // The cryptocurrency symbol being traded.
     public Symbol $symbol;

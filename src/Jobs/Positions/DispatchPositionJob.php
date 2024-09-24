@@ -9,7 +9,6 @@ use Nidavellir\Trading\ApiSystems\ExchangeRESTWrapper;
 use Nidavellir\Trading\Exceptions\DispatchPositionException;
 use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
-use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Nidavellir;
 
@@ -45,7 +44,7 @@ class DispatchPositionJob extends AbstractJob
             $this->validateMandatoryFields();
             $this->computeTotalTradeAmount();
             $this->selectEligibleSymbol();
-            $this->updatePositionSide();
+            $this->updatePositionSideAndProfitRatio();
             $this->updateMarginTypeToCrossed();
             $this->setLeverage();
             $this->setLeverageOnToken();
@@ -149,8 +148,8 @@ class DispatchPositionJob extends AbstractJob
         if (blank($this->position->exchange_symbol_id)) {
             // Get all included symbol exchange symbols from the trader exchange.
             $eligibleSymbols = ExchangeSymbol::where(
-                'exchange_id',
-                $this->position->trader->exchange_id
+                'api_system_id',
+                $this->position->trader->api_system_id
             )
                 ->whereHas('symbol', function ($query) {
                     $query->whereIn(
@@ -175,13 +174,22 @@ class DispatchPositionJob extends AbstractJob
         }
     }
 
-    protected function updatePositionSide()
+    protected function updatePositionSideAndProfitRatio()
     {
+        // Obtain the initial order configuration profit % ratio.
+        $ratiosConfiguration =
+            config('nidavellir.positions.current_order_ratio_group');
+
+        $profitRatio =
+            config("nidavellir.orders.{$ratiosConfiguration}.ratios.PROFIT")[0];
+
         $this->position->update([
             'side' => $this->position
                      ->exchangeSymbol
                      ->symbol
                      ->side,
+
+            'initial_profit_percentage_ratio' => $profitRatio,
         ]);
     }
 

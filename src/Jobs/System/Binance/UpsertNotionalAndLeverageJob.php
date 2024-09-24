@@ -7,8 +7,7 @@ use Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\ApiSystems\ExchangeRESTWrapper;
 use Nidavellir\Trading\Exceptions\NotionalAndLeverageNotSyncedException;
 use Nidavellir\Trading\Exceptions\TryCatchException;
-use Nidavellir\Trading\Models\Exchange;
-use Nidavellir\Trading\Models\ExchangeSymbol;
+use Nidavellir\Trading\Models\ApiSystem;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Nidavellir;
 
@@ -43,7 +42,7 @@ class UpsertNotionalAndLeverageJob extends AbstractJob
     {
         try {
             // Retrieve the Binance exchange record from the database.
-            $exchange = Exchange::firstWhere('canonical', 'binance');
+            $exchange = ApiSystem::firstWhere('canonical', 'binance');
 
             // Fetch notional and leverage data for all symbols from Binance API.
             $symbols = $this->wrapper
@@ -63,7 +62,7 @@ class UpsertNotionalAndLeverageJob extends AbstractJob
                     $symbol = Symbol::firstWhere('token', $token);
 
                     if ($symbol) {
-                        ExchangeSymbol::where('exchange_id', $exchange->id)
+                        ExchangeSymbol::where('api_system_id', $exchange->id)
                             ->where('symbol_id', $symbol->id)
                             ->update([
                                 'api_notional_and_leverage_symbol_information' => $symbolData,

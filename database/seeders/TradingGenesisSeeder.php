@@ -11,7 +11,6 @@ use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolTradeDirectionJob;
 use Nidavellir\Trading\Jobs\System\Binance\UpsertExchangeAvailableSymbolsJob;
 use Nidavellir\Trading\Jobs\System\Binance\UpsertNotionalAndLeverageJob;
 use Nidavellir\Trading\Jobs\System\Taapi\UpsertTaapiAvailableSymbols;
-use Nidavellir\Trading\Models\Exchange;
 use Nidavellir\Trading\Models\System;
 use Nidavellir\Trading\Models\Trader;
 
@@ -45,7 +44,7 @@ class TradingGenesisSeeder extends Seeder
         $trader->password = bcrypt(env('TRADER_PASSWORD'));
         $trader->binance_api_key = env('BINANCE_API_KEY');
         $trader->binance_secret_key = env('BINANCE_SECRET_KEY');
-        $trader->exchange_id = $exchange->id;
+        $trader->api_system_id = $exchange->id;
         $trader->save();
 
         Bus::chain([

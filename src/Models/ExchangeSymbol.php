@@ -30,7 +30,7 @@ class ExchangeSymbol extends AbstractModel
 
     public function exchange()
     {
-        return $this->belongsTo(Exchange::class);
+        return $this->belongsTo(ApiSystem::class, 'api_system_id');
     }
 
     public function apiRequestLogs()

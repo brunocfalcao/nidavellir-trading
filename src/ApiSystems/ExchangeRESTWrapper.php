@@ -6,6 +6,11 @@ use Nidavellir\Trading\Abstracts\AbstractRESTWrapper;
 
 class ExchangeRESTWrapper extends AbstractRESTWrapper
 {
+    public function updateSymbolDirection()
+    {
+        return $this->mapper->updateSymbolDirection($this);
+    }
+
     public function cancelOrder()
     {
         return $this->mapper->cancelOrder($this);

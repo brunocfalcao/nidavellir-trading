@@ -7,8 +7,7 @@ use Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\ApiSystems\ExchangeRESTWrapper;
 use Nidavellir\Trading\Exceptions\ExchangeSymbolNotSyncedException;
 use Nidavellir\Trading\Exceptions\TryCatchException;
-use Nidavellir\Trading\Models\Exchange;
-use Nidavellir\Trading\Models\ExchangeSymbol;
+use Nidavellir\Trading\Models\ApiSystem;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Nidavellir;
 
@@ -49,7 +48,7 @@ class UpsertExchangeAvailableSymbolsJob extends AbstractJob
 
             // Fetch symbols from Binance API.
             $this->symbols = $mapper
-                ->withLoggable(Exchange::find(1))
+                ->withLoggable(ApiSystem::find(1))
                 ->getExchangeInformation()['symbols'];
 
             if (empty($this->symbols)) {
@@ -85,7 +84,7 @@ class UpsertExchangeAvailableSymbolsJob extends AbstractJob
     protected function syncExchangeSymbols()
     {
         // Get the Binance exchange record from the database.
-        $exchange = Exchange::firstWhere('canonical', 'binance');
+        $exchange = ApiSystem::firstWhere('canonical', 'binance');
 
         if (! $exchange) {
             throw new ExchangeSymbolNotSyncedException(
@@ -103,7 +102,7 @@ class UpsertExchangeAvailableSymbolsJob extends AbstractJob
                     ->whereHas('symbol', function ($query) use ($token) {
                         $query->where('token', $token);
                     })
-                    ->where('exchange_id', $exchange->id)
+                    ->where('api_system_id', $exchange->id)
                     ->first();
 
                 $symbol = Symbol::firstWhere('token', $token);
@@ -111,7 +110,7 @@ class UpsertExchangeAvailableSymbolsJob extends AbstractJob
                 if ($symbol) {
                     $symbolData = [
                         'symbol_id' => $symbol->id,
-                        'exchange_id' => $exchange->id,
+                        'api_system_id' => $exchange->id,
                         'precision_price' => $tokenData['precision_price'],
                         'precision_quantity' => $tokenData['precision_quantity'],
                         'precision_quote' => $tokenData['precision_quote'],
@@ -123,7 +122,7 @@ class UpsertExchangeAvailableSymbolsJob extends AbstractJob
                         ExchangeSymbol::updateOrCreate(
                             [
                                 'symbol_id' => $symbolData['symbol_id'],
-                                'exchange_id' => $exchange->id,
+                                'api_system_id' => $exchange->id,
                             ],
                             $symbolData
                         );

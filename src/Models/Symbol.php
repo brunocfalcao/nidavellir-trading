@@ -17,6 +17,7 @@ class Symbol extends AbstractModel
 {
     protected $casts = [
         'is_active' => 'boolean',
+        'indicator_last_synced_at' => 'datetime',
     ];
 
     public function apiRequestLogs()
@@ -26,7 +27,12 @@ class Symbol extends AbstractModel
 
     public function exchanges()
     {
-        return $this->belongsToMany(Exchange::class);
+        return $this->belongsToMany(
+            ApiSystem::class,
+            'exchange_symbols',
+            'symbol_id',
+            'api_system_id'
+        );
     }
 
     // Returns the specific exchange-symbol with more symbol data.

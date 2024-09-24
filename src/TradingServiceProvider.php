@@ -6,9 +6,10 @@ use Brunocfalcao\LaravelHelpers\Traits\ForServiceProviders\HasAutoLoaders;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
-use Nidavellir\Trading\Commands\System\QueryOrder;
-use Nidavellir\Trading\Commands\System\TestCommand;
-use Nidavellir\Trading\Commands\System\TestOrder;
+use Nidavellir\Trading\Commands\Debug\QueryOrder;
+use Nidavellir\Trading\Commands\Debug\TestCommand;
+use Nidavellir\Trading\Commands\Debug\TestOrder;
+use Nidavellir\Trading\Commands\System\REST\UpsertSymbolsTradeDirectionCommand;
 use Nidavellir\Trading\Commands\System\UpsertBinanceMarkPricesCommand;
 use Nidavellir\Trading\Events\Orders\OrderCreatedEvent;
 use Nidavellir\Trading\Events\Positions\PositionCreatedEvent;
@@ -101,6 +102,7 @@ class TradingServiceProvider extends ServiceProvider
             TestCommand::class,
             TestOrder::class,
             QueryOrder::class,
+            UpsertSymbolsTradeDirectionCommand::class,
             UpsertBinanceMarkPricesCommand::class,
         ]);
     }

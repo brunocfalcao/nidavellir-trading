@@ -5,8 +5,7 @@ namespace Nidavellir\Trading\Commands\System;
 use Illuminate\Console\Command;
 use Nidavellir\Trading\ApiSystems\Binance\BinanceWebsocketMapper;
 use Nidavellir\Trading\ApiSystems\ExchangeWebsocketMapper;
-use Nidavellir\Trading\Models\Exchange;
-use Nidavellir\Trading\Models\ExchangeSymbol;
+use Nidavellir\Trading\Models\ApiSystem;
 use Nidavellir\Trading\Models\Symbol;
 
 class UpsertBinanceMarkPricesCommand extends Command
@@ -17,7 +16,7 @@ class UpsertBinanceMarkPricesCommand extends Command
 
     public function handle()
     {
-        $exchange = Exchange::firstWhere('canonical', 'binance');
+        $exchange = ApiSystem::firstWhere('canonical', 'binance');
 
         $client = new ExchangeWebsocketMapper(
             new BinanceWebsocketMapper(
@@ -44,7 +43,7 @@ class UpsertBinanceMarkPricesCommand extends Command
                         ExchangeSymbol::updateOrCreate(
                             [//where:
                                 'symbol_id' => $symbol->id,
-                                'exchange_id' => $exchange->id,
+                                'api_system_id' => $exchange->id,
                             ],
                             [//update:
                                 'last_mark_price' => $token['p'],
