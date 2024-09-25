@@ -7,6 +7,7 @@ use Illuminate\Validation\ValidationException;
 
 trait Trade
 {
+    // https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Change-Margin-Type
     public function updateMarginType(array $properties = [])
     {
         return $this->signRequest(
@@ -163,13 +164,13 @@ trait Trade
     }
 
     // https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Current-All-Open-Orders
-    public function openOrders(array $properties = [])
+    public function getOpenOrders(array $properties = [])
     {
         return $this->signRequest('GET', '/fapi/v1/openOrders', $properties);
     }
 
     // https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/All-Orders
-    public function allOrders(array $properties = [])
+    public function getAllOrders(array $properties = [])
     {
         // Validate the properties using the Validator facade
         $validator = Validator::make($properties, [

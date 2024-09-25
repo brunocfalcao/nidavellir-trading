@@ -5,14 +5,14 @@ namespace Nidavellir\Trading\Commands\Debug;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Nidavellir\Trading\Models\ExchangeSymbol;
+use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Models\Trader;
-use Nidavellir\Trading\Models\Position;
-use Nidavellir\Trading\Models\ExchangeSymbol;
 
 class TestOrder extends Command
 {
-    protected $signature = 'nidavellir:order
+    protected $signature = 'test:order
                             {--amount= : The amount to be traded}
                             {--token= : The token symbol to trade}
                             {--mark-price= : The initial mark price}';

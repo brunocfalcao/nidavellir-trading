@@ -27,7 +27,7 @@ class UpsertSymbolTradeDirectionJob extends AbstractJob
 
     private $amplitudeThreshold;
 
-    public function __construct(string $symbolToken = null)
+    public function __construct(?string $symbolToken = null)
     {
         $this->symbolToken = $symbolToken;
         $this->taapiApiKey = config('nidavellir.system.api.credentials.taapi.api_key');
@@ -59,7 +59,7 @@ class UpsertSymbolTradeDirectionJob extends AbstractJob
         // Fetch the symbol model using the provided token.
         $symbol = Symbol::where('token', $symbolToken)->first();
 
-        if (!$symbol) {
+        if (! $symbol) {
             throw new \Exception("Symbol not found for token: {$symbolToken}");
         }
 

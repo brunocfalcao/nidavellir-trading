@@ -5,15 +5,15 @@ namespace Nidavellir\Trading\Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\File;
+use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolMetadataJob;
+use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsJob;
+use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolTradeDirectionJob;
+use Nidavellir\Trading\Jobs\System\Binance\UpsertExchangeAvailableSymbolsJob;
+use Nidavellir\Trading\Jobs\System\Binance\UpsertNotionalAndLeverageJob;
+use Nidavellir\Trading\Jobs\System\Taapi\UpsertTaapiAvailableSymbols;
+use Nidavellir\Trading\Models\ApiSystem;
 use Nidavellir\Trading\Models\System;
 use Nidavellir\Trading\Models\Trader;
-use Nidavellir\Trading\Models\ApiSystem;
-use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolsJob;
-use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolMetadataJob;
-use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolTradeDirectionJob;
-use Nidavellir\Trading\Jobs\System\Taapi\UpsertTaapiAvailableSymbols;
-use Nidavellir\Trading\Jobs\System\Binance\UpsertNotionalAndLeverageJob;
-use Nidavellir\Trading\Jobs\System\Binance\UpsertExchangeAvailableSymbolsJob;
 
 class TradingGenesisSeeder extends Seeder
 {

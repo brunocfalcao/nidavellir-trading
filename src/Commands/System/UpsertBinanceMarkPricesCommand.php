@@ -4,7 +4,6 @@ namespace Nidavellir\Trading\Commands\System;
 
 use Illuminate\Console\Command;
 use Nidavellir\Trading\ApiSystems\Binance\BinanceWebsocketMapper;
-use Nidavellir\Trading\ApiSystems\ExchangeWebsocketMapper;
 use Nidavellir\Trading\Models\ApiSystem;
 use Nidavellir\Trading\Models\Symbol;
 

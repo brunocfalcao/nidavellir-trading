@@ -2,13 +2,13 @@
 
 namespace Nidavellir\Trading\Jobs\Orders;
 
+use Nidavellir\Trading\Abstracts\AbstractJob;
+use Nidavellir\Trading\Exceptions\CancelOrderException;
+use Nidavellir\Trading\Exceptions\TryCatchException;
+use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Order;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Models\Trader;
-use Nidavellir\Trading\Abstracts\AbstractJob;
-use Nidavellir\Trading\Models\ExchangeSymbol;
-use Nidavellir\Trading\Exceptions\TryCatchException;
-use Nidavellir\Trading\Exceptions\CancelOrderException;
 
 /**
  * This jobs cancels an order given a nidavellir order id.
@@ -23,15 +23,15 @@ use Nidavellir\Trading\Exceptions\CancelOrderException;
  */
 class CancelOrderJob extends AbstractJob
 {
-    public Order $order;
+    private Order $order;
 
-    public Trader $trader;
+    private Trader $trader;
 
-    public ExchangeSymbol $exchangeSymbol;
+    private ExchangeSymbol $exchangeSymbol;
 
-    public Symbol $symbol;
+    private Symbol $symbol;
 
-    public $orderId;
+    private $orderId;
 
     public function __construct(int $orderId)
     {
@@ -54,6 +54,10 @@ class CancelOrderJob extends AbstractJob
     public function handle()
     {
         try {
+            if (blank($this->order->order_exchange_system_id)) {
+                return;
+            }
+
             // Query order to understand if it's filled or not.
             $result = $this->trader->withRESTApi()
                 ->withLoggable($this->order)
@@ -89,6 +93,8 @@ class CancelOrderJob extends AbstractJob
          * Now let's open an order contrary to the current position side.
          * This order is special, it's type is 'position-cancellation'.
          */
+
+        // Get the pre-payload to create the opposite order.
         $cancellationOrder = Order::create([
             'position_id' => $this->order->position->id,
             'status' => 'new',

@@ -9,7 +9,7 @@ use Nidavellir\Trading\Models\Trader;
 
 class QueryOrder extends Command
 {
-    protected $signature = 'nidavellir:query {id}';
+    protected $signature = 'nidavellir:query-order {id}';
 
     protected $description = 'Queries an order id (Nidavellir) and returns the exchange order data';
 

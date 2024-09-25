@@ -3,9 +3,6 @@
 namespace Nidavellir\Trading\ApiSystems\Taapi;
 
 use Nidavellir\Trading\Abstracts\AbstractMapper;
-use Nidavellir\Trading\ApiSystems\CoinmarketCap\Callers\GetSymbols;
-use Nidavellir\Trading\ApiSystems\CoinmarketCap\Callers\GetSymbolsMetadata;
-use Nidavellir\Trading\ApiSystems\CoinmarketCap\Callers\GetSymbolsRanking;
 use Nidavellir\Trading\Models\ApiSystem;
 
 class TaapiRESTMapper extends AbstractMapper

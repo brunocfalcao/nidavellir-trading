@@ -6,6 +6,7 @@ use Brunocfalcao\LaravelHelpers\Traits\ForServiceProviders\HasAutoLoaders;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+use Nidavellir\Trading\Commands\Debug\QueryOpenOrders;
 use Nidavellir\Trading\Commands\Debug\QueryOrder;
 use Nidavellir\Trading\Commands\Debug\TestCommand;
 use Nidavellir\Trading\Commands\Debug\TestOrder;
@@ -102,6 +103,7 @@ class TradingServiceProvider extends ServiceProvider
             TestCommand::class,
             TestOrder::class,
             QueryOrder::class,
+            QueryOpenOrders::class,
             UpsertSymbolsTradeDirectionCommand::class,
             UpsertBinanceMarkPricesCommand::class,
         ]);

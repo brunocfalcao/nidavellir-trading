@@ -3,16 +3,15 @@
 namespace Nidavellir\Trading\Jobs\Orders;
 
 use Illuminate\Support\Str;
+use Nidavellir\Trading\Abstracts\AbstractJob;
+use Nidavellir\Trading\Exceptions\DispatchOrderException;
+use Nidavellir\Trading\Exceptions\TryCatchException;
+use Nidavellir\Trading\Models\ApiSystem;
+use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Order;
+use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Models\Trader;
-use Nidavellir\Trading\Models\Position;
-use Nidavellir\Trading\Models\ApiSystem;
-use Nidavellir\Trading\Abstracts\AbstractJob;
-use Nidavellir\Trading\Models\ExchangeSymbol;
-use Nidavellir\Trading\Exceptions\TryCatchException;
-use Nidavellir\Trading\Exceptions\DispatchOrderException;
-use Nidavellir\Trading\Jobs\Positions\ValidatePositionJob;
 
 /**
  * DispatchOrderJob handles the dispatching of trading orders
@@ -129,8 +128,8 @@ class DispatchOrderJob extends AbstractJob
             // Set this order on error.
             $this->order->update(['status' => 'error']);
 
-            // Trigger the orders rollback via the validatePositionJob.
-            ValidatePositionJob::dispatch($this->position->id);
+            // Check if we need to cancel this order.
+            CancelOrderJob::dispatch($this->order->id);
 
             // Handle any errors and throw a custom exception.
             throw new TryCatchException(
