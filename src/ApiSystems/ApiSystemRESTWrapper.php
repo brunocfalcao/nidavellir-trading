@@ -6,9 +6,9 @@ use Nidavellir\Trading\Abstracts\AbstractRESTWrapper;
 
 class ApiSystemRESTWrapper extends AbstractRESTWrapper
 {
-    public function updateSymbolDirection()
+    public function getTaapiExchangeSymbols()
     {
-        return $this->mapper->updateSymbolDirection($this);
+        return $this->mapper->getExchangeSymbols($this);
     }
 
     public function cancelOrder()

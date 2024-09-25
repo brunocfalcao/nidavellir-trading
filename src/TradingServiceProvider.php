@@ -6,9 +6,9 @@ use Brunocfalcao\LaravelHelpers\Traits\ForServiceProviders\HasAutoLoaders;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+use Nidavellir\Trading\Commands\Debug\DebugCommand;
 use Nidavellir\Trading\Commands\Debug\QueryOpenOrders;
 use Nidavellir\Trading\Commands\Debug\QueryOrder;
-use Nidavellir\Trading\Commands\Debug\TestCommand;
 use Nidavellir\Trading\Commands\Debug\TestOrder;
 use Nidavellir\Trading\Commands\System\REST\UpsertSymbolsTradeDirectionCommand;
 use Nidavellir\Trading\Commands\System\UpsertBinanceMarkPricesCommand;
@@ -100,7 +100,7 @@ class TradingServiceProvider extends ServiceProvider
     protected function loadCommands()
     {
         $this->commands([
-            TestCommand::class,
+            DebugCommand::class,
             TestOrder::class,
             QueryOrder::class,
             QueryOpenOrders::class,

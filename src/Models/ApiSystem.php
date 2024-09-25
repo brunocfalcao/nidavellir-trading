@@ -15,6 +15,10 @@ use Nidavellir\Trading\Abstracts\AbstractModel;
  */
 class ApiSystem extends AbstractModel
 {
+    protected $casts = [
+        'other_information' => 'array',
+    ];
+
     public function ipRequestWeights()
     {
         return $this->hasMany(IpRequestWeight::class);

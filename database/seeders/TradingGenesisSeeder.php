@@ -28,16 +28,24 @@ class TradingGenesisSeeder extends Seeder
         $apiSystem->full_qualified_class_name_websocket = "Nidavellir\Trading\ApiSystems\Binance\BinanceWebsocketMapper";
         $apiSystem->futures_url_rest_prefix = 'https://fapi.binance.com';
         $apiSystem->futures_url_websockets_prefix = 'wss://fstream.binance.com';
-        $apiSystem->taapi_url_rest_prefix = 'https://api.taapi.io/';
-        $apiSystem->taapi_exchange_canonical = 'binancefutures';
+        //$apiSystem->taapi_url_rest_prefix = 'https://api.taapi.io/';
+        //$apiSystem->taapi_exchange_canonical = 'binancefutures';
         $apiSystem->save();
 
         $cmc = new ApiSystem;
         $cmc->name = 'CoinmarketCap';
         $cmc->canonical = 'coinmarketcap';
-        $cmc->full_qualified_class_name_rest = "Nidavellir\Trading\ApiSystems\Coin\BinanceRESTMapper";
-        $cmc->generic_url_prefix = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency';
+        $cmc->full_qualified_class_name_rest = "Nidavellir\Trading\ApiSystems\CoinmarketCap\BinanceRESTMapper";
+        $cmc->other_url_prefix = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency';
         $cmc->save();
+
+        $taapi = new ApiSystem;
+        $taapi->name = 'Taapi';
+        $taapi->canonical = 'taapi';
+        $taapi->full_qualified_class_name_rest = "Nidavellir\Trading\ApiSystems\Coin\BinanceRESTMapper";
+        $taapi->other_url_prefix = 'https://api.taapi.io';
+        $taapi->other_information = ['canonicals' => ['binance' => 'binancefutures']];
+        $taapi->save();
 
         // Admin/standard trader person.
         $trader = new Trader;

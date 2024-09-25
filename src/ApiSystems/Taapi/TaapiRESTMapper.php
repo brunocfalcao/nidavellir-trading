@@ -2,8 +2,9 @@
 
 namespace Nidavellir\Trading\ApiSystems\Taapi;
 
-use Nidavellir\Trading\Abstracts\AbstractMapper;
 use Nidavellir\Trading\Models\ApiSystem;
+use Nidavellir\Trading\Abstracts\AbstractMapper;
+use Nidavellir\Trading\ApiSystems\Taapi\Callers\GetExchangeSymbols;
 
 class TaapiRESTMapper extends AbstractMapper
 {
@@ -15,8 +16,14 @@ class TaapiRESTMapper extends AbstractMapper
     public function connectionDetails()
     {
         return [
-            'url' => $this->apiSystem()->taapi_url_rest_prefix,
+            'url' => $this->apiSystem()->other_url_prefix,
             'api_key' => $this->credentials['api_key'],
+            'canonical' => $this->additionalData['canonical']
         ];
+    }
+
+    public function getExchangeSymbols()
+    {
+        return (new GetExchangeSymbols($this))->result;
     }
 }

@@ -15,10 +15,17 @@ abstract class AbstractMapper
     // Additional properties that are used for api calls.
     public array $properties = [];
 
-    public function __construct(?Trader $trader = null, ?array $credentials = [])
+    /**
+     * If we need to pass additional data to the constructor
+     * (e.g.: taapi exchange canonical).
+     */
+    public array $additionalData = [];
+
+    public function __construct(?Trader $trader = null, ?array $credentials = [], ?array $additionalData = [])
     {
         $this->trader = $trader;
         $this->credentials = $credentials;
+        $this->additionalData = $additionalData;
 
         // Necessary for api calls that needs an "options".
         $this->properties['options'] = [];
@@ -40,7 +47,11 @@ abstract class AbstractMapper
         return $this;
     }
 
-    public function exchange() {}
+    public function exchange()
+    {
+    }
 
-    public function connectionDetails() {}
+    public function connectionDetails()
+    {
+    }
 }
