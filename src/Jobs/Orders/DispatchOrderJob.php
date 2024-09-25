@@ -227,12 +227,21 @@ class DispatchOrderJob extends AbstractJob
     {
         // For Market and Limit orders, calculate the token amount.
         if (in_array($this->order->type, [self::ORDER_TYPE_MARKET, self::ORDER_TYPE_LIMIT])) {
+            return round(
+                ($this->position->total_trade_amount / $this->order->amount_divider * $this->position->leverage) / $price,
+                $this->exchangeSymbol->precision_quantity
+            );
+        }
+
+        /*
+        if (in_array($this->order->type, [self::ORDER_TYPE_MARKET, self::ORDER_TYPE_LIMIT])) {
             $amountAfterDivider = $this->position->total_trade_amount / $this->order->amount_divider;
             $amountAfterLeverage = $amountAfterDivider * $this->position->leverage;
             $tokenAmountToBuy = $amountAfterLeverage / $price;
 
             return round($tokenAmountToBuy, $this->exchangeSymbol->precision_quantity);
         }
+        */
 
         /**
          * For the profit order, will be with the same filled quantity

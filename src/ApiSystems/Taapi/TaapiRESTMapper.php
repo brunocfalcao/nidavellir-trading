@@ -15,7 +15,7 @@ class TaapiRESTMapper extends AbstractMapper
     public function connectionDetails()
     {
         return [
-            'url' => $this->apiSystem()->generic_url_prefix,
+            'url' => $this->apiSystem()->taapi_url_rest_prefix,
             'api_key' => $this->credentials['api_key'],
         ];
     }

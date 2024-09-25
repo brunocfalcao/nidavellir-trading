@@ -18,7 +18,7 @@ class CoinmarketCapRESTMapper extends AbstractMapper
     public function connectionDetails()
     {
         return [
-            'url' => $this->apiSystem()->generic_url_prefix,
+            'url' => $this->apiSystem()->cmc_rest_url_prefix,
             'api_key' => $this->credentials['api_key'],
         ];
     }
