@@ -2,14 +2,12 @@
 
 namespace Nidavellir\Trading\ApiSystems;
 
+use Nidavellir\Trading\ApiSystems\Concerns\HasTaapiOperations;
 use Nidavellir\Trading\Abstracts\AbstractRESTWrapper;
 
 class ApiSystemRESTWrapper extends AbstractRESTWrapper
 {
-    public function getTaapiExchangeSymbols()
-    {
-        return $this->mapper->getExchangeSymbols($this);
-    }
+    use HasTaapiOperations;
 
     public function cancelOrder()
     {
@@ -59,23 +57,6 @@ class ApiSystemRESTWrapper extends AbstractRESTWrapper
     public function getLeverageBrackets()
     {
         return $this->mapper->getLeverageBrackets($this);
-    }
-
-    // CoinmarketCap getSymbols(), populates Symbols.
-    public function getSymbols()
-    {
-        return $this->mapper->getSymbols($this);
-    }
-
-    // CoinmarketCap get symbols ranking.
-    public function getSymbolsRanking()
-    {
-        return $this->mapper->getSymbolsRanking($this);
-    }
-
-    public function getSymbolsMetadata()
-    {
-        return $this->mapper->getSymbolsMetadata($this);
     }
 
     public function getExchangeInformation()

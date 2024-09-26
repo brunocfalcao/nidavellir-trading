@@ -28,8 +28,6 @@ class TradingGenesisSeeder extends Seeder
         $apiSystem->full_qualified_class_name_websocket = "Nidavellir\Trading\ApiSystems\Binance\BinanceWebsocketMapper";
         $apiSystem->futures_url_rest_prefix = 'https://fapi.binance.com';
         $apiSystem->futures_url_websockets_prefix = 'wss://fstream.binance.com';
-        //$apiSystem->taapi_url_rest_prefix = 'https://api.taapi.io/';
-        //$apiSystem->taapi_exchange_canonical = 'binancefutures';
         $apiSystem->save();
 
         $cmc = new ApiSystem;
