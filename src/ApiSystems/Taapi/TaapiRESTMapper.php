@@ -2,9 +2,9 @@
 
 namespace Nidavellir\Trading\ApiSystems\Taapi;
 
-use Nidavellir\Trading\Models\ApiSystem;
 use Nidavellir\Trading\Abstracts\AbstractMapper;
 use Nidavellir\Trading\ApiSystems\Taapi\Callers\GetExchangeSymbols;
+use Nidavellir\Trading\Models\ApiSystem;
 
 class TaapiRESTMapper extends AbstractMapper
 {
@@ -18,10 +18,10 @@ class TaapiRESTMapper extends AbstractMapper
         return [
             'url' => $this->apiSystem()->other_url_prefix,
             'api_key' => $this->credentials['api_key'],
-            'canonical' => $this->additionalData['canonical']
         ];
     }
 
+    // https://taapi.io/exchanges/binance/#symbols
     public function getExchangeSymbols()
     {
         return (new GetExchangeSymbols($this))->result;

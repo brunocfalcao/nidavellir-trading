@@ -47,11 +47,7 @@ abstract class AbstractMapper
         return $this;
     }
 
-    public function exchange()
-    {
-    }
+    public function exchange() {}
 
-    public function connectionDetails()
-    {
-    }
+    public function connectionDetails() {}
 }

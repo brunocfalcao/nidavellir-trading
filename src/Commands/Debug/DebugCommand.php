@@ -31,14 +31,14 @@ class DebugCommand extends Command
         DB::table('application_logs')->truncate();
         DB::table('exceptions_log')->truncate();
 
-        $mapper = (new ApiSystemRESTWrapper(
+        $wrapper = (new ApiSystemRESTWrapper(
             new TaapiRESTMapper(
-                credentials: Nidavellir::getSystemCredentials('taapi'),
-                additionalData: ['canonical' => 'binancefutures']
+                credentials: Nidavellir::getSystemCredentials('taapi')
             )
-        ))->mapper;
+        ));
 
-        $result = $mapper->getExchangeSymbols();
+        dd($wrapper->withOptions(['exchange' => 'binancefutures'])
+            ->getTaapiExchangeSymbols());
 
         $this->info('All good. I hope.');
     }

@@ -2,25 +2,15 @@
 
 namespace Nidavellir\Trading\ApiSystems\Taapi\REST;
 
-use Illuminate\Support\Facades\Http;
+use Nidavellir\Trading\ApiSystems\Taapi\TaapiAPIClient;
 
-class API
+class API extends TaapiAPIClient
 {
-    public string $url;
-
-    public string $api_key;
-
-    public string $canonical;
-
-    public function __construct(array $args)
-    {
-        $this->url = $args['url'];
-        $this->api_key = $args['api_key'];
-        $this->canonical = $args['canonical'];
-    }
-
     public function getExchangeSymbols(array $properties)
     {
-        dd('at the end of the endpoint');
+        // Use the publicRequest method from TaapiAPIClient to fetch the symbols
+        return $this->publicRequest('GET', '/exchange-symbols', [
+            'exchange' => $properties['options']['exchange'],
+        ]);
     }
 }
