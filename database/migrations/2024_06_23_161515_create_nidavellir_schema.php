@@ -114,14 +114,6 @@ return new class extends Migration
             $table->unsignedInteger('rank')->nullable();
             $table->longText('description')->nullable();
             $table->string('image_url')->nullable();
-            $table->decimal('ma_28_2days_ago', 20, 8)->nullable()->comment('EMA 28 1D closed candle, 2 days ago');
-            $table->decimal('ma_28_yesterday', 20, 8)->nullable()->comment('EMA 28 1D closed candle, yesterday');
-            $table->decimal('ma_56_2days_ago', 20, 8)->nullable()->comment('EMA 56 1D closed candle, 2 days ago');
-            $table->decimal('ma_56_yesterday', 20, 8)->nullable()->comment('EMA 56 1D closed candle, yesterday');
-            $table->decimal('ma_amplitude_interval_percentage', 20, 8)->nullable();
-            $table->decimal('ma_amplitude_interval_absolute', 20, 8)->nullable();
-            $table->string('side')->default('LONG')->comment('Defines the direction of the trade when using it (BUY as long/SELL as short)');
-            $table->timestamp('indicator_last_synced_at')->nullable();
             $table->timestamps();
 
             $table->unique(['token']);
@@ -138,15 +130,19 @@ return new class extends Migration
             $table->decimal('tick_size', 20, 8);
             $table->longText('api_symbol_information')->nullable();
             $table->longText('api_notional_and_leverage_symbol_information')->nullable();
-            $table->boolean('is_active')->default(true);
-            $table->boolean('is_eligible')->default(true);
-            $table->boolean('is_taapi_available')->default(false);
             $table->decimal('last_mark_price', 20, 8)->nullable();
+            $table->decimal('ma_28_2days_ago', 20, 8)->nullable()->comment('EMA 28 1D closed candle, 2 days ago');
+            $table->decimal('ma_28_yesterday', 20, 8)->nullable()->comment('EMA 28 1D closed candle, yesterday');
+            $table->decimal('ma_56_2days_ago', 20, 8)->nullable()->comment('EMA 56 1D closed candle, 2 days ago');
+            $table->decimal('ma_56_yesterday', 20, 8)->nullable()->comment('EMA 56 1D closed candle, yesterday');
+            $table->decimal('ma_amplitude_interval_percentage', 20, 8)->nullable();
+            $table->decimal('ma_amplitude_interval_absolute', 20, 8)->nullable();
+            $table->string('side')->default('LONG')->comment('Defines the direction of the trade when using it (BUY as long/SELL as short)');
+            $table->timestamp('indicator_last_synced_at')->nullable();
             $table->timestamp('price_last_synced_at')->nullable();
             $table->timestamps();
 
             $table->unique(['symbol_id', 'api_system_id']);
-            $table->index(['is_active', 'is_eligible']);
         });
 
         Schema::table('users', function (Blueprint $table) {

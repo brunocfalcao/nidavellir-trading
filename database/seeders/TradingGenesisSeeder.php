@@ -67,10 +67,10 @@ class TradingGenesisSeeder extends Seeder
             new UpsertNotionalAndLeverageJob,
 
             // Sync Taapi.io symbols with exchange.
-            new UpsertTaapiAvailableSymbols(1),
+            //new UpsertTaapiAvailableSymbols(1),
 
             // Get indicator and update eligible symbols trade direction.
-            new UpsertSymbolTradeDirectionJob,
+            //new UpsertSymbolTradeDirectionJob,
         ])->dispatch();
     }
 }
