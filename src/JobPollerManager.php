@@ -2,15 +2,17 @@
 
 namespace Nidavellir\Trading;
 
-use Nidavellir\Trading\Models\JobQueue;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Nidavellir\Trading\Models\JobQueue;
 
 class JobPollerManager
 {
     protected string $blockUUID;
+
     protected int $currentIndex = 1;
+
     protected array $jobs = [];
 
     public function __construct()
@@ -23,8 +25,8 @@ class JobPollerManager
     /**
      * Add a job with dynamic arguments.
      *
-     * @param string $className The class name of the job
-     * @param mixed ...$arguments The arguments to pass to the job
+     * @param  string  $className  The class name of the job
+     * @param  mixed  ...$arguments  The arguments to pass to the job
      * @return $this
      */
     public function addJob(string $className, ...$arguments)
@@ -37,7 +39,7 @@ class JobPollerManager
         ];
 
         // Log a single line
-        Log::info("Job added: " . $className);
+        Log::info('Job added: '.$className);
 
         // Increment the index for the next job
         $this->currentIndex++;
@@ -48,15 +50,15 @@ class JobPollerManager
     /**
      * Regenerate or use a new block UUID
      *
-     * @param string|null $blockUUID Optional UUID to set, otherwise generates a new one
+     * @param  string|null  $blockUUID  Optional UUID to set, otherwise generates a new one
      * @return $this
      */
-    public function newBlockUUID(string $blockUUID = null)
+    public function newBlockUUID(?string $blockUUID = null)
     {
         $this->blockUUID = $blockUUID ?? (string) Str::uuid();
         $this->currentIndex = 1; // Reset the index when a new block is generated
 
-        Log::info("New Block UUID generated or set: " . $this->blockUUID);
+        Log::info('New Block UUID generated or set: '.$this->blockUUID);
 
         return $this;
     }
@@ -80,7 +82,7 @@ class JobPollerManager
                 'index' => $job['index'],
             ]);
 
-            Log::info("Job saved to the database: " . $jobModel->class);
+            Log::info('Job saved to the database: '.$jobModel->class);
 
             // Add the created job model to the collection
             $createdJobs->push($jobModel);
@@ -95,7 +97,7 @@ class JobPollerManager
     /**
      * Use an existing block UUID
      *
-     * @param string $blockUUID The block UUID to use
+     * @param  string  $blockUUID  The block UUID to use
      * @return $this
      */
     public function onBlockUUID(string $blockUUID)
@@ -109,7 +111,7 @@ class JobPollerManager
 
         $this->currentIndex = $lastJob ? $lastJob->index + 1 : 1;
 
-        Log::info("Using existing Block UUID: " . $this->blockUUID);
+        Log::info('Using existing Block UUID: '.$this->blockUUID);
 
         return $this;
     }
@@ -129,7 +131,7 @@ class JobPollerManager
 
         $availableWorkers = max($totalWorkers - $runningJobsCount, 0);
 
-        Log::info("Determined number of available workers: " . $availableWorkers);
+        Log::info('Determined number of available workers: '.$availableWorkers);
 
         return $availableWorkers;
     }
@@ -148,7 +150,7 @@ class JobPollerManager
     /**
      * Get eligible jobs based on the number of available workers
      *
-     * @param int $numAvailableWorkers
+     * @param  int  $numAvailableWorkers
      * @return \Illuminate\Database\Eloquent\Collection
      */
     public function getEligibleJobs($numAvailableWorkers)
@@ -178,7 +180,7 @@ class JobPollerManager
                         ->first();
 
                     // If no running previous job is found, mark this job as eligible
-                    if (!$previousJob) {
+                    if (! $previousJob) {
                         $eligibleJobs->push($nextJob);
                     }
                 }
@@ -193,14 +195,14 @@ class JobPollerManager
             }
         }
 
-        Log::info("Eligible jobs fetched: " . $eligibleJobs->count());
+        Log::info('Eligible jobs fetched: '.$eligibleJobs->count());
 
         return $eligibleJobs;
     }
 
-/**
- * Handle the job execution.
- */
+    /**
+     * Handle the job execution.
+     */
     public function handle()
     {
         $hostname = gethostname();
@@ -213,7 +215,7 @@ class JobPollerManager
 
                 // If no more eligible jobs, break the loop
                 if ($eligibleJobs->isEmpty()) {
-                    Log::info("No more eligible jobs to run.");
+                    Log::info('No more eligible jobs to run.');
                     break;
                 }
 
@@ -221,12 +223,12 @@ class JobPollerManager
                     DB::transaction(function () use ($job, $hostname) {
                         // Mark job as running
                         $job->update([
-                        'status' => 'running',
-                        'hostname' => $hostname,
-                        'started_at' => now(),
+                            'status' => 'running',
+                            'hostname' => $hostname,
+                            'started_at' => now(),
                         ]);
 
-                        Log::info("Job started: " . $job->class);
+                        Log::info('Job started: '.$job->class);
 
                         try {
                             // Instantiate the job class with arguments
@@ -240,16 +242,16 @@ class JobPollerManager
                             // Dispatch the job asynchronously; workers will pick it up
                             dispatch($jobInstance)->onQueue($this->getQueueName());
 
-                            Log::info("Job dispatched: " . $job->class);
+                            Log::info('Job dispatched: '.$job->class);
                         } catch (\Throwable $e) {
                             // Log error and mark job as failed
-                            Log::error("Failed to dispatch job: " . $job->class . " - " . $e->getMessage());
+                            Log::error('Failed to dispatch job: '.$job->class.' - '.$e->getMessage());
                             $job->update(['status' => 'failed']);
                         }
                     });
                 }
             } else {
-                Log::info("No available workers or eligible jobs to run.");
+                Log::info('No available workers or eligible jobs to run.');
                 break;
             }
         }
