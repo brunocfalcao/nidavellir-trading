@@ -1,6 +1,6 @@
 <?php
 
-namespace Nidavellir\Trading\Jobs\System\Binance;
+namespace Nidavellir\Trading\Jobs\ApiSystems\Binance;
 
 use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\ApiSystems\ApiSystemRESTWrapper;
@@ -12,12 +12,6 @@ use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Nidavellir;
 
-/**
- * UpsertExchangeAvailableSymbolsJob fetches symbol information
- * from Binance and syncs that data with the local `ExchangeSymbol`
- * model. It filters symbols by USDT margin, updates symbol precision
- * data, and ensures all relevant information is stored in the system.
- */
 class UpsertExchangeAvailableSymbolsJob extends AbstractJob
 {
     public ApiSystemRESTWrapper $wrapper;

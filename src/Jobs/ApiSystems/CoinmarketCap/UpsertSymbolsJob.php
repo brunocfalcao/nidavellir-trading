@@ -1,6 +1,6 @@
 <?php
 
-namespace Nidavellir\Trading\Jobs\Symbols;
+namespace Nidavellir\Trading\Jobs\ApiSystems\CoinmarketCap;
 
 use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\ApiSystems\ApiSystemRESTWrapper;
@@ -50,12 +50,12 @@ class UpsertSymbolsJob extends AbstractJob
             }
 
             // Fetch the symbol data from the CoinMarketCap API.
-            $data = $api->getSymbols();
+            $data = $api->getSymbols()['data'];
 
             // If no data is returned, throw an exception.
             if (! $data) {
                 throw new SymbolNotSyncedException(
-                    title: 'No symbols fetched from CoinMarketCap API'
+                    message: 'No symbols fetched from CoinMarketCap API'
                 );
             }
 
@@ -67,6 +67,7 @@ class UpsertSymbolsJob extends AbstractJob
                 $symbolUpdates[] = [
                     'coinmarketcap_id' => $item['id'],
                     'name' => $item['name'],
+                    'rank' => $item['rank'],
                     'token' => $item['symbol'],
                     'updated_at' => now(),
                 ];
@@ -78,7 +79,11 @@ class UpsertSymbolsJob extends AbstractJob
                 ['coinmarketcap_id'],
                 ['name', 'token', 'updated_at']
             );
+
+            $this->jobPollerInstance->markAsComplete();
         } catch (\Throwable $e) {
+            $this->jobPollerInstance->markAsError($e);
+
             throw new TryCatchException(
                 throwable: $e,
             );

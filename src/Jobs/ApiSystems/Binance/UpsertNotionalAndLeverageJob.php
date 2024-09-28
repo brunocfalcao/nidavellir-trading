@@ -1,6 +1,6 @@
 <?php
 
-namespace Nidavellir\Trading\Jobs\System\Binance;
+namespace Nidavellir\Trading\Jobs\ApiSystems\Binance;
 
 use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\ApiSystems\ApiSystemRESTWrapper;

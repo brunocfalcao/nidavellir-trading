@@ -3,13 +3,13 @@
 namespace Nidavellir\Trading\ApiSystems;
 
 use Nidavellir\Trading\Abstracts\AbstractRESTWrapper;
-use Nidavellir\Trading\ApiSystems\Concerns\HasTaapiOperations;
 use Nidavellir\Trading\ApiSystems\Concerns\HasCoinmarketCapOperations;
+use Nidavellir\Trading\ApiSystems\Concerns\HasTaapiOperations;
 
 class ApiSystemRESTWrapper extends AbstractRESTWrapper
 {
-    use HasTaapiOperations;
     use HasCoinmarketCapOperations;
+    use HasTaapiOperations;
 
     public function cancelOrder()
     {

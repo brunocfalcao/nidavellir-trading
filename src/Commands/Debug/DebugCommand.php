@@ -6,7 +6,9 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Nidavellir\Trading\ApiSystems\ApiSystemRESTWrapper;
+use Nidavellir\Trading\ApiSystems\CoinmarketCap\CoinmarketCapRESTMapper;
 use Nidavellir\Trading\ApiSystems\Taapi\TaapiRESTMapper;
+use Nidavellir\Trading\Jobs\ApiSystems\CoinmarketCap\UpsertSymbolsJob;
 use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Models\Trader;
 use Nidavellir\Trading\Nidavellir;
@@ -31,6 +33,21 @@ class DebugCommand extends Command
         DB::table('application_logs')->truncate();
         DB::table('exceptions_log')->truncate();
 
+        /*
+        $wrapper = (new ApiSystemRESTWrapper(
+            new CoinmarketCapRESTMapper(
+                credentials: Nidavellir::getSystemCredentials('coinmarketcap')
+            )
+        ));
+
+        dd($wrapper->withOptions(['limit' => 5])
+            ->mapper
+            ->getSymbols()['data']);
+        */
+
+        //UpsertSymbolsJob::dispatchSync(10);
+
+        /*
         $wrapper = (new ApiSystemRESTWrapper(
             new TaapiRESTMapper(
                 credentials: Nidavellir::getSystemCredentials('taapi')
@@ -39,6 +56,7 @@ class DebugCommand extends Command
 
         dd($wrapper->withOptions(['exchange' => 'binancefutures'])
             ->getTaapiExchangeSymbols());
+        */
 
         $this->info('All good. I hope.');
     }

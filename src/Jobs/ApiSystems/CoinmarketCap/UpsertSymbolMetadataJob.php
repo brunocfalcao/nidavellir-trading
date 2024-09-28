@@ -1,6 +1,6 @@
 <?php
 
-namespace Nidavellir\Trading\Jobs\Symbols;
+namespace Nidavellir\Trading\Jobs\ApiSystems\CoinmarketCap;
 
 use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\ApiSystems\ApiSystemRESTWrapper;
@@ -8,7 +8,6 @@ use Nidavellir\Trading\ApiSystems\CoinmarketCap\CoinmarketCapRESTMapper;
 use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Nidavellir;
-use Nidavellir\Trading\NidavellirException;
 
 /**
  * UpsertSymbolMetadataJob fetches and updates metadata for
@@ -22,11 +21,6 @@ use Nidavellir\Trading\NidavellirException;
  */
 class UpsertSymbolMetadataJob extends AbstractJob
 {
-    public function __construct()
-    {
-        //
-    }
-
     /**
      * Handle the job to upsert symbol metadata.
      *
@@ -54,40 +48,37 @@ class UpsertSymbolMetadataJob extends AbstractJob
                 $symbolList = implode(',', $chunk);
 
                 // Fetch metadata for the current chunk of symbols.
-                $cryptoDataList = (array) $api->withOptions(['ids' => $symbolList])
-                    ->getSymbolsMetadata();
+                $cryptoDataList = (array) $api->withOptions(['id' => $symbolList])
+                    ->getSymbolsMetadata()['data'];
 
                 // Throw an exception if no metadata is returned.
-                if (empty($cryptoDataList)) {
-                    throw new NidavellirException(
-                        title: 'No metadata returned from the API.',
-                        additionalData: ['symbols_chunk' => $chunk]
-                    );
-                }
+                if (! empty($cryptoDataList)) {
+                    // Update symbols with the fetched metadata.
+                    foreach ($cryptoDataList as $cryptoId => $cryptoData) {
+                        $imageUrl = $cryptoData['logo'] ?? null;
+                        $name = $cryptoData['name'] ?? null;
+                        $website = $cryptoData['urls']['website'][0] ?? null;
+                        $description = $cryptoData['description'] ?? null;
 
-                // Update symbols with the fetched metadata.
-                foreach ($cryptoDataList as $cryptoId => $cryptoData) {
-                    $imageUrl = $cryptoData['logo'] ?? null;
-                    $name = $cryptoData['name'] ?? null;
-                    $website = $cryptoData['urls']['website'][0] ?? null;
-                    $description = $cryptoData['description'] ?? null;
-
-                    // Only update the symbol if its metadata fields are null.
-                    Symbol::where('coinmarketcap_id', $cryptoId)
-                        ->where(function ($query) {
-                            $query->whereNull('image_url')
-                                ->orWhereNull('description')
-                                ->orWhereNull('website');
-                        })
-                        ->update([
-                            'name' => $name,
-                            'website' => $website,
-                            'image_url' => $imageUrl,
-                            'description' => $description,
-                        ]);
+                        // Only update the symbol if its metadata fields are null.
+                        Symbol::where('coinmarketcap_id', $cryptoId)
+                            ->where(function ($query) {
+                                $query->whereNull('image_url')
+                                    ->orWhereNull('description')
+                                    ->orWhereNull('website');
+                            })
+                            ->update([
+                                'name' => $name,
+                                'website' => $website,
+                                'image_url' => $imageUrl,
+                                'description' => $description,
+                            ]);
+                    }
                 }
             }
+            $this->jobPollerInstance->markAsComplete();
         } catch (\Throwable $e) {
+            $this->jobPollerInstance->markAsError($e);
             // Catch any exceptions and rethrow a custom exception.
             throw new TryCatchException(
                 throwable: $e,

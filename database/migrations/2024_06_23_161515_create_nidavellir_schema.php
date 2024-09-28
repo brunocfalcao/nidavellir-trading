@@ -12,6 +12,19 @@ return new class extends Migration
      */
     public function up(): void
     {
+        Schema::create('job_queue', function (Blueprint $table) {
+            $table->id();
+            $table->string('class'); // Job class name
+            $table->json('arguments'); // Job arguments
+            $table->string('status')->default('pending'); // Job status: pending, running, completed, failed
+            $table->uuid('block_uuid')->nullable(); // Block UUID to group jobs
+            $table->integer('index')->nullable(); // Index for sequencing within a block
+            $table->timestamp('started_at')->nullable(); // Job start time
+            $table->timestamp('completed_at')->nullable(); // Job completion time
+            $table->string('hostname')->nullable(); // Hostname of the server processing the job
+            $table->timestamps(); // Created and updated timestamps
+        });
+
         Schema::create('api_requests_log', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('loggable_id')->nullable();
@@ -34,8 +47,10 @@ return new class extends Migration
             $table->id();
             $table->string('name')->comment('Exchange commercial name');
             $table->string('canonical')->nullable()->comment('Unique natural identifier');
-            $table->string('full_qualified_class_name_rest')->nullable()->comment('E.g: Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper');
-            $table->string('full_qualified_class_name_websocket')->nullable()->comment('E.g: Nidavellir\Trading\ApiSystems\Binance\BinanceWebsocketMapper');
+            $table->boolean('is_exchange')->default(false);
+            $table->string('namespace_prefix_jobs')->nullable();
+            $table->string('namespace_class_rest')->nullable()->comment('E.g: Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper');
+            $table->string('namespace_class_websocket')->nullable()->comment('E.g: Nidavellir\Trading\ApiSystems\Binance\BinanceWebsocketMapper');
             $table->string('futures_url_rest_prefix')->nullable();
             $table->string('futures_url_websockets_prefix')->nullable();
             $table->string('other_url_prefix')->nullable();
@@ -43,28 +58,6 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['canonical']);
-        });
-
-        Schema::create('ip_request_weights', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('api_system_id');
-            $table->string('ip_address');
-            $table->integer('current_weight')->default(0);
-            $table->boolean('is_backed_off')->default(false);
-            $table->timestamp('last_reset_at')->nullable();
-            $table->timestamps();
-
-            $table->index(['api_system_id', 'ip_address']);
-        });
-
-        Schema::create('endpoint_weights', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('api_system_id');
-            $table->string('endpoint');
-            $table->integer('weight')->default(1);
-            $table->timestamps();
-
-            $table->index(['api_system_id', 'endpoint']);
         });
 
         Schema::create('application_logs', function (Blueprint $table) {

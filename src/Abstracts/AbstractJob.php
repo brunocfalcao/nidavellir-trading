@@ -4,10 +4,11 @@ namespace Nidavellir\Trading\Abstracts;
 
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
+use Illuminate\Queue\SerializesModels;
+use Nidavellir\Trading\Models\JobQueue;
+use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
 
 abstract class AbstractJob implements ShouldQueue
 {
@@ -17,9 +18,11 @@ abstract class AbstractJob implements ShouldQueue
         Queueable,
         SerializesModels;
 
-    public $tries = 0;
+    public $tries = 1;
 
     public $timeout = 180;
+
+    public JobQueue $jobPollerInstance;
 
     // Define the backoff time in seconds
     public function backoff()
@@ -30,6 +33,11 @@ abstract class AbstractJob implements ShouldQueue
     // Define the retry time in seconds
     public function retryAfter()
     {
-        return 5;
+        return 1;
+    }
+
+    public function setJobPollerInstance($jobPollerInstance)
+    {
+        $this->jobPollerInstance = $jobPollerInstance;
     }
 }

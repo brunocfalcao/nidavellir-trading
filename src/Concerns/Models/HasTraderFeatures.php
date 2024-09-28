@@ -32,7 +32,7 @@ trait HasTraderFeatures
     // Returns the exchange class REST name to be instanciated.
     protected function getExchangeWrapperInUse()
     {
-        $className = $this->exchange->full_qualified_class_name_rest;
+        $className = $this->exchange->namespace_class_rest;
 
         /**
          * Return an exchange mapper, that is being used by
@@ -44,7 +44,7 @@ trait HasTraderFeatures
     // Returns the exchange class Websocket name to be instanciated.
     public function getExchangeWebsocketMapper()
     {
-        $className = $this->exchange->full_qualified_class_name_websocket;
+        $className = $this->exchange->namespace_class_websocket;
 
         return new $className($this);
     }
