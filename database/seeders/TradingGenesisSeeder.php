@@ -70,9 +70,9 @@ class TradingGenesisSeeder extends Seeder
         // Add the first chain of jobs under the same block UUID
         $jobPoller->addJob(UpsertSymbolsJob::class, 500)
             ->addJob(UpsertSymbolMetadataJob::class)
-            ->add(); // This saves the chain to the job queue
+            ->release(); // This saves the chain to the job queue
 
-        $jobPoller->release();
+        $jobPoller->handle();
 
         return;
 
