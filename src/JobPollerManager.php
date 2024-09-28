@@ -22,8 +22,8 @@ class JobPollerManager
         // Initialize with a new block UUID but avoid logging here
         $this->blockUUID = (string) Str::uuid();
 
-        // Set max parallel jobs from the environment variable or default to 2
-        $this->maxParallelJobs = (int) env('MAX_PARALLEL_JOBS', 2);
+        // Set max parallel jobs from the nidavellir configuration file
+        $this->maxParallelJobs = config('nidavellir.system.job_poller.max_parallel_jobs', 1);
     }
 
     /**
@@ -64,7 +64,7 @@ class JobPollerManager
      *
      * @return \Illuminate\Support\Collection
      */
-    public function add()
+    public function release()
     {
         $createdJobs = collect();
 
@@ -191,6 +191,6 @@ class JobPollerManager
      */
     public function getQueueName()
     {
-        return env('JOB_POLLER_QUEUE_NAME', gethostname());
+        return config('nidavellir.system.job_poller.queue_name', gethostname());
     }
 }

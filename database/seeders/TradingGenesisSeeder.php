@@ -72,7 +72,7 @@ class TradingGenesisSeeder extends Seeder
             ->addJob(UpsertSymbolMetadataJob::class)
             ->add(); // This saves the chain to the job queue
 
-        $jobPoller->handle();
+        $jobPoller->release();
 
         return;
 

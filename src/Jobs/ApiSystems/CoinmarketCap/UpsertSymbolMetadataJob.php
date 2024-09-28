@@ -77,10 +77,6 @@ class UpsertSymbolMetadataJob extends AbstractJob
                     }
                 }
             }
-            throw new UpsertSymbolMetadataException(
-                message: 'test error'
-            );
-
             $this->jobPollerInstance->markAsComplete();
         } catch (\Throwable $e) {
             $this->jobPollerInstance->markAsError($e);
