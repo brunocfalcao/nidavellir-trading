@@ -10,39 +10,36 @@ class JobQueue extends AbstractModel
     protected $table = 'job_queue';
 
     /**
-     * Mark this job as complete.
+     * Mark the job as complete.
      */
-    public function markAsComplete(): void
+    public function markAsComplete()
     {
-        $this->update([
-            'status' => 'completed',
-            'completed_at' => now(),
-        ]);
-
-        Log::info('Job marked as complete', [
-            'job_id' => $this->id,
-            'class' => $this->class,
-            'full_class_name' => $this->class,
-            'block_uuid' => $this->block_uuid,
-        ]);
+        $this->finalizeJob('completed');
+        Log::info('Job marked as complete: '.class_basename($this->class).' Duration: '.$this->duration.' ms');
     }
 
     /**
-     * Mark this job as failed with an error message.
+     * Mark the job as failed.
      */
-    public function markAsError(\Throwable $e): void
+    public function markAsError(\Throwable $e)
     {
-        $this->update([
-            'status' => 'failed',
-            'error_message' => $e->getMessage(),
-            'completed_at' => now(),
-        ]);
+        $this->error_message = $e->getMessage();
+        $this->finalizeJob('failed');
+        Log::error('Job marked as error: '.class_basename($this->class).' Duration: '.$this->duration.' ms. Error: '.$e->getMessage());
+    }
 
-        Log::error('Job marked as failed', [
-            'job_id' => $this->id,
-            'class' => $this->class,
-            'block_uuid' => $this->block_uuid,
-            'error_message' => $e->getMessage(),
-        ]);
+    /**
+     * Finalize the job by setting completion time, duration, and status.
+     */
+    private function finalizeJob(string $status)
+    {
+        // Record the completion time as a Unix timestamp in milliseconds
+        $this->completed_at = now()->valueOf();
+
+        // Calculate duration as the difference between completed_at and started_at
+        $this->duration = $this->started_at ? $this->completed_at - $this->started_at : null;
+
+        $this->status = $status;
+        $this->save();
     }
 }
