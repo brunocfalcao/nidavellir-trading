@@ -18,7 +18,6 @@ return new class extends Migration
             $table->json('arguments'); // Job arguments
             $table->string('status')->default('pending'); // Job status: pending, running, completed, failed
             $table->uuid('block_uuid')->nullable(); // Block UUID to group jobs
-            $table->integer('index')->nullable(); // Index for sequencing within a block
             $table->timestamp('started_at')->nullable(); // Job start time
             $table->timestamp('completed_at')->nullable(); // Job completion time
             $table->string('hostname')->nullable(); // Hostname of the server processing the job

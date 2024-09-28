@@ -10,16 +10,17 @@ use Nidavellir\Trading\Models\JobQueue;
 class JobPollerManager
 {
     protected string $blockUUID;
-
     protected int $currentIndex = 1;
-
     protected array $jobs = [];
+    protected int $maxParallelJobs;
 
     public function __construct()
     {
         // Initialize with a new block UUID but avoid logging here
         $this->blockUUID = (string) Str::uuid();
-        $this->currentIndex = 1;
+
+        // Set max parallel jobs from the environment variable or default to 2
+        $this->maxParallelJobs = (int) env('MAX_PARALLEL_JOBS', 5);
     }
 
     /**
@@ -31,19 +32,12 @@ class JobPollerManager
      */
     public function addJob(string $className, ...$arguments)
     {
-        // Add job to the collection
         $this->jobs[] = [
             'class' => $className,
             'arguments' => $arguments,
-            'index' => $this->currentIndex,
         ];
 
-        // Log a single line
-        Log::info('Job added: '.$className);
-
-        // Increment the index for the next job
-        $this->currentIndex++;
-
+        Log::info('Job added: ' . class_basename($className));
         return $this;
     }
 
@@ -56,10 +50,7 @@ class JobPollerManager
     public function newBlockUUID(?string $blockUUID = null)
     {
         $this->blockUUID = $blockUUID ?? (string) Str::uuid();
-        $this->currentIndex = 1; // Reset the index when a new block is generated
-
-        Log::info('New Block UUID generated or set: '.$this->blockUUID);
-
+        Log::info('New Block UUID generated or set: ' . $this->blockUUID);
         return $this;
     }
 
@@ -73,24 +64,18 @@ class JobPollerManager
         $createdJobs = collect();
 
         foreach ($this->jobs as $job) {
-            // Create the job record in the database
             $jobModel = JobQueue::create([
                 'class' => $job['class'],
-                'arguments' => json_encode($job['arguments']), // Store arguments as JSON
+                'arguments' => json_encode($job['arguments']),
                 'status' => 'pending',
                 'block_uuid' => $this->blockUUID,
-                'index' => $job['index'],
             ]);
 
-            Log::info('Job saved to the database: '.$jobModel->class);
-
-            // Add the created job model to the collection
+            Log::info('Job saved to the database: ' . class_basename($jobModel->class));
             $createdJobs->push($jobModel);
         }
 
-        // Clear the jobs array after adding them to the database
         $this->jobs = [];
-
         return $createdJobs;
     }
 
@@ -103,100 +88,39 @@ class JobPollerManager
     public function onBlockUUID(string $blockUUID)
     {
         $this->blockUUID = $blockUUID;
-
-        // Set the current index to the next available index within this block UUID
-        $lastJob = JobQueue::where('block_uuid', $blockUUID)
-            ->orderBy('index', 'desc')
-            ->first();
-
-        $this->currentIndex = $lastJob ? $lastJob->index + 1 : 1;
-
-        Log::info('Using existing Block UUID: '.$this->blockUUID);
-
+        Log::info('Using existing Block UUID: ' . $this->blockUUID);
         return $this;
     }
 
     /**
-     * Get the number of available workers
+     * Get eligible jobs based on the max parallel jobs allowed.
      *
-     * @return int
+     * @return \Illuminate\Support\Collection
      */
-    public function getNumberOfAvailableWorkers()
+    public function getEligibleJobs()
     {
-        // Fetch the total number of active workers from the ENV variable or assume 3 if not set
-        $totalWorkers = (int) env('TOTAL_WORKERS', 3);
-
-        // Calculate the number of jobs currently in a 'running' state
-        $runningJobsCount = JobQueue::where('status', 'running')->count();
-
-        $availableWorkers = max($totalWorkers - $runningJobsCount, 0);
-
-        Log::info('Determined number of available workers: '.$availableWorkers);
-
-        return $availableWorkers;
-    }
-
-    /**
-     * Get the queue name that this job poller should use.
-     *
-     * @return string
-     */
-    public function getQueueName()
-    {
-        // Use the hostname as the default queue name if not specified in the ENV
-        return env('JOB_POLLER_QUEUE_NAME', gethostname());
-    }
-
-    /**
-     * Get eligible jobs based on the number of available workers
-     *
-     * @param  int  $numAvailableWorkers
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    public function getEligibleJobs($numAvailableWorkers)
-    {
-        // Retrieve all pending jobs ordered by creation time
+        // Retrieve only the required number of pending jobs using LIMIT
         $pendingJobs = JobQueue::where('status', 'pending')
-            ->orderBy('created_at', 'asc')
+            ->orderBy('id', 'asc') // Use primary key 'id' for ordering
+            ->limit($this->maxParallelJobs) // Limit to maxParallelJobs
             ->lockForUpdate()
             ->get();
 
         $eligibleJobs = collect();
 
         foreach ($pendingJobs as $job) {
-            if ($job->block_uuid) {
-                // Find the job with the lowest index in the block
-                $nextJob = JobQueue::where('block_uuid', $job->block_uuid)
-                    ->where('status', 'pending')
-                    ->orderBy('index', 'asc')
-                    ->lockForUpdate()
-                    ->first();
+            Log::info('Assessing ' . class_basename($job->class));
 
-                if ($nextJob) {
-                    // Check if there's a job with an index just before this one that is running
-                    $previousJob = JobQueue::where('block_uuid', $job->block_uuid)
-                        ->where('index', $nextJob->index - 1)
-                        ->where('status', 'running')
-                        ->first();
+            // Directly add the job to the collection
+            $eligibleJobs->push($job);
 
-                    // If no running previous job is found, mark this job as eligible
-                    if (! $previousJob) {
-                        $eligibleJobs->push($nextJob);
-                    }
-                }
-            } else {
-                // If there is no block_uuid, the job itself is eligible
-                $eligibleJobs->push($job);
-            }
-
-            // Stop if we have collected enough jobs for the available workers
-            if ($eligibleJobs->count() >= $numAvailableWorkers) {
+            // Stop if we have collected enough jobs for the max parallel jobs
+            if ($eligibleJobs->count() >= $this->maxParallelJobs) {
                 break;
             }
         }
 
-        Log::info('Eligible jobs fetched: '.$eligibleJobs->count());
-
+        Log::info('Eligible jobs fetched: ' . $eligibleJobs->count());
         return $eligibleJobs;
     }
 
@@ -207,53 +131,66 @@ class JobPollerManager
     {
         $hostname = gethostname();
 
-        while (true) {
-            $numAvailableWorkers = $this->getNumberOfAvailableWorkers();
+        if ($this->maxParallelJobs > 0) {
+            $eligibleJobs = $this->getEligibleJobs();
 
-            if ($numAvailableWorkers > 0) {
-                $eligibleJobs = $this->getEligibleJobs($numAvailableWorkers);
-
-                // If no more eligible jobs, break the loop
-                if ($eligibleJobs->isEmpty()) {
-                    Log::info('No more eligible jobs to run.');
-                    break;
-                }
-
-                foreach ($eligibleJobs as $job) {
-                    DB::transaction(function () use ($job, $hostname) {
-                        // Mark job as running
-                        $job->update([
-                            'status' => 'running',
-                            'hostname' => $hostname,
-                            'started_at' => now(),
-                        ]);
-
-                        Log::info('Job started: '.$job->class);
-
-                        try {
-                            // Instantiate the job class with arguments
-                            $jobInstance = new $job->class(...json_decode($job->arguments, true));
-
-                            // Call the setJobPollerInstance method
-                            if (method_exists($jobInstance, 'setJobPollerInstance')) {
-                                $jobInstance->setJobPollerInstance($job);
-                            }
-
-                            // Dispatch the job asynchronously; workers will pick it up
-                            dispatch($jobInstance)->onQueue($this->getQueueName());
-
-                            Log::info('Job dispatched: '.$job->class);
-                        } catch (\Throwable $e) {
-                            // Log error and mark job as failed
-                            Log::error('Failed to dispatch job: '.$job->class.' - '.$e->getMessage());
-                            $job->update(['status' => 'failed']);
-                        }
-                    });
-                }
-            } else {
-                Log::info('No available workers or eligible jobs to run.');
-                break;
+            // If no eligible jobs, exit the method
+            if ($eligibleJobs->isEmpty()) {
+                Log::info("No more eligible jobs to run.");
+                return;
             }
+
+            foreach ($eligibleJobs as $job) {
+                Log::info("Job cycle start for: " . class_basename($job->class));
+
+                DB::transaction(function () use ($job, $hostname) {
+                    Log::info('Locking for update: ' . class_basename($job->class));
+                    $lockedJob = JobQueue::lockForUpdate()->find($job->id);
+
+                    if ($lockedJob->status !== 'pending') {
+                        Log::warning("Job already in progress or completed: " . class_basename($lockedJob->class));
+                        return;
+                    }
+
+                    // Mark job as running
+                    $lockedJob->update([
+                    'status' => 'running',
+                    'hostname' => $hostname,
+                    'started_at' => now(),
+                    ]);
+
+                    try {
+                        $jobInstance = new $lockedJob->class(...json_decode($lockedJob->arguments, true));
+
+                        if (method_exists($jobInstance, 'setJobPollerInstance')) {
+                            $jobInstance->setJobPollerInstance($lockedJob);
+                        }
+
+                        Log::info("Job dispatching: " . class_basename($lockedJob->class));
+                        dispatch($jobInstance)->onQueue($this->getQueueName());
+
+                        Log::info("Job dispatched: " . class_basename($lockedJob->class));
+                    } catch (\Throwable $e) {
+                        Log::error("Failed to dispatch job: " . class_basename($lockedJob->class) . " - " . $e->getMessage());
+                        $lockedJob->update(['status' => 'failed']);
+                    }
+                });
+
+                // Since getEligibleJobs() ensures only the allowed number of jobs are fetched,
+                // there's no need for further checks; the loop will naturally terminate after maxParallelJobs jobs
+            }
+        } else {
+            Log::info("No available jobs to run in parallel.");
         }
+    }
+
+    /**
+     * Get the queue name that this job poller should use.
+     *
+     * @return string
+     */
+    public function getQueueName()
+    {
+        return env('JOB_POLLER_QUEUE_NAME', gethostname());
     }
 }

@@ -3,11 +3,11 @@
 namespace Nidavellir\Trading\Commands\System;
 
 use Illuminate\Console\Command;
-use Nidavellir\Trading\Services\JobPollerManager;
+use Nidavellir\Trading\JobPollerManager;
 
 class JobPollerCommand extends Command
 {
-    protected $signature = 'jobs:poller';
+    protected $signature = 'nidavellir:job-poller';
 
     protected $description = 'Polls and selects jobs for execution from the jobs_queue table';
 
