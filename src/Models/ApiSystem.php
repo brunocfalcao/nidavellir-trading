@@ -36,6 +36,6 @@ class ApiSystem extends AbstractModel
 
     public function exchangeSymbols()
     {
-        return $this->hasMany(ExchangeSymbol::class);
+        return $this->hasMany(ExchangeSymbol::class, 'exchange_id');
     }
 }

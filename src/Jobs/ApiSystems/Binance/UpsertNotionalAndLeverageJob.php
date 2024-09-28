@@ -63,7 +63,7 @@ class UpsertNotionalAndLeverageJob extends AbstractJob
                     $symbol = Symbol::firstWhere('token', $token);
 
                     if ($symbol) {
-                        ExchangeSymbol::where('api_system_id', $exchange->id)
+                        ExchangeSymbol::where('exchange_id', $exchange->id)
                             ->where('symbol_id', $symbol->id)
                             ->update([
                                 'api_notional_and_leverage_symbol_information' => $symbolData,

@@ -100,7 +100,7 @@ class UpsertExchangeAvailableSymbolsJob extends AbstractJob
                     ->whereHas('symbol', function ($query) use ($token) {
                         $query->where('token', $token);
                     })
-                    ->where('api_system_id', $exchange->id)
+                    ->where('exchange_id', $exchange->id)
                     ->first();
 
                 $symbol = Symbol::firstWhere('token', $token);
@@ -108,7 +108,7 @@ class UpsertExchangeAvailableSymbolsJob extends AbstractJob
                 if ($symbol) {
                     $symbolData = [
                         'symbol_id' => $symbol->id,
-                        'api_system_id' => $exchange->id,
+                        'exchange_id' => $exchange->id,
                         'precision_price' => $tokenData['precision_price'],
                         'precision_quantity' => $tokenData['precision_quantity'],
                         'precision_quote' => $tokenData['precision_quote'],
@@ -120,7 +120,7 @@ class UpsertExchangeAvailableSymbolsJob extends AbstractJob
                         ExchangeSymbol::updateOrCreate(
                             [
                                 'symbol_id' => $symbolData['symbol_id'],
-                                'api_system_id' => $exchange->id,
+                                'exchange_id' => $exchange->id,
                             ],
                             $symbolData
                         );

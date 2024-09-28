@@ -9,6 +9,7 @@ use Nidavellir\Trading\ApiSystems\ApiSystemRESTWrapper;
 use Nidavellir\Trading\ApiSystems\CoinmarketCap\CoinmarketCapRESTMapper;
 use Nidavellir\Trading\ApiSystems\Taapi\TaapiRESTMapper;
 use Nidavellir\Trading\Jobs\ApiSystems\CoinmarketCap\UpsertSymbolsJob;
+use Nidavellir\Trading\Jobs\Symbols\UpsertSymbolTradeDirectionJob;
 use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Models\Trader;
 use Nidavellir\Trading\Nidavellir;
@@ -32,6 +33,8 @@ class DebugCommand extends Command
         DB::table('api_requests_log')->truncate();
         DB::table('application_logs')->truncate();
         DB::table('exceptions_log')->truncate();
+
+        UpsertSymbolTradeDirectionJob::dispatchSync();
 
         /*
         $wrapper = (new ApiSystemRESTWrapper(

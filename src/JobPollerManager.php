@@ -3,7 +3,6 @@
 namespace Nidavellir\Trading;
 
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Nidavellir\Trading\Models\JobQueue;
 
@@ -98,18 +97,18 @@ class JobPollerManager
     {
         // Retrieve block UUIDs that have jobs in 'running' or 'failed' status
         $blockedUUIDs = JobQueue::whereIn('status', ['running', 'failed'])
-        ->pluck('block_uuid')
-        ->unique()
-        ->filter()
-        ->toArray();
+            ->pluck('block_uuid')
+            ->unique()
+            ->filter()
+            ->toArray();
 
         // Retrieve pending jobs excluding those from blocked UUIDs
         $pendingJobs = JobQueue::where('status', 'pending')
-        ->whereNotIn('block_uuid', $blockedUUIDs) // Exclude blocked UUIDs
-        ->orderBy('id', 'asc') // Use primary key 'id' for ordering
-        ->limit($this->maxParallelJobs) // Limit to maxParallelJobs
-        ->lockForUpdate()
-        ->get();
+            ->whereNotIn('block_uuid', $blockedUUIDs) // Exclude blocked UUIDs
+            ->orderBy('id', 'asc') // Use primary key 'id' for ordering
+            ->limit($this->maxParallelJobs) // Limit to maxParallelJobs
+            ->lockForUpdate()
+            ->get();
 
         $eligibleJobs = collect();
 
@@ -147,9 +146,9 @@ class JobPollerManager
 
                 // Mark job as running and record the start time in milliseconds
                 $lockedJob->update([
-                'status' => 'running',
-                'hostname' => $hostname,
-                'started_at' => now()->valueOf(), // Use valueOf() to store timestamp in milliseconds
+                    'status' => 'running',
+                    'hostname' => $hostname,
+                    'started_at' => now()->valueOf(), // Use valueOf() to store timestamp in milliseconds
                 ]);
 
                 // We update $job reference to the locked job with fresh data

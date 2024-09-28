@@ -5,12 +5,11 @@ namespace Nidavellir\Trading\Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\File;
-use Nidavellir\Trading\Models\Trader;
 use Nidavellir\Trading\JobPollerManager;
-use Nidavellir\Trading\Models\ApiSystem;
-use Nidavellir\Trading\Jobs\System\Taapi\UpsertTaapiAvailableSymbols;
-use Nidavellir\Trading\Jobs\ApiSystems\CoinmarketCap\UpsertSymbolsJob;
 use Nidavellir\Trading\Jobs\ApiSystems\CoinmarketCap\UpsertSymbolMetadataJob;
+use Nidavellir\Trading\Jobs\ApiSystems\CoinmarketCap\UpsertSymbolsJob;
+use Nidavellir\Trading\Models\ApiSystem;
+use Nidavellir\Trading\Models\Trader;
 
 class TradingGenesisSeeder extends Seeder
 {
@@ -21,6 +20,7 @@ class TradingGenesisSeeder extends Seeder
         $apiSystem = new ApiSystem;
         $apiSystem->name = 'Binance';
         $apiSystem->canonical = 'binance';
+        $apiSystem->taapi_canonical = 'binancefutures';
         $apiSystem->is_exchange = true;
         $apiSystem->namespace_prefix_jobs = "Nidavellir\Trading\Jobs\ApiSystems\Binance";
         $apiSystem->namespace_class_rest = "Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper";
@@ -42,7 +42,6 @@ class TradingGenesisSeeder extends Seeder
         $taapi->namespace_class_rest = "Nidavellir\Trading\ApiSystems\Taapi\TaapiRESTMapper";
         $taapi->namespace_prefix_jobs = "Nidavellir\Trading\Jobs\ApiSystems\Taapi";
         $taapi->other_url_prefix = 'https://api.taapi.io';
-        $taapi->other_information = ['canonicals' => ['binance' => 'binancefutures']];
         $taapi->save();
 
         // Admin/standard trader person.
@@ -79,16 +78,13 @@ class TradingGenesisSeeder extends Seeder
 
             // Add the exchange-specific jobs to the current block UUID
             $jobPoller->addJob($nsPrefix.'\\UpsertExchangeAvailableSymbolsJob')
-                      ->addJob($nsPrefix.'\\UpsertNotionalAndLeverageJob');
+                ->addJob($nsPrefix.'\\UpsertNotionalAndLeverageJob');
         }
-
-        // Finally, add the job that should be the last to run in the same block UUID
-        $jobPoller->addJob(UpsertTaapiAvailableSymbols::class);
 
         // Release queued jobs into the job poller.
         $jobPoller->release();
 
         // Start handling jobs.
-        // $jobPoller->handle();
+        $jobPoller->handle();
     }
 }

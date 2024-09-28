@@ -54,6 +54,7 @@ return new class extends Migration
             $table->string('namespace_class_websocket')->nullable()->comment('E.g: Nidavellir\Trading\ApiSystems\Binance\BinanceWebsocketMapper');
             $table->string('futures_url_rest_prefix')->nullable();
             $table->string('futures_url_websockets_prefix')->nullable();
+            $table->string('taapi_canonical')->nullable();
             $table->string('other_url_prefix')->nullable();
             $table->longText('other_information')->nullable();
             $table->timestamps();
@@ -117,7 +118,7 @@ return new class extends Migration
         Schema::create('exchange_symbols', function (Blueprint $table) {
             $table->id();
             $table->foreignId('symbol_id');
-            $table->foreignId('api_system_id');
+            $table->unsignedInteger('exchange_id');
             $table->unsignedInteger('precision_price');
             $table->unsignedInteger('precision_quantity');
             $table->unsignedInteger('precision_quote');
@@ -136,7 +137,7 @@ return new class extends Migration
             $table->timestamp('price_last_synced_at')->nullable();
             $table->timestamps();
 
-            $table->unique(['symbol_id', 'api_system_id']);
+            $table->unique(['symbol_id', 'exchange_id']);
         });
 
         Schema::table('users', function (Blueprint $table) {
