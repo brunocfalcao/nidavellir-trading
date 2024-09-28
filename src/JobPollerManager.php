@@ -40,8 +40,6 @@ class JobPollerManager
             'arguments' => $arguments,
         ];
 
-        Log::info('Job added: '.class_basename($className));
-
         return $this;
     }
 
@@ -54,7 +52,6 @@ class JobPollerManager
     public function newBlockUUID(?string $blockUUID = null)
     {
         $this->blockUUID = $blockUUID ?? (string) Str::uuid();
-        Log::info('New Block UUID generated or set: '.$this->blockUUID);
 
         return $this;
     }
@@ -76,7 +73,6 @@ class JobPollerManager
                 'block_uuid' => $this->blockUUID,
             ]);
 
-            Log::info('Job saved to the database: '.class_basename($jobModel->class));
             $createdJobs->push($jobModel);
         }
 
@@ -94,31 +90,31 @@ class JobPollerManager
     public function onBlockUUID(string $blockUUID)
     {
         $this->blockUUID = $blockUUID;
-        Log::info('Using existing Block UUID: '.$this->blockUUID);
 
         return $this;
     }
 
-    /**
-     * Get eligible jobs based on the max parallel jobs allowed.
-     *
-     * @return \Illuminate\Support\Collection
-     */
     public function getEligibleJobs()
     {
-        // Retrieve only the required number of pending jobs using LIMIT
+        // Retrieve block UUIDs that have jobs in 'running' or 'failed' status
+        $blockedUUIDs = JobQueue::whereIn('status', ['running', 'failed'])
+        ->pluck('block_uuid')
+        ->unique()
+        ->filter()
+        ->toArray();
+
+        // Retrieve pending jobs excluding those from blocked UUIDs
         $pendingJobs = JobQueue::where('status', 'pending')
-            ->orderBy('id', 'asc') // Use primary key 'id' for ordering
-            ->limit($this->maxParallelJobs) // Limit to maxParallelJobs
-            ->lockForUpdate()
-            ->get();
+        ->whereNotIn('block_uuid', $blockedUUIDs) // Exclude blocked UUIDs
+        ->orderBy('id', 'asc') // Use primary key 'id' for ordering
+        ->limit($this->maxParallelJobs) // Limit to maxParallelJobs
+        ->lockForUpdate()
+        ->get();
 
         $eligibleJobs = collect();
 
         foreach ($pendingJobs as $job) {
-            Log::info('Assessing '.class_basename($job->class));
-
-            // Directly add the job to the collection
+            // Add the job to the collection if the block UUID is not blocked
             $eligibleJobs->push($job);
 
             // Stop if we have collected enough jobs for the max parallel jobs
@@ -126,8 +122,6 @@ class JobPollerManager
                 break;
             }
         }
-
-        Log::info('Eligible jobs fetched: '.$eligibleJobs->count());
 
         return $eligibleJobs;
     }
@@ -140,47 +134,42 @@ class JobPollerManager
 
         // If no eligible jobs, exit the method
         if ($eligibleJobs->isEmpty()) {
-            Log::info('No more eligible jobs to run.');
-
             return;
         }
 
         foreach ($eligibleJobs as $job) {
-            Log::info('Job cycle start for: '.class_basename($job->class));
-
-            DB::transaction(function () use ($job, $hostname) {
-                Log::info('Locking for update: '.class_basename($job->class));
+            DB::transaction(function () use (&$job, $hostname) {
                 $lockedJob = JobQueue::lockForUpdate()->find($job->id);
 
                 if ($lockedJob->status !== 'pending') {
-                    Log::warning('Job already in progress or completed: '.class_basename($lockedJob->class));
-
                     return;
                 }
 
                 // Mark job as running and record the start time in milliseconds
                 $lockedJob->update([
-                    'status' => 'running',
-                    'hostname' => $hostname,
-                    'started_at' => now()->valueOf(), // Use valueOf() to store timestamp in milliseconds
+                'status' => 'running',
+                'hostname' => $hostname,
+                'started_at' => now()->valueOf(), // Use valueOf() to store timestamp in milliseconds
                 ]);
 
-                try {
-                    $jobInstance = new $lockedJob->class(...json_decode($lockedJob->arguments, true));
-
-                    if (method_exists($jobInstance, 'setJobPollerInstance')) {
-                        $jobInstance->setJobPollerInstance($lockedJob);
-                    }
-
-                    Log::info('Job dispatching: '.class_basename($lockedJob->class));
-                    dispatch($jobInstance)->onQueue($this->getQueueName());
-
-                    Log::info('Job dispatched: '.class_basename($lockedJob->class));
-                } catch (\Throwable $e) {
-                    Log::error('Failed to dispatch job: '.class_basename($lockedJob->class).' - '.$e->getMessage());
-                    $lockedJob->update(['status' => 'failed']);
-                }
+                // We update $job reference to the locked job with fresh data
+                $job = $lockedJob;
             });
+
+            try {
+                // Instantiate the job class with arguments outside of the transaction
+                $jobInstance = new $job->class(...json_decode($job->arguments, true));
+
+                if (method_exists($jobInstance, 'setJobPollerInstance')) {
+                    $jobInstance->setJobPollerInstance($job);
+                }
+
+                // Dispatch the job outside of the transaction; workers will pick it up
+                dispatch($jobInstance)->onQueue($this->getQueueName());
+            } catch (\Throwable $e) {
+                // Update the job status to 'failed' outside the transaction
+                $job->update(['status' => 'failed']);
+            }
         }
     }
 

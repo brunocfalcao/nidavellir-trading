@@ -5,11 +5,12 @@ namespace Nidavellir\Trading\Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\File;
-use Nidavellir\Trading\JobPollerManager;
-use Nidavellir\Trading\Jobs\ApiSystems\CoinmarketCap\UpsertSymbolMetadataJob;
-use Nidavellir\Trading\Jobs\ApiSystems\CoinmarketCap\UpsertSymbolsJob;
-use Nidavellir\Trading\Models\ApiSystem;
 use Nidavellir\Trading\Models\Trader;
+use Nidavellir\Trading\JobPollerManager;
+use Nidavellir\Trading\Models\ApiSystem;
+use Nidavellir\Trading\Jobs\System\Taapi\UpsertTaapiAvailableSymbols;
+use Nidavellir\Trading\Jobs\ApiSystems\CoinmarketCap\UpsertSymbolsJob;
+use Nidavellir\Trading\Jobs\ApiSystems\CoinmarketCap\UpsertSymbolMetadataJob;
 
 class TradingGenesisSeeder extends Seeder
 {
@@ -68,13 +69,9 @@ class TradingGenesisSeeder extends Seeder
         $jobPoller->newBlockUUID();
 
         // Add the first chain of jobs under the same block UUID
-        $jobPoller->addJob(UpsertSymbolsJob::class, 500)
-            ->addJob(UpsertSymbolMetadataJob::class)
-            ->release(); // This saves the chain to the job queue
-
-        $jobPoller->handle();
-
-        return;
+        $jobPoller
+            ->addJob(UpsertSymbolsJob::class, 500)
+            ->addJob(UpsertSymbolMetadataJob::class);
 
         // Iterate through each exchange and add exchange-specific job chains using the same block UUID
         foreach (ApiSystem::all()->where('is_exchange', true) as $exchange) {
@@ -82,14 +79,16 @@ class TradingGenesisSeeder extends Seeder
 
             // Add the exchange-specific jobs to the current block UUID
             $jobPoller->addJob($nsPrefix.'\\UpsertExchangeAvailableSymbolsJob')
-                ->addJob($nsPrefix.'\\UpsertNotionalAndLeverageJob')
-                ->add(); // Save the jobs for this exchange
+                      ->addJob($nsPrefix.'\\UpsertNotionalAndLeverageJob');
         }
 
         // Finally, add the job that should be the last to run in the same block UUID
-        $jobPoller->addJob(\Nidavellir\Job\UpsertTaapiAvailableSymbols::class)
-            ->add(); // Save the final job
+        $jobPoller->addJob(UpsertTaapiAvailableSymbols::class);
 
-        $jobPoller->handle();
+        // Release queued jobs into the job poller.
+        $jobPoller->release();
+
+        // Start handling jobs.
+        // $jobPoller->handle();
     }
 }

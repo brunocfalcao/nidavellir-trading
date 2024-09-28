@@ -65,7 +65,10 @@ class UpsertExchangeAvailableSymbolsJob extends AbstractJob
 
             // Sync or update the exchange symbols in the database.
             $this->syncExchangeSymbols();
+            $this->jobPollerInstance->markAsComplete();
         } catch (\Throwable $e) {
+            $this->jobPollerInstance->markAsError($e);
+
             throw new TryCatchException(
                 throwable: $e,
             );

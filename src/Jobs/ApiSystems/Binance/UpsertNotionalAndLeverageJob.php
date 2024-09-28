@@ -71,7 +71,9 @@ class UpsertNotionalAndLeverageJob extends AbstractJob
                     }
                 }
             }
+            $this->jobPollerInstance->markAsComplete();
         } catch (\Throwable $e) {
+            $this->jobPollerInstance->markAsError($e);
             throw new TryCatchException(
                 throwable: $e,
             );
