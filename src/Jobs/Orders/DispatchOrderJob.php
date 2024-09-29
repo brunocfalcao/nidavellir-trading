@@ -124,6 +124,7 @@ class DispatchOrderJob extends AbstractJob
                 ! $this->shouldWaitForAllOrdersExceptProfit($siblings)) {
                 $this->processOrder();
             }
+            info('Marking Job Order ' . $this->order->id . ' as completed.');
             $this->jobPollerInstance->markAsComplete();
         } catch (\Throwable $e) {
             $this->jobPollerInstance->markAsError($e);
