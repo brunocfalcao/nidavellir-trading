@@ -10,9 +10,7 @@ use Nidavellir\Trading\Models\ApiRequestLog;
 class CoinmarketCapAPIClient
 {
     private string $baseURL;
-
     private string $apiKey;
-
     private $httpRequest = null;
 
     public function __construct(array $args)
@@ -22,9 +20,6 @@ class CoinmarketCapAPIClient
         $this->buildClient();
     }
 
-    /**
-     * Public request method to interact with CoinMarketCap API.
-     */
     public function publicRequest($method, $path, array $parameters = [])
     {
         return $this->processRequest($method, $path, $parameters);
@@ -32,18 +27,18 @@ class CoinmarketCapAPIClient
 
     protected function processRequest($method, $path, $properties = [])
     {
-        $logData = [];
-        $logData['path'] = $path;
-        $logData['payload'] = $properties;
-        $logData['http_method'] = $method;
-        $logData['http_headers_sent'] = [
-            'X-CMC_PRO_API_KEY' => $this->apiKey,
-            'Content-Type' => 'application/json',
+        $logData = [
+            'path' => $path,
+            'payload' => $properties,
+            'http_method' => $method,
+            'http_headers_sent' => [
+                'X-CMC_PRO_API_KEY' => $this->apiKey,
+                'Content-Type' => 'application/json',
+            ],
+            'hostname' => gethostname(),
         ];
-        $logData['hostname'] = gethostname();
 
         try {
-            // Send the GET request to CoinMarketCap with the necessary parameters
             $response = $this->httpRequest->request($method, $path, [
                 'query' => $properties['options'],
                 'headers' => ['X-CMC_PRO_API_KEY' => $this->apiKey],
@@ -65,14 +60,11 @@ class CoinmarketCapAPIClient
 
             $this->logApiRequest($logData);
 
-            // Handle rate limiting error for CoinMarketCap
             if ($e->getCode() === 429) {
                 throw new ApiException('Rate limit exceeded: You have exceeded your request limit (CoinMarketCap rate-limit)!', 429);
             }
 
-            throw new TryCatchException(
-                throwable: $e
-            );
+            throw new TryCatchException(throwable: $e);
         }
 
         return json_decode($response->getBody(), true);
@@ -90,10 +82,7 @@ class CoinmarketCapAPIClient
         ]);
     }
 
-    /**
-     * Logs the API request to the database.
-     */
-    protected function logApiRequest(array $logData): void
+    protected function logApiRequest(array $logData)
     {
         ApiRequestLog::create($logData);
     }

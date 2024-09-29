@@ -10,9 +10,7 @@ use Nidavellir\Trading\Models\ApiRequestLog;
 class TaapiAPIClient
 {
     private $baseURL;
-
     private $apiKey;
-
     private $httpRequest = null;
 
     public function __construct(array $args)
@@ -22,9 +20,6 @@ class TaapiAPIClient
         $this->buildClient();
     }
 
-    /**
-     * Makes a public request to the Taapi.io API.
-     */
     public function publicRequest($method, $path, array $parameters = [])
     {
         return $this->processRequest($method, $path, $parameters);
@@ -32,26 +27,22 @@ class TaapiAPIClient
 
     protected function processRequest($method, $path, $properties = [])
     {
-        // We just need the options key.
         $options = $properties['options'];
 
-        $logData = [];
-
-        $logData['path'] = $path;
-        $logData['payload'] = $options;
-        $logData['http_method'] = $method;
-        $logData['http_headers_sent'] = [
-            'Content-Type' => 'application/json',
+        $logData = [
+            'path' => $path,
+            'payload' => $options,
+            'http_method' => $method,
+            'http_headers_sent' => [
+                'Content-Type' => 'application/json',
+            ],
+            'hostname' => gethostname(),
         ];
-        $logData['hostname'] = gethostname();
 
         try {
-            // Include the API key in the parameters as required by Taapi.io
             $options['secret'] = $this->apiKey;
-
-            // Send the GET request to Taapi.io without complex query building
             $response = $this->httpRequest->request($method, $path, [
-                'query' => $options, // Using 'query' to handle GET parameters properly
+                'query' => $options,
             ]);
 
             $logData['http_response_code'] = $response->getStatusCode();
@@ -92,10 +83,7 @@ class TaapiAPIClient
         ]);
     }
 
-    /**
-     * Logs the API request to the database.
-     */
-    protected function logApiRequest(array $logData): void
+    protected function logApiRequest(array $logData)
     {
         ApiRequestLog::create($logData);
     }

@@ -8,8 +8,7 @@ use Nidavellir\Trading\ApiSystems\Concerns\HasTaapiOperations;
 
 class ApiSystemRESTWrapper extends AbstractRESTWrapper
 {
-    use HasCoinmarketCapOperations;
-    use HasTaapiOperations;
+    use HasCoinmarketCapOperations, HasTaapiOperations;
 
     public function cancelOrder()
     {

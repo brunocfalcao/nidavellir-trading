@@ -12,8 +12,6 @@ class GetSymbolsMetadata extends AbstractCaller
     public function call()
     {
         $api = new API($this->mapper->connectionDetails());
-        $this->result = $api->getSymbolsMetadata(
-            $this->mapper->properties
-        );
+        $this->result = $api->getSymbolsMetadata($this->mapper->properties);
     }
 }

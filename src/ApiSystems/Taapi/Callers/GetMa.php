@@ -12,9 +12,6 @@ class GetMa extends AbstractCaller
     public function call()
     {
         $api = new API($this->mapper->connectionDetails());
-
-        $this->result = $api->getMa(
-            $this->mapper->properties
-        );
+        $this->result = $api->getMa($this->mapper->properties);
     }
 }

@@ -12,9 +12,6 @@ class GetExchangeSymbols extends AbstractCaller
     public function call()
     {
         $api = new API($this->mapper->connectionDetails());
-
-        $this->result = $api->getExchangeSymbols(
-            $this->mapper->properties
-        );
+        $this->result = $api->getExchangeSymbols($this->mapper->properties);
     }
 }

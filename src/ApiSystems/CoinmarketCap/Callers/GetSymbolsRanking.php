@@ -12,9 +12,6 @@ class GetSymbolsRanking extends AbstractCaller
     public function call()
     {
         $api = new API($this->mapper->connectionDetails());
-
-        $this->result = $api->getSymbolsRanking(
-            $this->mapper->properties
-        );
+        $this->result = $api->getSymbolsRanking($this->mapper->properties);
     }
 }

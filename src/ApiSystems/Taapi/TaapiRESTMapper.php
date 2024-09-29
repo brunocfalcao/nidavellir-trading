@@ -22,13 +22,11 @@ class TaapiRESTMapper extends AbstractMapper
         ];
     }
 
-    // https://taapi.io/exchanges/binance/#symbols
     public function getExchangeSymbols()
     {
         return (new GetExchangeSymbols($this))->result;
     }
 
-    // https://taapi.io/indicators/moving-average/
     public function getMa()
     {
         return (new GetMa($this))->result;
