@@ -124,7 +124,9 @@ class DispatchOrderJob extends AbstractJob
                 ! $this->shouldWaitForAllOrdersExceptProfit($siblings)) {
                 $this->processOrder();
             }
+            $this->jobPollerInstance->markAsComplete();
         } catch (\Throwable $e) {
+            $this->jobPollerInstance->markAsError($e);
             // Set this order on error.
             $this->order->update(['status' => 'error']);
 
