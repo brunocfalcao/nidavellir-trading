@@ -72,6 +72,7 @@ class DispatchPositionJob extends AbstractJob
             }
 
             // Log key information about the position.
+            /*
             info_multiple(
                 '=== POSITION ID ' . $this->position->id,
                 'Side: ' . $this->position->side,
@@ -83,6 +84,7 @@ class DispatchPositionJob extends AbstractJob
                 '===',
                 ' '
             );
+            */
 
             // Dispatch the related orders for this position.
             $this->dispatchOrders($this->position);
@@ -208,7 +210,7 @@ class DispatchPositionJob extends AbstractJob
 
         // Update the position's side and initial profit percentage ratio.
         $this->position->update([
-            'side' => $this->position->exchangeSymbol->symbol->side,
+            'side' => $this->position->exchangeSymbol->side,
             'initial_profit_percentage_ratio' => $profitRatio,
         ]);
     }

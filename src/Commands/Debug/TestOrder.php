@@ -46,7 +46,7 @@ class TestOrder extends Command
 
         // Info message including mark price if provided
         $infoMessage = 'Placing '.
-                       $symbol->side.
+                       $exchangeSymbol->side.
                        " order with amount: $amount and token: $token";
         if ($markPrice) {
             $infoMessage .= " at mark price: $markPrice";
