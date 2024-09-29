@@ -4,7 +4,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Nidavellir\Trading\Models\ExceptionLog;
 
-// Define the logExceptionChain function only once
 if (! function_exists('logExceptionChain')) {
     function logExceptionChain($exception)
     {
@@ -14,7 +13,9 @@ if (! function_exists('logExceptionChain')) {
             $file = $exception->getFile();
             $line = $exception->getLine();
             $timestamp = Carbon::now()->format('Y-m-d H:i:s');
-            $additionalData = method_exists($exception, 'getAdditionalData') ? $exception->getAdditionalData() : [];
+            $additionalData = method_exists($exception, 'getAdditionalData')
+                ? $exception->getAdditionalData()
+                : [];
 
             $logEntry = "======= {$className} =======\n".
                         "Date / Time: {$timestamp}\n".
@@ -28,11 +29,8 @@ if (! function_exists('logExceptionChain')) {
 
             $stackTrace = array_map(function ($trace) {
                 if (isset($trace['file'], $trace['line'])) {
-                    $fileName = basename($trace['file']);
-
-                    return "{$fileName} [{$trace['line']}]";
+                    return basename($trace['file'])." [{$trace['line']}]";
                 }
-
                 return null;
             }, array_slice($exception->getTrace(), 0, 10));
 
@@ -42,8 +40,8 @@ if (! function_exists('logExceptionChain')) {
             ExceptionLog::create([
                 'exception_message' => $message,
                 'filename' => basename($file)." [{$line}]",
-                'stack_trace' => $stackTrace,
-                'additional_data' => $additionalData,
+                'stack_trace' => json_encode($stackTrace),
+                'additional_data' => json_encode($additionalData),
             ]);
 
             $logEntry .= "Stack Trace:\n{$formattedStackTrace}\n".
@@ -51,7 +49,6 @@ if (! function_exists('logExceptionChain')) {
 
             Log::error($logEntry);
 
-            // Move to the next exception in the chain
             $exception = $exception->getPrevious();
         }
     }

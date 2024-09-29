@@ -17,11 +17,7 @@ use Nidavellir\Trading\Abstracts\AbstractListener;
  */
 class LoggedInListener extends AbstractListener
 {
-    /**
-     * Handles the login event by updating the user's login timestamps.
-     *
-     * @param  Login  $event  The login event containing the user data.
-     */
+    // Handles the login event by updating the user's login timestamps.
     public function handle(Login $event)
     {
         // Store the previous login time before updating to the current login time.

@@ -15,7 +15,6 @@ class PositionCreatedEvent
 
     public function __construct(Position $position)
     {
-        // The current created position.
         $this->position = $position;
     }
 }

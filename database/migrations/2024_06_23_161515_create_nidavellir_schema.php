@@ -14,6 +14,8 @@ return new class extends Migration
     {
         Schema::create('job_queue', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('related_id')->nullable(); // Reference to the related model's ID
+            $table->string('related_type')->nullable(); // The class name of the related model
             $table->string('class'); // Job class name
             $table->json('arguments'); // Job arguments
             $table->string('status')->default('pending'); // Job status: pending, running, completed, failed
@@ -24,6 +26,8 @@ return new class extends Migration
             $table->text('error_message')->nullable();
             $table->string('hostname')->nullable(); // Hostname of the server processing the job
             $table->timestamps(); // Created and updated timestamps
+
+            $table->index(['related_id', 'related_type']); // Add an index for optimization
         });
 
         Schema::create('api_requests_log', function (Blueprint $table) {

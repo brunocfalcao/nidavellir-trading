@@ -12,20 +12,10 @@ use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Nidavellir;
 
-/**
- * UpsertNotionalAndLeverageJob fetches and updates notional and
- * leverage information for symbols on Binance. It synchronizes
- * the leverage data for USDT-margin pairs by updating the
- * corresponding `ExchangeSymbol` records in the database.
- */
 class UpsertNotionalAndLeverageJob extends AbstractJob
 {
     public ApiSystemRESTWrapper $wrapper;
 
-    /**
-     * Constructor to initialize the API wrapper with Binance
-     * credentials and generate a UUID block for logging.
-     */
     public function __construct()
     {
         $this->wrapper = new ApiSystemRESTWrapper(
@@ -35,22 +25,16 @@ class UpsertNotionalAndLeverageJob extends AbstractJob
         );
     }
 
-    /**
-     * Main function to handle fetching and updating notional
-     * and leverage data for Binance symbols.
-     */
     public function handle()
     {
         try {
-            // Retrieve the Binance exchange record from the database.
             $exchange = ApiSystem::firstWhere('canonical', 'binance');
 
-            // Fetch notional and leverage data for all symbols from Binance API.
             $symbols = $this->wrapper
                 ->withLoggable($exchange)
                 ->getLeverageBrackets();
 
-            if (! $symbols) {
+            if (!$symbols) {
                 throw new NotionalAndLeverageNotSyncedException(
                     message: 'No notional and leverage data received',
                     additionalData: ['exchange' => 'binance']
@@ -74,9 +58,7 @@ class UpsertNotionalAndLeverageJob extends AbstractJob
             $this->jobPollerInstance->markAsComplete();
         } catch (\Throwable $e) {
             $this->jobPollerInstance->markAsError($e);
-            throw new TryCatchException(
-                throwable: $e,
-            );
+            throw new TryCatchException(throwable: $e);
         }
     }
 }

@@ -10,34 +10,36 @@ use Nidavellir\Trading\Jobs\Orders\CancelOrderJob;
 use Nidavellir\Trading\Models\Position;
 
 /**
- * This is the position validation after all the orders were
- * attempted to be placed. This will verify if there is an order with
- * error. If that's the case, then it will cancel all the orders
- * that were synced correctly and will put this position status
- * as complete-error.
+ * Class: ValidatePositionJob
+ *
+ * This job handles the validation of a trading position.
+ * It checks for position existence, validates its status,
+ * and manages any errors by cancelling associated orders.
+ *
+ * Important points:
+ * - Ensures the position is valid before further processing.
+ * - Cancels orders if the position has encountered an error.
+ * - Updates the position's status accordingly.
  */
 class ValidatePositionJob extends AbstractJob
 {
+    // ID of the position being validated.
     public int $positionId;
 
+    // The position model instance being validated.
     public Position $position;
 
-    /**
-     * Constructor to initialize the position ID.
-     */
     public function __construct(int $positionId)
     {
         $this->positionId = $positionId;
-
         $this->position = Position::find($positionId);
     }
 
-    /**
-     * Handle the job to update the position status.
-     */
+    // Main handle method to validate the position's status and orders.
     public function handle()
     {
         try {
+            // Check if the position exists; throw an exception if not found.
             if (! $this->position) {
                 throw new PositionValidationException(
                     message: 'Position ID for validation not found',
@@ -45,45 +47,39 @@ class ValidatePositionJob extends AbstractJob
                 );
             }
 
-            /**
-             * Position already in synced or closed state? Return.
-             */
+            // If the position is already synced or closed, exit the method.
             if (in_array($this->position->status, ['synced', 'closed'])) {
                 return;
             }
 
-            /**
-             * Verify if there are errors with status = error.
-             * If so, cancel the order.
-             */
+            // Check if any orders associated with the position have errors.
             if ($this->position->orders->contains('status', 'error')) {
                 $syncedJobsToCancel = [];
 
-                // Cancel all the orders that were already synced.
+                // Collect all orders with 'synced' status to be canceled.
                 foreach ($this->position->orders->where('status', 'synced') as $order) {
                     $syncedJobsToCancel[] = new CancelOrderJob($order->id);
                 }
 
-                /**
-                 * Later we can check if we send a notification to the
-                 * nidavellir admin, or to the trader.
-                 */
-                $batch = Bus::batch($syncedJobsToCancel)->dispatch();
+                // Dispatch a batch job to cancel all synced orders.
+                Bus::batch($syncedJobsToCancel)->dispatch();
 
-                // Update position to inform that was an error, but all good.
+                // Update the position status to 'complete-error'.
                 $this->position->update(['status' => 'complete-error']);
             } else {
-                // All good. Position status can be changed to synced.
+                // If no errors in orders, mark the position as 'synced'.
                 $this->position->update(['status' => 'synced']);
             }
+            $this->jobPollerInstance->markAsComplete();
         } catch (\Throwable $e) {
-            // If an error occurs, update the status to 'error', log it and throw a custom exception.
+            $this->jobPollerInstance->markAsError($e);
+            // If an exception occurs, update the position status to 'error'.
             $this->position->update(['status' => 'error']);
 
+            // Throw a TryCatchException with additional data.
             throw new TryCatchException(
                 throwable: $e,
-                additionalData: [
-                    'position_id' => $this->positionId]
+                additionalData: ['position_id' => $this->positionId]
             );
         }
     }

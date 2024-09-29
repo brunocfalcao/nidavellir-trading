@@ -6,12 +6,6 @@ use Nidavellir\Trading\ApiSystems\ApiSystemRESTWrapper;
 
 trait HasTraderFeatures
 {
-    /**
-     * Returns the exchange credentias that this trader is using.
-     *
-     * The credentials array need to match the <Exchange><Type>Mapper.php
-     * credentials() method.
-     */
     public function getExchangeCredentials()
     {
         switch ($this->exchange->canonical) {
@@ -29,23 +23,15 @@ trait HasTraderFeatures
         return new ApiSystemRESTWrapper($this->getExchangeWrapperInUse());
     }
 
-    // Returns the exchange class REST name to be instanciated.
     protected function getExchangeWrapperInUse()
     {
         $className = $this->exchange->namespace_class_rest;
-
-        /**
-         * Return an exchange mapper, that is being used by
-         * this trader, with himself authenticated.
-         */
         return new $className($this);
     }
 
-    // Returns the exchange class Websocket name to be instanciated.
     public function getExchangeWebsocketMapper()
     {
         $className = $this->exchange->namespace_class_websocket;
-
         return new $className($this);
     }
 }

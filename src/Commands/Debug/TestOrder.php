@@ -40,7 +40,7 @@ class TestOrder extends Command
         $symbol = Symbol::firstWhere('token', $token);
 
         $exchangeSymbol = ExchangeSymbol::where('symbol_id', $symbol->id)
-            ->where('api_system_id', 1)
+            ->where('exchange_id', 1)
             ->first();
 
         // Info message including mark price if provided

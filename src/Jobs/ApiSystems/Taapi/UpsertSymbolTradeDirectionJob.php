@@ -12,21 +12,12 @@ use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Nidavellir;
 
-/**
- * UpsertSymbolTradeDirection fetches MA indicators for
- * a single symbol token defined in the job constructor
- * or processes all included symbols if no token is provided.
- */
 class UpsertSymbolTradeDirectionJob extends AbstractJob
 {
     public $interval;
-
     public $symbolToken;
-
     public $amplitudeThreshold;
-
     public $exchangeIds;
-
     public $api;
 
     public function __construct(?string $symbolToken = null, ?string $exchangeId = null)
@@ -34,10 +25,7 @@ class UpsertSymbolTradeDirectionJob extends AbstractJob
         $this->symbolToken = $symbolToken;
         $this->amplitudeThreshold = config('nidavellir.system.taapi.ma_min_amplitude_percentage');
         $this->interval = config('nidavellir.system.taapi.interval');
-
-        // Create a collection of the passed exchange id, or all exchange ids.
-        $this->exchangeIds = $exchangeId ? [$exchangeId] :
-        ApiSystem::where('is_exchange', true)->pluck('id')->toArray();
+        $this->exchangeIds = $exchangeId ? [$exchangeId] : ApiSystem::where('is_exchange', true)->pluck('id')->toArray();
     }
 
     public function handle()
@@ -49,14 +37,11 @@ class UpsertSymbolTradeDirectionJob extends AbstractJob
                 )
             );
 
-            // We retrieve the token(s) for all exchanges in the collection.
             foreach ($this->exchangeIds as $exchangeId) {
                 if ($this->symbolToken) {
                     $this->processSymbol($this->symbolToken, $exchangeId);
                 } else {
-                    $includedSymbols = config('nidavellir.symbols.included');
-
-                    foreach ($includedSymbols as $token) {
+                    foreach (config('nidavellir.symbols.included') as $token) {
                         $this->processSymbol($token, $exchangeId);
                     }
                 }
@@ -64,7 +49,6 @@ class UpsertSymbolTradeDirectionJob extends AbstractJob
             $this->jobPollerInstance->markAsComplete();
         } catch (\Throwable $e) {
             $this->jobPollerInstance->markAsError($e);
-
             throw new TryCatchException(throwable: $e);
         }
     }
@@ -76,13 +60,12 @@ class UpsertSymbolTradeDirectionJob extends AbstractJob
             ->where('symbol_id', $symbol->id)
             ->first();
 
-        if (! $exchangeSymbol) {
+        if (!$exchangeSymbol) {
             throw new \Exception("ExchangeSymbol not found for token: {$symbolToken}");
         }
 
         $exchangeCanonical = ApiSystem::find($exchangeId)->taapi_canonical;
 
-        // Fetch the latest MA values for both periods (28 and 56).
         $ma28Values = $this->fetchMa($exchangeCanonical, $symbolToken, 28, 2);
         $ma56Values = $this->fetchMa($exchangeCanonical, $symbolToken, 56, 2);
 
@@ -112,15 +95,13 @@ class UpsertSymbolTradeDirectionJob extends AbstractJob
             $ma56Values[0] <= $ma56Values[1] &&
             $ma56Values[1] <= $ma28Values[1] &&
             $ma56Values[1] < $ma28Values[1] &&
-            $amplitudePercentage >= $this->amplitudeThreshold
-        ) {
+            $amplitudePercentage >= $this->amplitudeThreshold) {
             $exchangeSymbol->update(['side' => 'LONG']);
         } elseif ($ma28Values[0] >= $ma28Values[1] &&
             $ma56Values[0] >= $ma56Values[1] &&
             $ma56Values[1] >= $ma28Values[1] &&
             $ma56Values[1] > $ma28Values[1] &&
-            $amplitudePercentage >= $this->amplitudeThreshold
-        ) {
+            $amplitudePercentage >= $this->amplitudeThreshold) {
             $exchangeSymbol->update(['side' => 'SHORT']);
         }
     }
@@ -146,13 +127,8 @@ class UpsertSymbolTradeDirectionJob extends AbstractJob
             'results' => $results,
         ];
 
-        $responseData = $this->api->withOptions($params)
-            ->getMa();
+        $responseData = $this->api->withOptions($params)->getMa();
 
-        if (isset($responseData['value']) && is_array($responseData['value'])) {
-            return $responseData['value'];
-        }
-
-        return [];
+        return $responseData['value'] ?? [];
     }
 }

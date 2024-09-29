@@ -40,6 +40,26 @@ class JobPollerManager
     }
 
     /**
+     * Adds multiple jobs to the internal list at once.
+     * This method accepts an array of job instances with
+     * their parameters, allowing batch processing.
+     */
+    public function addJobs(array $jobs)
+    {
+        foreach ($jobs as $job) {
+            // Ensure that the job instance is a valid object with the expected class
+            if (is_object($job)) {
+                $this->jobs[] = [
+                    'class' => get_class($job),
+                    'arguments' => json_encode(get_object_vars($job)),
+                ];
+            }
+        }
+
+        return $this;
+    }
+
+    /**
      * Adds a new job to the internal list of jobs to be processed.
      * This method prepares a job with the specified class name
      * and its associated arguments, storing it for later release.

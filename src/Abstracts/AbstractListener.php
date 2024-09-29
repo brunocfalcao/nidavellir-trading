@@ -2,12 +2,12 @@
 
 namespace Nidavellir\Trading\Abstracts;
 
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Queue\InteractsWithQueue;
+//use Illuminate\Contracts\Queue\ShouldQueue;
+//use Illuminate\Queue\InteractsWithQueue;
 
-abstract class AbstractListener implements ShouldQueue
+abstract class AbstractListener //implements ShouldQueue
 {
-    use InteractsWithQueue;
+    //use InteractsWithQueue;
 
-    public $tries = 3;
+    //public $tries = 3;
 }

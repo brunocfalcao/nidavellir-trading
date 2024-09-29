@@ -15,13 +15,8 @@ use Nidavellir\Trading\Nidavellir;
 class UpsertExchangeAvailableSymbolsJob extends AbstractJob
 {
     public ApiSystemRESTWrapper $wrapper;
-
     protected array $symbols;
 
-    /**
-     * Initializes the job by setting up the API wrapper with
-     * Binance credentials.
-     */
     public function __construct()
     {
         $this->wrapper = new ApiSystemRESTWrapper(
@@ -31,17 +26,10 @@ class UpsertExchangeAvailableSymbolsJob extends AbstractJob
         );
     }
 
-    /**
-     * Main function to handle fetching symbols from Binance,
-     * filtering for USDT margin symbols, and syncing them
-     * with the database.
-     */
     public function handle()
     {
         try {
             $mapper = $this->wrapper->mapper;
-
-            // Fetch symbols from Binance API.
             $this->symbols = $mapper
                 ->withLoggable(ApiSystem::find(1))
                 ->getExchangeInformation()['symbols'];
@@ -53,7 +41,6 @@ class UpsertExchangeAvailableSymbolsJob extends AbstractJob
                 );
             }
 
-            // Filter symbols to only include USDT margin symbols.
             $this->symbols = $this->filterSymbolsWithUSDTMargin();
 
             if (empty($this->symbols)) {
@@ -63,28 +50,19 @@ class UpsertExchangeAvailableSymbolsJob extends AbstractJob
                 );
             }
 
-            // Sync or update the exchange symbols in the database.
             $this->syncExchangeSymbols();
             $this->jobPollerInstance->markAsComplete();
         } catch (\Throwable $e) {
             $this->jobPollerInstance->markAsError($e);
-
-            throw new TryCatchException(
-                throwable: $e,
-            );
+            throw new TryCatchException(throwable: $e);
         }
     }
 
-    /**
-     * Syncs the fetched symbols with the database by either
-     * updating or creating new ApiSystemSymbol records.
-     */
     protected function syncExchangeSymbols()
     {
-        // Get the Binance exchange record from the database.
         $exchange = ApiSystem::firstWhere('canonical', 'binance');
 
-        if (! $exchange) {
+        if (!$exchange) {
             throw new ExchangeSymbolNotSyncedException(
                 message: 'Binance exchange record not found',
                 additionalData: ['exchange' => 'binance']
@@ -116,7 +94,7 @@ class UpsertExchangeAvailableSymbolsJob extends AbstractJob
                         'api_symbol_information' => $data,
                     ];
 
-                    if (! $exchangeSymbol) {
+                    if (!$exchangeSymbol) {
                         ExchangeSymbol::updateOrCreate(
                             [
                                 'symbol_id' => $symbolData['symbol_id'],
@@ -129,18 +107,11 @@ class UpsertExchangeAvailableSymbolsJob extends AbstractJob
                     }
                 }
             } catch (\Throwable $e) {
-                throw new TryCatchException(
-                    throwable: $e,
-                );
+                throw new TryCatchException(throwable: $e);
             }
         }
     }
 
-    /**
-     * Extracts relevant token data (such as precision and
-     * tick size) from the symbol information provided by
-     * the Binance API.
-     */
     private function extractTokenData($item)
     {
         $tickSize = collect($item['filters'])
@@ -155,10 +126,6 @@ class UpsertExchangeAvailableSymbolsJob extends AbstractJob
         ];
     }
 
-    /**
-     * Filters the symbols fetched from Binance to only
-     * include those with a 'marginAsset' of 'USDT'.
-     */
     private function filterSymbolsWithUSDTMargin()
     {
         return array_filter($this->symbols, function ($symbol) {
