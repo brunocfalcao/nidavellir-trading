@@ -96,6 +96,7 @@ class JobPollerManager
     {
         // Assign the provided UUID or generate a new one if null.
         $this->blockUUID = $blockUUID ?? (string) Str::uuid();
+
         return $this;
     }
 
@@ -106,6 +107,7 @@ class JobPollerManager
     public function withRelatable($model)
     {
         $this->relatableModel = $model;
+
         return $this;
     }
 
@@ -147,6 +149,7 @@ class JobPollerManager
     public function onBlockUUID(string $blockUUID)
     {
         $this->blockUUID = $blockUUID;
+
         return $this;
     }
 

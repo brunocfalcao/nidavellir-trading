@@ -12,13 +12,21 @@ use Nidavellir\Trading\Models\ApiSystem;
 class BinanceAPIClient
 {
     private $baseURL;
+
     private $key;
+
     private $secret;
+
     private $privateKey;
+
     private $logger;
+
     private $timeout;
+
     private $showWeightUsage;
+
     private $showHeader;
+
     private $httpRequest = null;
 
     public function __construct($args = [])
@@ -113,7 +121,7 @@ class BinanceAPIClient
 
     protected function buildQuery($path, $properties = [])
     {
-        return count($properties) === 0 ? $path : $path . '?' . Url::buildQuery($properties);
+        return count($properties) === 0 ? $path : $path.'?'.Url::buildQuery($properties);
     }
 
     protected function buildClient($httpRequest)

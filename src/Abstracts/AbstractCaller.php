@@ -7,8 +7,11 @@ use Nidavellir\Trading\Exceptions\TryCatchException;
 abstract class AbstractCaller
 {
     protected AbstractMapper $mapper;
+
     protected bool $throwSilently;
+
     protected string $callerName = 'Undefined';
+
     public $result;
 
     public function __construct(AbstractMapper $mapper, bool $throwSilently = false)
@@ -21,7 +24,7 @@ abstract class AbstractCaller
         try {
             $this->call();
         } catch (\Throwable $e) {
-            if (!$this->throwSilently) {
+            if (! $this->throwSilently) {
                 throw new TryCatchException(throwable: $e);
             }
         }
@@ -29,13 +32,9 @@ abstract class AbstractCaller
         $this->parseResult();
     }
 
-    public function prepareRequest()
-    {
-    }
-    public function call()
-    {
-    }
-    public function parseResult()
-    {
-    }
+    public function prepareRequest() {}
+
+    public function call() {}
+
+    public function parseResult() {}
 }

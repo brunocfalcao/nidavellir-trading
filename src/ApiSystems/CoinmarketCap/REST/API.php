@@ -13,7 +13,7 @@ class API extends CoinmarketCapAPIClient
 
         return $this->publicRequest(
             'GET',
-            '/v1/cryptocurrency/map?' . ($limit ? '&limit=' . $limit : null),
+            '/v1/cryptocurrency/map?'.($limit ? '&limit='.$limit : null),
             $properties
         );
     }

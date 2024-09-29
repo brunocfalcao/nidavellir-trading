@@ -7,8 +7,11 @@ use Nidavellir\Trading\Models\Trader;
 abstract class AbstractMapper
 {
     public ?Trader $trader;
+
     protected array $credentials;
+
     public array $properties = [];
+
     public array $additionalData = [];
 
     public function __construct(?Trader $trader = null, ?array $credentials = [], ?array $additionalData = [])
@@ -19,7 +22,7 @@ abstract class AbstractMapper
 
         $this->properties['options'] = [];
 
-        if (!is_null($trader) && empty($this->credentials)) {
+        if (! is_null($trader) && empty($this->credentials)) {
             $this->credentials = $this->trader->getExchangeCredentials();
         }
 
@@ -31,14 +34,11 @@ abstract class AbstractMapper
     public function withLoggable($model)
     {
         $this->properties['loggable'] = $model;
+
         return $this;
     }
 
-    public function exchange()
-    {
-    }
+    public function exchange() {}
 
-    public function connectionDetails()
-    {
-    }
+    public function connectionDetails() {}
 }

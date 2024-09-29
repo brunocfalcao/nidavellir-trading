@@ -2,12 +2,12 @@
 
 namespace Nidavellir\Trading\Listeners\Positions;
 
-use Nidavellir\Trading\Nidavellir;
-use Nidavellir\Trading\Models\Order;
-use Nidavellir\Trading\JobPollerManager;
 use Nidavellir\Trading\Abstracts\AbstractListener;
-use Nidavellir\Trading\Jobs\Positions\DispatchPositionJob;
 use Nidavellir\Trading\Events\Positions\PositionCreatedEvent;
+use Nidavellir\Trading\JobPollerManager;
+use Nidavellir\Trading\Jobs\Positions\DispatchPositionJob;
+use Nidavellir\Trading\Models\Order;
+use Nidavellir\Trading\Nidavellir;
 
 /**
  * Class: PositionCreatedListener

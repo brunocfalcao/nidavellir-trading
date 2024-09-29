@@ -18,6 +18,7 @@ abstract class AbstractRESTWrapper
         if (strpos($name, 'with') === 0) {
             $property = Str::snake(substr($name, 4));
             $this->mapper->properties[$property] = $arguments[0];
+
             return $this;
         }
     }

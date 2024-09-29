@@ -44,7 +44,7 @@ class CancelOrderJob extends AbstractJob
         $this->order = Order::find($orderId);
 
         // Check if the order exists; throw an exception if not found.
-        if (!$this->order) {
+        if (! $this->order) {
             throw new CancelOrderException(
                 message: 'Cancel Order error - Order not found',
                 additionalData: ['order_id' => $orderId]
@@ -70,7 +70,7 @@ class CancelOrderJob extends AbstractJob
             $result = $this->trader->withRESTApi()
                 ->withLoggable($this->order)
                 ->withOptions([
-                    'symbol' => $this->symbol->token . 'USDT',
+                    'symbol' => $this->symbol->token.'USDT',
                     'orderId' => $this->order->order_exchange_system_id,
                 ])->getOrder();
 
@@ -120,7 +120,7 @@ class CancelOrderJob extends AbstractJob
             ->withRESTApi()
             ->withLoggable($this->order)
             ->withOptions([
-                'symbol' => $this->exchangeSymbol->symbol->token . 'USDT',
+                'symbol' => $this->exchangeSymbol->symbol->token.'USDT',
                 'orderId' => $this->order->order_exchange_system_id,
             ])->cancelOrder();
     }

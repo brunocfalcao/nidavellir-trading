@@ -10,7 +10,9 @@ use Nidavellir\Trading\Models\ApiRequestLog;
 class TaapiAPIClient
 {
     private $baseURL;
+
     private $apiKey;
+
     private $httpRequest = null;
 
     public function __construct(array $args)

@@ -15,6 +15,7 @@ use Nidavellir\Trading\Nidavellir;
 class UpsertExchangeAvailableSymbolsJob extends AbstractJob
 {
     public ApiSystemRESTWrapper $wrapper;
+
     protected array $symbols;
 
     public function __construct()
@@ -62,7 +63,7 @@ class UpsertExchangeAvailableSymbolsJob extends AbstractJob
     {
         $exchange = ApiSystem::firstWhere('canonical', 'binance');
 
-        if (!$exchange) {
+        if (! $exchange) {
             throw new ExchangeSymbolNotSyncedException(
                 message: 'Binance exchange record not found',
                 additionalData: ['exchange' => 'binance']
@@ -94,7 +95,7 @@ class UpsertExchangeAvailableSymbolsJob extends AbstractJob
                         'api_symbol_information' => $data,
                     ];
 
-                    if (!$exchangeSymbol) {
+                    if (! $exchangeSymbol) {
                         ExchangeSymbol::updateOrCreate(
                             [
                                 'symbol_id' => $symbolData['symbol_id'],

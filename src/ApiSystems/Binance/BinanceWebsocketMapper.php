@@ -25,12 +25,14 @@ class BinanceWebsocketMapper extends AbstractMapper
     public function markPrices($callback, $eachSecond = true)
     {
         $futures = new Futures($this->credentials());
+
         return $futures->markPrices($callback, $eachSecond);
     }
 
     public function markPrice(string $symbol, $callback)
     {
         $futures = new Futures($this->credentials());
+
         return $futures->markPrice($symbol, $callback);
     }
 }

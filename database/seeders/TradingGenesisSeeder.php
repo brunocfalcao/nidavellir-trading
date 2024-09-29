@@ -70,13 +70,13 @@ class TradingGenesisSeeder extends Seeder
         $jobPoller->newBlockUUID();
 
         $jobPoller->addJob(UpsertSymbolsJob::class, 500)
-                  ->addJob(UpsertSymbolMetadataJob::class);
+            ->addJob(UpsertSymbolMetadataJob::class);
 
         foreach (ApiSystem::where('is_exchange', true)->get() as $exchange) {
             $nsPrefix = $exchange->namespace_prefix_jobs;
 
-            $jobPoller->addJob($nsPrefix . '\\UpsertExchangeAvailableSymbolsJob')
-                      ->addJob($nsPrefix . '\\UpsertNotionalAndLeverageJob');
+            $jobPoller->addJob($nsPrefix.'\\UpsertExchangeAvailableSymbolsJob')
+                ->addJob($nsPrefix.'\\UpsertNotionalAndLeverageJob');
         }
 
         $jobPoller->addJob(UpsertSymbolTradeDirectionJob::class);

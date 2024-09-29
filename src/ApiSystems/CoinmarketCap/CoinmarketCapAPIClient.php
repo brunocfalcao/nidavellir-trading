@@ -10,7 +10,9 @@ use Nidavellir\Trading\Models\ApiRequestLog;
 class CoinmarketCapAPIClient
 {
     private string $baseURL;
+
     private string $apiKey;
+
     private $httpRequest = null;
 
     public function __construct(array $args)

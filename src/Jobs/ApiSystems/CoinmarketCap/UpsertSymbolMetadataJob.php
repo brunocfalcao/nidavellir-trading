@@ -31,7 +31,7 @@ class UpsertSymbolMetadataJob extends AbstractJob
                 $cryptoDataList = (array) $api->withOptions(['id' => $symbolList])
                     ->getSymbolsMetadata()['data'];
 
-                if (!empty($cryptoDataList)) {
+                if (! empty($cryptoDataList)) {
                     foreach ($cryptoDataList as $cryptoId => $cryptoData) {
                         $imageUrl = $cryptoData['logo'] ?? null;
                         $name = $cryptoData['name'] ?? null;

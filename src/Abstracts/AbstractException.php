@@ -8,6 +8,7 @@ use Throwable;
 abstract class AbstractException extends Exception
 {
     protected $previous;
+
     protected array $additionalData;
 
     public function __construct(string $message = '', ?Throwable $throwable = null, array $additionalData = [])

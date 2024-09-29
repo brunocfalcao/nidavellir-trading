@@ -26,12 +26,14 @@ trait HasTraderFeatures
     protected function getExchangeWrapperInUse()
     {
         $className = $this->exchange->namespace_class_rest;
+
         return new $className($this);
     }
 
     public function getExchangeWebsocketMapper()
     {
         $className = $this->exchange->namespace_class_websocket;
+
         return new $className($this);
     }
 }

@@ -23,7 +23,7 @@ class Futures extends Websocket
 
     public function markPrice(string $symbol, $callback)
     {
-        $url = "{$this->baseURL}/ws/" . strtolower($symbol) . '@markPrice@1s';
+        $url = "{$this->baseURL}/ws/".strtolower($symbol).'@markPrice@1s';
         $this->handleCallBack($url, $callback);
     }
 }

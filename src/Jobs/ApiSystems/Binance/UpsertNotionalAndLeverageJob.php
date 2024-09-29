@@ -34,7 +34,7 @@ class UpsertNotionalAndLeverageJob extends AbstractJob
                 ->withLoggable($exchange)
                 ->getLeverageBrackets();
 
-            if (!$symbols) {
+            if (! $symbols) {
                 throw new NotionalAndLeverageNotSyncedException(
                     message: 'No notional and leverage data received',
                     additionalData: ['exchange' => 'binance']

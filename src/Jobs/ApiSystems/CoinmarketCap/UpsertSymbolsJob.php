@@ -34,7 +34,7 @@ class UpsertSymbolsJob extends AbstractJob
 
             $data = $api->getSymbols()['data'];
 
-            if (!$data) {
+            if (! $data) {
                 throw new SymbolNotSyncedException(
                     message: 'No symbols fetched from CoinMarketCap API'
                 );

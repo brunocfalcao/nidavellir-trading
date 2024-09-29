@@ -31,6 +31,7 @@ if (! function_exists('logExceptionChain')) {
                 if (isset($trace['file'], $trace['line'])) {
                     return basename($trace['file'])." [{$trace['line']}]";
                 }
+
                 return null;
             }, array_slice($exception->getTrace(), 0, 10));
 

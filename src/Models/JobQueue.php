@@ -2,7 +2,6 @@
 
 namespace Nidavellir\Trading\Models;
 
-use Illuminate\Support\Facades\Log;
 use Nidavellir\Trading\Abstracts\AbstractModel;
 
 /**
@@ -60,7 +59,7 @@ class JobQueue extends AbstractModel
     public function withRelatable($model)
     {
         // Ensure the provided model is a valid Eloquent model instance.
-        if (!is_object($model) || !method_exists($model, 'getKey')) {
+        if (! is_object($model) || ! method_exists($model, 'getKey')) {
             throw new \InvalidArgumentException('Invalid relatable model.');
         }
 

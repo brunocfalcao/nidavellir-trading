@@ -15,7 +15,9 @@ abstract class AbstractJob implements ShouldQueue
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 1;
+
     public int $timeout = 180;
+
     public JobQueue $jobPollerInstance;
 
     public function backoff()

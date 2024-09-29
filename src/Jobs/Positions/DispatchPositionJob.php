@@ -2,17 +2,16 @@
 
 namespace Nidavellir\Trading\Jobs\Positions;
 
-use Nidavellir\Trading\Nidavellir;
-use Illuminate\Support\Facades\Bus;
-use Nidavellir\Trading\Models\Position;
-use Nidavellir\Trading\JobPollerManager;
 use Nidavellir\Trading\Abstracts\AbstractJob;
-use Nidavellir\Trading\Models\ExchangeSymbol;
-use Nidavellir\Trading\Exceptions\TryCatchException;
-use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
 use Nidavellir\Trading\ApiSystems\ApiSystemRESTWrapper;
 use Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exceptions\DispatchPositionException;
+use Nidavellir\Trading\Exceptions\TryCatchException;
+use Nidavellir\Trading\JobPollerManager;
+use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
+use Nidavellir\Trading\Models\ExchangeSymbol;
+use Nidavellir\Trading\Models\Position;
+use Nidavellir\Trading\Nidavellir;
 
 /**
  * Class: DispatchPositionJob
@@ -115,8 +114,8 @@ class DispatchPositionJob extends AbstractJob
             ->withRESTApi()
             ->withLoggable($this->position)
             ->withOptions([
-                'symbol' => $exchangeSymbol->symbol->token . 'USDT',
-                'margintype' => 'CROSSED'
+                'symbol' => $exchangeSymbol->symbol->token.'USDT',
+                'margintype' => 'CROSSED',
             ])
             ->updateMarginType();
     }
@@ -153,12 +152,14 @@ class DispatchPositionJob extends AbstractJob
             // If balance is zero, mark the position as error.
             if ($availableBalance == 0) {
                 $this->updatePositionError('No USDT on Futures available balance.');
+
                 return;
             }
 
             // If balance is below the minimum, mark the position as error.
             if ($availableBalance < $minimumTradeAmount) {
                 $this->updatePositionError("Less than {$minimumTradeAmount} USDT on Futures available balance (current: {$availableBalance}).");
+
                 return;
             }
 
@@ -194,7 +195,7 @@ class DispatchPositionJob extends AbstractJob
                 ->toArray();
 
             // Filter eligible symbols that are not currently being traded.
-            $eligibleSymbols = $eligibleSymbols->reject(fn($symbol) => in_array($symbol->id, $beingTradedSymbols));
+            $eligibleSymbols = $eligibleSymbols->reject(fn ($symbol) => in_array($symbol->id, $beingTradedSymbols));
             $exchangeSymbol = $eligibleSymbols->random();
 
             // Update the position with the selected eligible symbol.
@@ -229,7 +230,7 @@ class DispatchPositionJob extends AbstractJob
             // Calculate the maximum leverage based on available data.
             $possibleLeverage = Nidavellir::getMaximumLeverage(
                 $leverageData,
-                $this->position->exchangeSymbol->symbol->token . 'USDT',
+                $this->position->exchangeSymbol->symbol->token.'USDT',
                 $this->position->total_trade_amount
             );
 
@@ -244,7 +245,7 @@ class DispatchPositionJob extends AbstractJob
         $this->position->trader
             ->withRESTApi()
             ->withLoggable($this->position)
-            ->withOptions(['symbol' => $this->position->exchangeSymbol->symbol->token . 'USDT', 'leverage' => $this->position->leverage])
+            ->withOptions(['symbol' => $this->position->exchangeSymbol->symbol->token.'USDT', 'leverage' => $this->position->leverage])
             ->setDefaultLeverage();
     }
 
@@ -254,7 +255,7 @@ class DispatchPositionJob extends AbstractJob
         $markPrice = round($this->position->trader
             ->withRESTApi()
             ->withLoggable($this->position)
-            ->withOptions(['symbol' => $this->position->exchangeSymbol->symbol->token . 'USDT'])
+            ->withOptions(['symbol' => $this->position->exchangeSymbol->symbol->token.'USDT'])
             ->getMarkPrice(), $this->position->exchangeSymbol->precision_price);
 
         $this->position->update(['initial_mark_price' => $markPrice]);

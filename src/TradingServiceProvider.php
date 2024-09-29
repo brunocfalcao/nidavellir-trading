@@ -106,8 +106,8 @@ class TradingServiceProvider extends ServiceProvider
             QueryOrder::class,
             QueryOpenOrders::class,
             JobPollerCommand::class,
-            UpsertSymbolsTradeDirectionCommand::class,
-            UpsertBinanceMarkPricesCommand::class,
+            //UpsertSymbolsTradeDirectionCommand::class,
+            //UpsertBinanceMarkPricesCommand::class,
         ]);
     }
 }

@@ -15,9 +15,13 @@ use Nidavellir\Trading\Nidavellir;
 class UpsertSymbolTradeDirectionJob extends AbstractJob
 {
     public $interval;
+
     public $symbolToken;
+
     public $amplitudeThreshold;
+
     public $exchangeIds;
+
     public $api;
 
     public function __construct(?string $symbolToken = null, ?string $exchangeId = null)
@@ -60,7 +64,7 @@ class UpsertSymbolTradeDirectionJob extends AbstractJob
             ->where('symbol_id', $symbol->id)
             ->first();
 
-        if (!$exchangeSymbol) {
+        if (! $exchangeSymbol) {
             throw new \Exception("ExchangeSymbol not found for token: {$symbolToken}");
         }
 
