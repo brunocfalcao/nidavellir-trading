@@ -4,6 +4,7 @@ namespace Nidavellir\Trading\ApiSystems\Taapi;
 
 use Nidavellir\Trading\Abstracts\AbstractMapper;
 use Nidavellir\Trading\ApiSystems\Taapi\Callers\GetExchangeSymbols;
+use Nidavellir\Trading\ApiSystems\Taapi\Callers\GetMa;
 use Nidavellir\Trading\Models\ApiSystem;
 
 class TaapiRESTMapper extends AbstractMapper
@@ -25,5 +26,11 @@ class TaapiRESTMapper extends AbstractMapper
     public function getExchangeSymbols()
     {
         return (new GetExchangeSymbols($this))->result;
+    }
+
+    // https://taapi.io/indicators/moving-average/
+    public function getMa()
+    {
+        return (new GetMa($this))->result;
     }
 }

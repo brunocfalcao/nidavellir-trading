@@ -8,9 +8,11 @@ class API extends TaapiAPIClient
 {
     public function getExchangeSymbols(array $properties)
     {
-        // Use the publicRequest method from TaapiAPIClient to fetch the symbols
-        return $this->publicRequest('GET', '/exchange-symbols', [
-            'exchange' => $properties['options']['exchange'],
-        ]);
+        return $this->publicRequest('GET', '/exchange-symbols', $properties);
+    }
+
+    public function getMa(array $properties)
+    {
+        return $this->publicRequest('GET', '/ma', $properties);
     }
 }

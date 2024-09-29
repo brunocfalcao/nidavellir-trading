@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\File;
 use Nidavellir\Trading\JobPollerManager;
 use Nidavellir\Trading\Jobs\ApiSystems\CoinmarketCap\UpsertSymbolMetadataJob;
 use Nidavellir\Trading\Jobs\ApiSystems\CoinmarketCap\UpsertSymbolsJob;
+use Nidavellir\Trading\Jobs\ApiSystems\Taapi\UpsertSymbolTradeDirectionJob;
 use Nidavellir\Trading\Models\ApiSystem;
 use Nidavellir\Trading\Models\Trader;
 
@@ -80,6 +81,8 @@ class TradingGenesisSeeder extends Seeder
             $jobPoller->addJob($nsPrefix.'\\UpsertExchangeAvailableSymbolsJob')
                 ->addJob($nsPrefix.'\\UpsertNotionalAndLeverageJob');
         }
+
+        $jobPoller->addJob(UpsertSymbolTradeDirectionJob::class);
 
         // Release queued jobs into the job poller.
         $jobPoller->release();

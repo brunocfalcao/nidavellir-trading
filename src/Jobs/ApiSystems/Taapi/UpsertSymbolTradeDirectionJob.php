@@ -1,9 +1,8 @@
 <?php
 
-namespace Nidavellir\Trading\Jobs\Symbols;
+namespace Nidavellir\Trading\Jobs\ApiSystems\Taapi;
 
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Http;
 use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\ApiSystems\ApiSystemRESTWrapper;
 use Nidavellir\Trading\ApiSystems\Taapi\TaapiRESTMapper;
@@ -82,11 +81,7 @@ class UpsertSymbolTradeDirectionJob extends AbstractJob
 
         // Fetch the latest MA values for both periods (28 and 56).
         $ma28Values = $this->fetchMa($exchangeCanonical, $symbolToken, 28, 2);
-
-        dd($ma28Values);
-
-        return;
-        $ma56Values = $this->fetchMa($symbolToken, 56, 2);
+        $ma56Values = $this->fetchMa($exchangeCanonical, $symbolToken, 56, 2);
 
         if (count($ma28Values) === 2 && count($ma56Values) === 2) {
             $amplitudeData = $this->calculateAmplitudePercentage($ma28Values[1], $ma56Values[1]);
@@ -148,15 +143,8 @@ class UpsertSymbolTradeDirectionJob extends AbstractJob
             'results' => $results,
         ];
 
-        dd($params);
-
-        $api->withOptions(['options' => $params])
+        $responseData = $this->api->withOptions($params)
             ->getMa();
-
-        $response = Http::get($this->taapiEndpoint, $params);
-        $response->throw();
-
-        $responseData = $response->json();
 
         if (isset($responseData['value']) && is_array($responseData['value'])) {
             return $responseData['value'];

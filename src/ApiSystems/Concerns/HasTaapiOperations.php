@@ -9,4 +9,10 @@ trait HasTaapiOperations
     {
         return $this->mapper->getExchangeSymbols($this);
     }
+
+    // https://taapi.io/indicators/moving-average/
+    public function getMa()
+    {
+        return $this->mapper->getMa($this);
+    }
 }

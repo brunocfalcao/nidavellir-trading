@@ -32,10 +32,13 @@ class TaapiAPIClient
 
     protected function processRequest($method, $path, $properties = [])
     {
+        // We just need the options key.
+        $options = $properties['options'];
+
         $logData = [];
 
         $logData['path'] = $path;
-        $logData['payload'] = $properties;
+        $logData['payload'] = $options;
         $logData['http_method'] = $method;
         $logData['http_headers_sent'] = [
             'Content-Type' => 'application/json',
@@ -44,11 +47,11 @@ class TaapiAPIClient
 
         try {
             // Include the API key in the parameters as required by Taapi.io
-            $properties['secret'] = $this->apiKey;
+            $options['secret'] = $this->apiKey;
 
             // Send the GET request to Taapi.io without complex query building
             $response = $this->httpRequest->request($method, $path, [
-                'query' => $properties, // Using 'query' to handle GET parameters properly
+                'query' => $options, // Using 'query' to handle GET parameters properly
             ]);
 
             $logData['http_response_code'] = $response->getStatusCode();
