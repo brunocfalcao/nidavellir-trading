@@ -12,8 +12,6 @@ class GetOrder extends AbstractCaller
     public function call()
     {
         $futures = new Futures($this->mapper->connectionDetails());
-        $this->result = $futures->getOrder(
-            $this->mapper->properties
-        );
+        $this->result = $futures->getOrder($this->mapper->properties);
     }
 }

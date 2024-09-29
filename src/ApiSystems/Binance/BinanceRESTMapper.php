@@ -18,11 +18,6 @@ use Nidavellir\Trading\ApiSystems\Binance\Callers\SetDefaultLeverage;
 use Nidavellir\Trading\ApiSystems\Binance\Callers\UpdateMarginType;
 use Nidavellir\Trading\Models\ApiSystem;
 
-/**
- * The Mapper translates actions into methods, in a standard
- * way, due to the fact that the exchange api methods can
- * have different name and parameter signatures.
- */
 class BinanceRESTMapper extends AbstractMapper
 {
     public function apiSystem()
@@ -62,7 +57,7 @@ class BinanceRESTMapper extends AbstractMapper
 
     public function getAccountBalance()
     {
-        return (new getAccountBalance($this))->result;
+        return (new GetAccountBalance($this))->result;
     }
 
     public function getMarkPrice()
@@ -80,15 +75,6 @@ class BinanceRESTMapper extends AbstractMapper
         return (new SetDefaultLeverage($this))->result;
     }
 
-    /**
-     * Places an order on the system, via REST api call.
-     * string $symbol, string $side, string $type, array $options = []
-     * ['symbol-currency'=> '', (SOL-USDT)
-     *  'side' => '', BUY/SELL
-     *  'type' => '' MARKET/LIMIT,
-     *  'quantity' => 500 quantity of token,
-     *  'price' => 45.56 if it's limit order
-     */
     public function placeOrder()
     {
         return (new PlaceOrder($this))->result;

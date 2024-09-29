@@ -12,8 +12,6 @@ class GetExchangeInformation extends AbstractCaller
     public function call()
     {
         $futures = new Futures($this->mapper->connectionDetails());
-        $this->result = $futures->exchangeInfo(
-            $this->mapper->properties
-        );
+        $this->result = $futures->exchangeInfo($this->mapper->properties);
     }
 }

@@ -8,12 +8,10 @@ use Throwable;
 abstract class AbstractException extends Exception
 {
     protected $previous;
+    protected array $additionalData;
 
-    protected $additionalData;
-
-    public function __construct($message = '', ?Throwable $throwable = null, array $additionalData = [])
+    public function __construct(string $message = '', ?Throwable $throwable = null, array $additionalData = [])
     {
-        // If no message is provided, use the previous exception's message
         if (empty($message) && $throwable) {
             $message = $throwable->getMessage();
         }
@@ -24,7 +22,7 @@ abstract class AbstractException extends Exception
         parent::__construct($message, 0, $throwable);
     }
 
-    public function getAdditionalData(): array
+    public function getAdditionalData()
     {
         return $this->additionalData;
     }

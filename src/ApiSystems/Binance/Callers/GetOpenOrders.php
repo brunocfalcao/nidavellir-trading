@@ -12,8 +12,6 @@ class GetOpenOrders extends AbstractCaller
     public function call()
     {
         $futures = new Futures($this->mapper->connectionDetails());
-        $this->result = $futures->getOpenOrders(
-            $this->mapper->properties
-        );
+        $this->result = $futures->getOpenOrders($this->mapper->properties);
     }
 }

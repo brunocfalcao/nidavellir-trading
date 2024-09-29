@@ -6,25 +6,14 @@ use Nidavellir\Trading\Abstracts\AbstractMapper;
 use Nidavellir\Trading\ApiSystems\Binance\Websockets\Futures;
 use Nidavellir\Trading\Models\ApiSystem;
 
-/**
- * The Mapper translates actions into methods, in a standard
- * way, due to the fact that the exchange api methods can
- * have different name and parameter signatures.
- */
 class BinanceWebsocketMapper extends AbstractMapper
 {
-    /**
-     * Returns the exchange model instance by canonical.
-     */
-    public function apiSystem(): Exchange
+    public function apiSystem()
     {
         return ApiSystem::firstWhere('canonical', 'binance');
     }
 
-    /**
-     * Returns FUTURES credentials.
-     */
-    public function credentials(): array
+    public function credentials()
     {
         return [
             'url' => $this->apiSystem()->futures_url_websockets_prefix,
@@ -33,20 +22,15 @@ class BinanceWebsocketMapper extends AbstractMapper
         ];
     }
 
-    //https://developers.binance.com/docs/derivatives/usds-margined-futures/websocket-market-streams/Mark-Price-Stream-for-All-market
     public function markPrices($callback, $eachSecond = true)
     {
         $futures = new Futures($this->credentials());
-
         return $futures->markPrices($callback, $eachSecond);
     }
 
-    //https://developers.binance.com/docs/derivatives/usds-margined-futures/websocket-market-streams/Mark-Price-Stream
-    // TODO!
     public function markPrice(string $symbol, $callback)
     {
         $futures = new Futures($this->credentials());
-
         return $futures->markPrice($symbol, $callback);
     }
 }

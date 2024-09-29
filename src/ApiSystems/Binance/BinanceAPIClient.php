@@ -12,21 +12,13 @@ use Nidavellir\Trading\Models\ApiSystem;
 class BinanceAPIClient
 {
     private $baseURL;
-
     private $key;
-
     private $secret;
-
     private $privateKey;
-
     private $logger;
-
     private $timeout;
-
     private $showWeightUsage;
-
     private $showHeader;
-
     private $httpRequest = null;
 
     public function __construct($args = [])
@@ -66,36 +58,32 @@ class BinanceAPIClient
     {
         $logData = [];
 
-        if (array_key_exists('loggable', $properties)) {
+        if (isset($properties['loggable'])) {
             $model = $properties['loggable'];
             $logData['loggable_id'] = $model->id;
             $logData['loggable_type'] = get_class($model);
         }
 
-        if (array_key_exists('options', $properties)) {
-            $properties = $properties['options'];
-        }
-
-        $logData['path'] = $path;
-        $logData['payload'] = $properties;
-        $logData['http_method'] = $method;
-        $logData['http_headers_sent'] = [
-            'Content-Type' => 'application/json',
-            'X-MBX-APIKEY' => $this->key,
-        ];
-        $logData['hostname'] = gethostname();
+        $properties = $properties['options'] ?? $properties;
+        $logData = array_merge($logData, [
+            'path' => $path,
+            'payload' => $properties,
+            'http_method' => $method,
+            'http_headers_sent' => [
+                'Content-Type' => 'application/json',
+                'X-MBX-APIKEY' => $this->key,
+            ],
+            'hostname' => gethostname(),
+        ]);
 
         try {
             $response = $this->httpRequest->request($method, $this->buildQuery($path, $properties));
-
             $logData['http_response_code'] = $response->getStatusCode();
             $logData['response'] = json_decode($response->getBody(), true);
             $logData['http_headers_returned'] = $response->getHeaders();
-
             $this->logApiRequest($logData);
         } catch (GuzzleClientException $e) {
             $responseBody = $e->getResponse()->getBody()->getContents();
-
             $logData['http_response_code'] = $e->getCode();
             $logData['response'] = $e->getMessage();
             $logData['http_headers_returned'] = $e instanceof \GuzzleHttp\Exception\RequestException && $e->getResponse()
@@ -118,32 +106,28 @@ class BinanceAPIClient
         return json_decode($response->getBody(), true);
     }
 
-    protected function getExchangeId(): int
+    protected function getExchangeId()
     {
         return ApiSystem::firstWhere('canonical', 'binance')->id;
     }
 
-    protected function buildQuery($path, $properties = []): string
+    protected function buildQuery($path, $properties = [])
     {
-        if (count($properties) == 0) {
-            return $path;
-        }
-
-        return $path.'?'.Url::buildQuery($properties);
+        return count($properties) === 0 ? $path : $path . '?' . Url::buildQuery($properties);
     }
 
     protected function buildClient($httpRequest)
     {
         $this->httpRequest = $httpRequest ??
-        new \GuzzleHttp\Client([
-            'base_uri' => $this->baseURL,
-            'headers' => [
-                'Content-Type' => 'application/json',
-                'X-MBX-APIKEY' => $this->key,
-                'User-Agent' => 'binance-connect-php',
-            ],
-            'timeout' => $this->timeout,
-        ]);
+            new \GuzzleHttp\Client([
+                'base_uri' => $this->baseURL,
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'X-MBX-APIKEY' => $this->key,
+                    'User-Agent' => 'binance-connect-php',
+                ],
+                'timeout' => $this->timeout,
+            ]);
     }
 
     protected function shouldSkipException($httpCode, $responseBody)
@@ -162,7 +146,7 @@ class BinanceAPIClient
         return false;
     }
 
-    protected function logApiRequest(array $logData): void
+    protected function logApiRequest(array $logData)
     {
         ApiRequestLog::create($logData);
     }

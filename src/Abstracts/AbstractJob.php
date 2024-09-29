@@ -12,31 +12,23 @@ use Nidavellir\Trading\Models\JobQueue;
 
 abstract class AbstractJob implements ShouldQueue
 {
-    use Batchable,
-        Dispatchable,
-        InteractsWithQueue,
-        Queueable,
-        SerializesModels;
+    use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $tries = 1;
-
-    public $timeout = 180;
-
+    public int $tries = 1;
+    public int $timeout = 180;
     public JobQueue $jobPollerInstance;
 
-    // Define the backoff time in seconds
     public function backoff()
     {
         return [15];
     }
 
-    // Define the retry time in seconds
     public function retryAfter()
     {
         return 1;
     }
 
-    public function setJobPollerInstance($jobPollerInstance)
+    public function setJobPollerInstance(JobQueue $jobPollerInstance)
     {
         $this->jobPollerInstance = $jobPollerInstance;
     }

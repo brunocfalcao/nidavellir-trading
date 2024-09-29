@@ -15,7 +15,6 @@ class JobQueue extends AbstractModel
     public function markAsComplete()
     {
         $this->finalizeJob('completed');
-        Log::info('Job marked as complete: '.class_basename($this->class).' Duration: '.$this->duration.' ms');
     }
 
     /**
@@ -25,7 +24,6 @@ class JobQueue extends AbstractModel
     {
         $this->error_message = $e->getMessage();
         $this->finalizeJob('failed');
-        Log::error('Job marked as error: '.class_basename($this->class).' Duration: '.$this->duration.' ms. Error: '.$e->getMessage());
     }
 
     /**

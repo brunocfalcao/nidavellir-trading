@@ -17,29 +17,20 @@ class GetAccountBalance extends AbstractCaller
 
     public function parseResult()
     {
-        /**
-         * The available balance gets the total balance
-         * from the futures wallet (not counting what's
-         * invested already on limit orders), and
-         * reduces that amount in case the unrealized PnL
-         * is negative.
-         */
         $collection = collect($this->result);
-
         $usdt = $collection->firstWhere('asset', 'USDT');
 
         if ($usdt) {
             $balance = (float) $usdt['balance'];
             $crossUnPnl = (float) $usdt['crossUnPnl'];
 
-            // Deduct if crossUnPnl is negative
             if ($crossUnPnl < 0) {
                 $balance += $crossUnPnl;
             }
 
             $this->result = $balance;
         } else {
-            $this->result = 0;  // Return 0 if USDT not found
+            $this->result = 0;
         }
     }
 }

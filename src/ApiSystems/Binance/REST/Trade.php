@@ -7,29 +7,18 @@ use Illuminate\Validation\ValidationException;
 
 trait Trade
 {
-    // https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Change-Margin-Type
     public function updateMarginType(array $properties = [])
     {
-        return $this->signRequest(
-            'POST',
-            '/fapi/v1/marginType',
-            $properties
-        );
+        return $this->signRequest('POST', '/fapi/v1/marginType', $properties);
     }
 
-    //https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Position-Information-V2
     public function getPositions()
     {
-        return $this->signRequest(
-            'GET',
-            '/fapi/v2/positionRisk'
-        );
+        return $this->signRequest('GET', '/fapi/v2/positionRisk');
     }
 
-    // https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Place-Multiple-Orders
     public function newMultipleOrders(array $properties = [])
     {
-        // Validate the properties using the Validator facade
         $validator = Validator::make($properties, [
             'options.batchOrders' => 'required|array',
         ]);
@@ -38,17 +27,11 @@ trait Trade
             throw new ValidationException($validator);
         }
 
-        return $this->signRequest(
-            'POST',
-            '/fapi/v1/batchOrders',
-            $properties
-        );
+        return $this->signRequest('POST', '/fapi/v1/batchOrders', $properties);
     }
 
-    //https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Modify-Order
     public function modifyOrder(array $properties)
     {
-        // Validate the properties using the Validator facade
         $validator = Validator::make($properties, [
             'options.order_id' => 'required',
         ]);
@@ -57,17 +40,11 @@ trait Trade
             throw new ValidationException($validator);
         }
 
-        return $this->signRequest(
-            'PUT',
-            '/fapi/v1/order',
-            $properties
-        );
+        return $this->signRequest('PUT', '/fapi/v1/order', $properties);
     }
 
-    // https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api
     public function newOrder(array $properties = [])
     {
-        // Validate the properties using the Validator facade
         $validator = Validator::make($properties, [
             'options.symbol' => 'required|string',
             'options.side' => 'required|string',
@@ -78,17 +55,11 @@ trait Trade
             throw new ValidationException($validator);
         }
 
-        return $this->signRequest(
-            'POST',
-            '/fapi/v1/order',
-            $properties
-        );
+        return $this->signRequest('POST', '/fapi/v1/order', $properties);
     }
 
-    // https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Cancel-Order
     public function cancelOrder(array $properties = [])
     {
-        // Validate the properties using the Validator facade
         $validator = Validator::make($properties['options'], [
             'symbol' => 'required',
             'orderId' => 'required',
@@ -98,17 +69,11 @@ trait Trade
             throw new ValidationException($validator);
         }
 
-        return $this->signRequest(
-            'DELETE',
-            '/fapi/v1/order',
-            $properties
-        );
+        return $this->signRequest('DELETE', '/fapi/v1/order', $properties);
     }
 
-    // https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Cancel-Multiple-Orders
     public function cancelMultipleOrders(array $properties = [])
     {
-        // Validate the properties using the Validator facade
         $validator = Validator::make($properties['options'], [
             'symbol' => 'required',
             'orderIdList' => 'required|array',
@@ -118,17 +83,11 @@ trait Trade
             throw new ValidationException($validator);
         }
 
-        return $this->signRequest(
-            'DELETE',
-            '/fapi/v1/batchOrders',
-            $properties
-        );
+        return $this->signRequest('DELETE', '/fapi/v1/batchOrders', $properties);
     }
 
-    // https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Cancel-All-Open-Orders
     public function cancelOpenOrders(array $properties = [])
     {
-        // Validate the properties using the Validator facade
         $validator = Validator::make($properties, [
             'options.symbol' => 'required|string',
         ]);
@@ -137,17 +96,11 @@ trait Trade
             throw new ValidationException($validator);
         }
 
-        return $this->signRequest(
-            'DELETE',
-            '/fapi/v1/openOrders',
-            $properties
-        );
+        return $this->signRequest('DELETE', '/fapi/v1/openOrders', $properties);
     }
 
-    // https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Query-Order
     public function getOrder(array $properties = [])
     {
-        // Validate the properties using the Validator facade
         $validator = Validator::make($properties, [
             'options.symbol' => 'required|string',
         ]);
@@ -156,23 +109,16 @@ trait Trade
             throw new ValidationException($validator);
         }
 
-        return $this->signRequest(
-            'GET',
-            '/fapi/v1/order',
-            $properties
-        );
+        return $this->signRequest('GET', '/fapi/v1/order', $properties);
     }
 
-    // https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Current-All-Open-Orders
     public function getOpenOrders(array $properties = [])
     {
         return $this->signRequest('GET', '/fapi/v1/openOrders', $properties);
     }
 
-    // https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/All-Orders
     public function getAllOrders(array $properties = [])
     {
-        // Validate the properties using the Validator facade
         $validator = Validator::make($properties, [
             'options.symbol' => 'required|string',
         ]);
@@ -181,27 +127,16 @@ trait Trade
             throw new ValidationException($validator);
         }
 
-        return $this->signRequest(
-            'GET',
-            '/fapi/v1/allOrders',
-            $properties
-        );
+        return $this->signRequest('GET', '/fapi/v1/allOrders', $properties);
     }
 
-    // https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Account-Information-V3
     public function account(array $properties = [])
     {
-        return $this->signRequest(
-            'GET',
-            '/fapi/v3/account',
-            $properties
-        );
+        return $this->signRequest('GET', '/fapi/v3/account', $properties);
     }
 
-    // https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Change-Initial-Leverage
     public function setLeverage(array $properties = [])
     {
-        // Validate the properties using the Validator facade
         $validator = Validator::make($properties, [
             'options.symbol' => 'required|string',
             'options.leverage' => 'required|integer',
@@ -211,10 +146,6 @@ trait Trade
             throw new ValidationException($validator);
         }
 
-        return $this->signRequest(
-            'POST',
-            '/fapi/v1/leverage',
-            $properties
-        );
+        return $this->signRequest('POST', '/fapi/v1/leverage', $properties);
     }
 }

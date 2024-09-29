@@ -6,9 +6,7 @@ use Nidavellir\Trading\ApiSystems\Binance\BinanceAPIClient;
 
 class Futures extends BinanceAPIClient
 {
-    use Account,
-        Market,
-        Trade;
+    use Account, Market, Trade;
 
     public function __construct(array $args = [])
     {

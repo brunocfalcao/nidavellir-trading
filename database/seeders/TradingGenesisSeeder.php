@@ -3,7 +3,6 @@
 namespace Nidavellir\Trading\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\File;
 use Nidavellir\Trading\JobPollerManager;
 use Nidavellir\Trading\Jobs\ApiSystems\CoinmarketCap\UpsertSymbolMetadataJob;
@@ -18,76 +17,70 @@ class TradingGenesisSeeder extends Seeder
     {
         File::put(storage_path('logs/laravel.log'), ' ');
 
-        $apiSystem = new ApiSystem;
-        $apiSystem->name = 'Binance';
-        $apiSystem->canonical = 'binance';
-        $apiSystem->taapi_canonical = 'binancefutures';
-        $apiSystem->is_exchange = true;
-        $apiSystem->namespace_prefix_jobs = "Nidavellir\Trading\Jobs\ApiSystems\Binance";
-        $apiSystem->namespace_class_rest = "Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper";
-        $apiSystem->namespace_class_websocket = "Nidavellir\Trading\ApiSystems\Binance\BinanceWebsocketMapper";
-        $apiSystem->futures_url_rest_prefix = 'https://fapi.binance.com';
-        $apiSystem->futures_url_websockets_prefix = 'wss://fstream.binance.com';
-        $apiSystem->save();
+        $this->createApiSystems();
+        $trader = $this->createTrader();
+        $this->queueJobs($trader);
+    }
 
-        $cmc = new ApiSystem;
-        $cmc->name = 'CoinmarketCap';
-        $cmc->canonical = 'coinmarketcap';
-        $cmc->namespace_class_rest = "Nidavellir\Trading\ApiSystems\CoinmarketCap\CoinmarketCapRESTMapper";
-        $cmc->other_url_prefix = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency';
-        $cmc->save();
+    private function createApiSystems(): void
+    {
+        ApiSystem::create([
+            'name' => 'Binance',
+            'canonical' => 'binance',
+            'taapi_canonical' => 'binancefutures',
+            'is_exchange' => true,
+            'namespace_prefix_jobs' => "Nidavellir\Trading\Jobs\ApiSystems\Binance",
+            'namespace_class_rest' => "Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper",
+            'namespace_class_websocket' => "Nidavellir\Trading\ApiSystems\Binance\BinanceWebsocketMapper",
+            'futures_url_rest_prefix' => 'https://fapi.binance.com',
+            'futures_url_websockets_prefix' => 'wss://fstream.binance.com',
+        ]);
 
-        $taapi = new ApiSystem;
-        $taapi->name = 'Taapi';
-        $taapi->canonical = 'taapi';
-        $taapi->namespace_class_rest = "Nidavellir\Trading\ApiSystems\Taapi\TaapiRESTMapper";
-        $taapi->namespace_prefix_jobs = "Nidavellir\Trading\Jobs\ApiSystems\Taapi";
-        $taapi->other_url_prefix = 'https://api.taapi.io';
-        $taapi->save();
+        ApiSystem::create([
+            'name' => 'CoinmarketCap',
+            'canonical' => 'coinmarketcap',
+            'namespace_class_rest' => "Nidavellir\Trading\ApiSystems\CoinmarketCap\CoinmarketCapRESTMapper",
+            'other_url_prefix' => 'https://pro-api.coinmarketcap.com/v1/cryptocurrency',
+        ]);
 
-        // Admin/standard trader person.
-        $trader = new Trader;
-        $trader->name = env('TRADER_NAME');
-        $trader->email = env('TRADER_EMAIL');
-        $trader->password = bcrypt(env('TRADER_PASSWORD'));
-        $trader->binance_api_key = env('BINANCE_API_KEY');
-        $trader->binance_secret_key = env('BINANCE_SECRET_KEY');
-        $trader->api_system_id = $apiSystem->id;
-        $trader->save();
+        ApiSystem::create([
+            'name' => 'Taapi',
+            'canonical' => 'taapi',
+            'namespace_class_rest' => "Nidavellir\Trading\ApiSystems\Taapi\TaapiRESTMapper",
+            'namespace_prefix_jobs' => "Nidavellir\Trading\Jobs\ApiSystems\Taapi",
+            'other_url_prefix' => 'https://api.taapi.io',
+        ]);
+    }
 
-        /**
-         * Load Exchange jobs into the Bus Chain.
-         * Each Exchange job has a specific naming convention
-         * and it's prefixed by the Exchange namespace prefix
-         * from the database exchange entry.
-         */
+    private function createTrader(): Trader
+    {
+        return Trader::create([
+            'name' => env('TRADER_NAME'),
+            'email' => env('TRADER_EMAIL'),
+            'password' => bcrypt(env('TRADER_PASSWORD')),
+            'binance_api_key' => env('BINANCE_API_KEY'),
+            'binance_secret_key' => env('BINANCE_SECRET_KEY'),
+            'api_system_id' => ApiSystem::where('canonical', 'binance')->value('id'),
+        ]);
+    }
 
-        // Initialize the JobPollerManager
+    private function queueJobs(Trader $trader): void
+    {
         $jobPoller = new JobPollerManager;
-
-        // Start with a new block UUID
         $jobPoller->newBlockUUID();
 
-        // Add the first chain of jobs under the same block UUID
-        $jobPoller
-            ->addJob(UpsertSymbolsJob::class, 500)
-            ->addJob(UpsertSymbolMetadataJob::class);
+        $jobPoller->addJob(UpsertSymbolsJob::class, 500)
+                  ->addJob(UpsertSymbolMetadataJob::class);
 
-        // Iterate through each exchange and add exchange-specific job chains using the same block UUID
-        foreach (ApiSystem::all()->where('is_exchange', true) as $exchange) {
+        foreach (ApiSystem::where('is_exchange', true)->get() as $exchange) {
             $nsPrefix = $exchange->namespace_prefix_jobs;
 
-            // Add the exchange-specific jobs to the current block UUID
-            $jobPoller->addJob($nsPrefix.'\\UpsertExchangeAvailableSymbolsJob')
-                ->addJob($nsPrefix.'\\UpsertNotionalAndLeverageJob');
+            $jobPoller->addJob($nsPrefix . '\\UpsertExchangeAvailableSymbolsJob')
+                      ->addJob($nsPrefix . '\\UpsertNotionalAndLeverageJob');
         }
 
         $jobPoller->addJob(UpsertSymbolTradeDirectionJob::class);
-
-        // Release queued jobs into the job poller.
         $jobPoller->release();
-
-        // Start handling jobs.
         $jobPoller->handle();
     }
 }

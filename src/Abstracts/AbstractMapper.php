@@ -6,19 +6,9 @@ use Nidavellir\Trading\Models\Trader;
 
 abstract class AbstractMapper
 {
-    // Possible trader that will use the current exchange instance.
     public ?Trader $trader;
-
-    // A possible set of credentials in case we don't have a trader.
     protected array $credentials;
-
-    // Additional properties that are used for api calls.
     public array $properties = [];
-
-    /**
-     * If we need to pass additional data to the constructor
-     * (e.g.: taapi exchange canonical).
-     */
     public array $additionalData = [];
 
     public function __construct(?Trader $trader = null, ?array $credentials = [], ?array $additionalData = [])
@@ -27,11 +17,9 @@ abstract class AbstractMapper
         $this->credentials = $credentials;
         $this->additionalData = $additionalData;
 
-        // Necessary for api calls that needs an "options".
         $this->properties['options'] = [];
 
-        // $credentials have priority over the $trader.
-        if (! is_null($trader) && empty($this->credentials)) {
+        if (!is_null($trader) && empty($this->credentials)) {
             $this->credentials = $this->trader->getExchangeCredentials();
         }
 
@@ -43,11 +31,14 @@ abstract class AbstractMapper
     public function withLoggable($model)
     {
         $this->properties['loggable'] = $model;
-
         return $this;
     }
 
-    public function exchange() {}
+    public function exchange()
+    {
+    }
 
-    public function connectionDetails() {}
+    public function connectionDetails()
+    {
+    }
 }
