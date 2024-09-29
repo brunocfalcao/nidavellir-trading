@@ -268,10 +268,8 @@ class JobPollerManager
                 ...json_decode($job->arguments, true)
             );
 
-            // Set the Job Poller instance if applicable.
-            if (method_exists($jobInstance, 'setJobPollerInstance')) {
-                $jobInstance->setJobPollerInstance($job);
-            }
+            // Set the Job Poller instance.
+            $jobInstance->setJobPollerInstance($job);
 
             // Dispatch the job to the configured queue.
             dispatch($jobInstance)->onQueue($this->getQueueName());

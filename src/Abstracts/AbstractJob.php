@@ -20,16 +20,6 @@ abstract class AbstractJob implements ShouldQueue
 
     public JobQueue $jobPollerInstance;
 
-    public function backoff()
-    {
-        return [15];
-    }
-
-    public function retryAfter()
-    {
-        return 1;
-    }
-
     public function setJobPollerInstance(JobQueue $jobPollerInstance)
     {
         $this->jobPollerInstance = $jobPollerInstance;
