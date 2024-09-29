@@ -67,7 +67,7 @@ class PositionCreatedListener extends AbstractListener
         // the remaining trade data and sync it with the exchange.
         $jobPoller = new JobPollerManager;
         $jobPoller->newBlockUUID();
-        $jobPoller->addJob(DispatchPositionJob::class, $position->id);
+        $jobPoller->withRelatable($position)->addJob(DispatchPositionJob::class, $position->id);
         $jobPoller->release();
     }
 

@@ -265,23 +265,24 @@ class DispatchPositionJob extends AbstractJob
         $limitOrders = $this->position->orders->where('type', 'LIMIT');
         $profitOrder = $this->position->orders->firstWhere('type', 'PROFIT');
 
-        // Prepare dispatch jobs for limit orders.
-        $limitJobs = $limitOrders->map(
-            fn($limitOrder) => new DispatchOrderJob($limitOrder->id)
-        )->toArray();
-
-        // Update position status to 'syncing'.
-        $this->position->update(['status' => 'syncing']);
-
         // Initialize the job poller manager to dispatch jobs.
         $jobPoller = new JobPollerManager;
         $jobPoller->newBlockUUID();
 
-        $jobPoller->addJobs($limitJobs);
-        $jobPoller->addJob(DispatchOrderJob::class, $marketOrder->id);
-        $jobPoller->addJob(DispatchOrderJob::class, $profitOrder->id);
-        $jobPoller->addJob(ValidatePositionJob::class, $this->position->id);
+        // Prepare dispatch jobs for limit orders.
+        foreach ($limitOrders as $limitOrder) {
+            // Add each job using the $jobPoller method
+            $jobPoller->withRelatable($limitOrder)->addJob(DispatchOrderJob::class, $limitOrder->id);
+        }
 
+        $jobPoller->withRelatable($marketOrder)->addJob(DispatchOrderJob::class, $marketOrder->id);
+        $jobPoller->withRelatable($profitOrder)->addJob(DispatchOrderJob::class, $profitOrder->id);
+        $jobPoller->withRelatable($this->position)->addJob(ValidatePositionJob::class, $this->position->id);
+
+        // Update position status to 'syncing'.
+        $this->position->update(['status' => 'syncing']);
+
+        // Release jobs for later processing.
         $jobPoller->release();
     }
 

@@ -32,6 +32,7 @@ class TestOrder extends Command
         DB::table('api_requests_log')->truncate();
         DB::table('application_logs')->truncate();
         DB::table('exceptions_log')->truncate();
+        DB::table('job_queue')->truncate();
 
         $amount = $this->option('amount') ?? 75;
         $token = $this->option('token') ?? collect(config('nidavellir.symbols.included'))->random();

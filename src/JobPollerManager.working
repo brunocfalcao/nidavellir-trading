@@ -30,9 +30,6 @@ class JobPollerManager
     // Maximum number of parallel jobs allowed, as configured.
     protected int $maxParallelJobs;
 
-    // Relatable model instance for polymorphic relationship.
-    protected $relatableModel = null;
-
     public function __construct()
     {
         $this->blockUUID = (string) Str::uuid();
@@ -44,7 +41,8 @@ class JobPollerManager
 
     /**
      * Adds multiple jobs to the internal list at once.
-     * If a relatable model is set, it applies to all jobs.
+     * This method accepts an array of job instances with
+     * their parameters, allowing batch processing.
      */
     public function addJobs(array $jobs)
     {
@@ -52,16 +50,11 @@ class JobPollerManager
             // Ensure that the job instance is a valid object with the expected class.
             if (is_object($job)) {
                 $this->jobs[] = [
-                    'class' => get_class($job),
-                    'arguments' => get_object_vars($job), // Store as array.
-                    'related_id' => $this->relatableModel ? $this->relatableModel->getKey() : null,
-                    'related_type' => $this->relatableModel ? get_class($this->relatableModel) : null,
+                'class' => get_class($job),
+                'arguments' => get_object_vars($job), // Store as array.
                 ];
             }
         }
-
-        // Clear relatable model after adding jobs.
-        $this->relatableModel = null;
 
         return $this;
     }
@@ -77,12 +70,7 @@ class JobPollerManager
         $this->jobs[] = [
             'class' => $className,
             'arguments' => $arguments,
-            'related_id' => $this->relatableModel ? $this->relatableModel->getKey() : null,
-            'related_type' => $this->relatableModel ? get_class($this->relatableModel) : null,
         ];
-
-        // Clear relatable model after adding the job.
-        $this->relatableModel = null;
 
         return $this;
     }
@@ -96,16 +84,6 @@ class JobPollerManager
     {
         // Assign the provided UUID or generate a new one if null.
         $this->blockUUID = $blockUUID ?? (string) Str::uuid();
-        return $this;
-    }
-
-    /**
-     * Sets a relatable model that will be associated with the next job(s).
-     * Allows attaching a polymorphic relationship to the job entries.
-     */
-    public function withRelatable($model)
-    {
-        $this->relatableModel = $model;
         return $this;
     }
 
@@ -126,16 +104,12 @@ class JobPollerManager
                 'arguments' => json_encode($job['arguments']),
                 'status' => 'pending',
                 'block_uuid' => $this->blockUUID,
-                'related_id' => $job['related_id'],
-                'related_type' => $job['related_type'],
             ]);
             $createdJobs->push($jobModel);
         }
 
-        // Clear the jobs array and relatable model after releasing them.
+        // Clear the jobs array after releasing them.
         $this->jobs = [];
-        $this->relatableModel = null;
-
         return $createdJobs;
     }
 
