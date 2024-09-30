@@ -7,6 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Nidavellir\Trading\Models\JobQueue;
 use Throwable;
 
 abstract class AbstractApiJob implements ShouldQueue
@@ -16,34 +17,96 @@ abstract class AbstractApiJob implements ShouldQueue
     protected int $maxAttempts = 3;
     protected int $retryDelay = 5;
     protected bool $failOnHttpError = false;
+    protected ?JobQueue $jobQueueEntry = null;
 
-    // The main entry point for the job
     public function handle()
     {
+        $this->startJobLogging();
         $this->handleApiTransactionLogic();
     }
 
-    // The core method that handles transaction logic with try-catch
     public function handleApiTransactionLogic()
     {
         try {
             $this->executeApiLogic();
+            $this->markJobAsComplete();
         } catch (Throwable $e) {
+            $this->markJobAsFailed($e);
             $this->handleException($e);
         }
     }
 
-    // Abstract method for specific API job logic that child classes will implement
     abstract protected function executeApiLogic();
 
-    protected function setRateLimitConfig(array $config): void
+    protected function startJobLogging(): void
     {
-        $this->rateLimitConfig = array_merge($this->rateLimitConfig, $config);
+        $this->jobQueueEntry = JobQueue::create([
+            'class' => get_class($this),
+            'arguments' => json_encode($this->jobArguments()),
+            'status' => 'running',
+            'started_at' => now()->getPreciseTimestamp(3), // Start time in milliseconds
+            'hostname' => gethostname(),
+        ]);
+    }
+
+    protected function markJobAsComplete(): void
+    {
+        if ($this->jobQueueEntry) {
+            $completedAt = now()->getPreciseTimestamp(3); // Completion time in milliseconds
+            $this->jobQueueEntry->update([
+                'status' => 'completed',
+                'completed_at' => $completedAt,
+                'duration' => $completedAt - $this->jobQueueEntry->started_at,
+            ]);
+        }
+
+        info_multiple(
+            'Job completed successfully',
+            'Job Class: ' . get_class($this),
+            'Job ID: ' . $this->jobQueueEntry->id,
+            'Duration: ' . $this->jobQueueEntry->duration . ' ms'
+        );
+    }
+
+    protected function markJobAsFailed(Throwable $e): void
+    {
+        if ($this->jobQueueEntry) {
+            $completedAt = now()->getPreciseTimestamp(3); // Failure time in milliseconds
+            $this->jobQueueEntry->update([
+                'status' => 'failed',
+                'error_message' => $e->getMessage(),
+                'completed_at' => $completedAt,
+                'duration' => $completedAt - $this->jobQueueEntry->started_at,
+            ]);
+        }
+
+        info_multiple(
+            'Job failed',
+            'Job Class: ' . get_class($this),
+            'Job ID: ' . $this->jobQueueEntry->id,
+            'Error Message: ' . $e->getMessage(),
+            'Trace: ' . $e->getTraceAsString()
+        );
+    }
+
+    // Method to attach a related model to the job entry
+    public function attachRelatedModel($model): void
+    {
+        if ($this->jobQueueEntry && $model) {
+            $this->jobQueueEntry->update([
+                'related_id' => $model->getKey(),
+                'related_type' => get_class($model),
+            ]);
+        }
+    }
+
+    protected function jobArguments(): array
+    {
+        return get_object_vars($this);
     }
 
     protected function handleException(Throwable $e): void
     {
-        // Use the info_multiple() helper method for logging
         info_multiple(
             'API job encountered an error.',
             'Exception: ' . $e->getMessage(),
@@ -64,7 +127,7 @@ abstract class AbstractApiJob implements ShouldQueue
 
     public function failed(Throwable $e)
     {
-        // Use the info_multiple() helper method for logging
+        $this->markJobAsFailed($e);
         info_multiple(
             'Job permanently failed after max attempts',
             'Job Class: ' . get_class($this),
