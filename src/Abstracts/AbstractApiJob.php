@@ -20,15 +20,13 @@ abstract class AbstractApiJob implements ShouldQueue
 
     protected bool $failOnHttpError = false;
 
-    // Add this array to hold rate limit configurations
-    protected array $rateLimitConfig = [];
-
     // The main entry point for the job
     public function handle()
     {
         $this->handleApiTransactionLogic();
     }
 
+    // The core method that handles transaction logic with try-catch
     public function handleApiTransactionLogic()
     {
         try {
@@ -41,7 +39,6 @@ abstract class AbstractApiJob implements ShouldQueue
     // Abstract method for specific API job logic that child classes will implement
     abstract protected function executeApiLogic();
 
-    // Add the setRateLimitConfig method
     protected function setRateLimitConfig(array $config): void
     {
         $this->rateLimitConfig = array_merge($this->rateLimitConfig, $config);

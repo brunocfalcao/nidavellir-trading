@@ -14,17 +14,7 @@ abstract class CoinmarketCapApiJob extends AbstractApiJob
         $this->applyRateLimitConfig();
     }
 
-    // Change access level to public to match the parent class
-    public function handleApiTransactionLogic()
-    {
-        // Ensure the rate limit configuration is applied
-        $this->prepareJob();
-
-        // Call the generalized method that all child classes will implement
-        $this->executeApiLogic();
-    }
-
-    // Abstract method to be implemented by child classes for their specific logic
+    // Only implement the executeApiLogic method, allowing the parent to handle error management
     abstract protected function executeApiLogic();
 
     // Apply rate limit configuration based on CoinMarketCap plan
