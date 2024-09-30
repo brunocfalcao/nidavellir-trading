@@ -52,9 +52,7 @@ class UpsertExchangeAvailableSymbolsJob extends AbstractJob
             }
 
             $this->syncExchangeSymbols();
-            $this->jobPollerInstance->markAsComplete();
         } catch (\Throwable $e) {
-            $this->jobPollerInstance->markAsError($e);
             throw new TryCatchException(throwable: $e);
         }
     }
