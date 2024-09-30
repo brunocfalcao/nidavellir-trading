@@ -3,14 +3,15 @@
 namespace Nidavellir\Trading\Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\File;
-use Nidavellir\Trading\Jobs\ApiSystems\Binance\UpsertExchangeAvailableSymbolsJob;
-use Nidavellir\Trading\Jobs\ApiSystems\Binance\UpsertNotionalAndLeverageJob;
-use Nidavellir\Trading\Jobs\ApiSystems\CoinmarketCap\UpsertSymbolMetadataJob;
+use Nidavellir\Trading\Models\Trader;
+use Nidavellir\Trading\Models\ApiSystem;
 use Nidavellir\Trading\Jobs\ApiSystems\CoinmarketCap\UpsertSymbolsJob;
 use Nidavellir\Trading\Jobs\ApiSystems\Taapi\UpsertSymbolTradeDirectionJob;
-use Nidavellir\Trading\Models\ApiSystem;
-use Nidavellir\Trading\Models\Trader;
+use Nidavellir\Trading\Jobs\ApiSystems\Binance\UpsertNotionalAndLeverageJob;
+use Nidavellir\Trading\Jobs\ApiSystems\CoinmarketCap\UpsertSymbolMetadataJob;
+use Nidavellir\Trading\Jobs\ApiSystems\Binance\UpsertExchangeAvailableSymbolsJob;
 
 class TradingGenesisSeeder extends Seeder
 {
@@ -69,10 +70,12 @@ class TradingGenesisSeeder extends Seeder
 
     private function queueJobs()
     {
-        UpsertSymbolsJob::dispatch(500);
-        UpsertSymbolMetadataJob::dispatch();
-        UpsertExchangeAvailableSymbolsJob::dispatch();
-        UpsertNotionalAndLeverageJob::dispatch();
-        UpsertSymbolTradeDirectionJob::dispatch();
+        Bus::chain([
+            new UpsertSymbolsJob(500),
+            new UpsertSymbolMetadataJob,
+            new UpsertExchangeAvailableSymbolsJob,
+            new UpsertNotionalAndLeverageJob,
+            new UpsertSymbolTradeDirectionJob,
+        ]);
     }
 }
