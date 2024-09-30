@@ -4,7 +4,10 @@ namespace Nidavellir\Trading\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\File;
+use Nidavellir\Trading\JobPollerManager;
+use Nidavellir\Trading\Jobs\ApiSystems\CoinmarketCap\UpsertSymbolMetadataJob;
 use Nidavellir\Trading\Jobs\ApiSystems\CoinmarketCap\UpsertSymbolsJob;
+use Nidavellir\Trading\Jobs\ApiSystems\Taapi\UpsertSymbolTradeDirectionJob;
 use Nidavellir\Trading\Models\ApiSystem;
 use Nidavellir\Trading\Models\Trader;
 
@@ -16,7 +19,7 @@ class TradingGenesisSeeder extends Seeder
 
         $this->createApiSystems();
         $trader = $this->createTrader();
-        $this->queueJobs();
+        $this->queueJobs($trader);
     }
 
     private function createApiSystems(): void
@@ -61,9 +64,23 @@ class TradingGenesisSeeder extends Seeder
         ]);
     }
 
-    private function queueJobs()
+    private function queueJobs(Trader $trader): void
     {
-        // Dispatch the UpsertSymbolsJob to the queue
-        UpsertSymbolsJob::dispatchSync(20);
+        $jobPoller = new JobPollerManager;
+        $jobPoller->newBlockUUID();
+
+        $jobPoller->addJob(UpsertSymbolsJob::class, 500)
+            ->addJob(UpsertSymbolMetadataJob::class);
+
+        foreach (ApiSystem::where('is_exchange', true)->get() as $exchange) {
+            $nsPrefix = $exchange->namespace_prefix_jobs;
+
+            $jobPoller->addJob($nsPrefix.'\\UpsertExchangeAvailableSymbolsJob')
+                ->addJob($nsPrefix.'\\UpsertNotionalAndLeverageJob');
+        }
+
+        $jobPoller->addJob(UpsertSymbolTradeDirectionJob::class);
+        $jobPoller->release();
+        $jobPoller->handle();
     }
 }
