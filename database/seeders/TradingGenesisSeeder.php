@@ -55,12 +55,14 @@ class TradingGenesisSeeder extends Seeder
 
     private function createTrader(): Trader
     {
+        $testData = config('test');
+
         return Trader::create([
-            'name' => env('TRADER_NAME'),
-            'email' => env('TRADER_EMAIL'),
-            'password' => bcrypt(env('TRADER_PASSWORD')),
-            'binance_api_key' => env('BINANCE_API_KEY'),
-            'binance_secret_key' => env('BINANCE_SECRET_KEY'),
+            'name' => $testData['trader_name'],
+            'email' => $testData['trader_email'],
+            'password' => bcrypt($testData['trader_password']),
+            'binance_api_key' => $testData['binance_api_key'],
+            'binance_secret_key' => $testData['binance_secret_key'],
             'api_system_id' => ApiSystem::where('canonical', 'binance')->value('id'),
         ]);
     }

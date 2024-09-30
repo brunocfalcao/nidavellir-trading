@@ -62,7 +62,6 @@ class UpsertSymbolTradeDirectionJob extends TaapiApiJob
             )
         );
 
-        //throw new \Exception('Just a test');
         // Process each exchange ID.
         foreach ($this->exchangeIds as $exchangeId) {
             if ($this->symbolToken) {

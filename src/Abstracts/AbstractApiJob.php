@@ -120,6 +120,8 @@ abstract class AbstractApiJob implements ShouldQueue
         if ($this->failOnHttpError && $this->isHttpError($e)) {
             $this->fail($e);
         }
+
+        throw $e; // To be caught by Sentry.
     }
 
     // Determines if the given exception is an HTTP error.
