@@ -2,8 +2,8 @@
 
 namespace Nidavellir\Trading\Jobs\ApiJobFoundations;
 
-use Nidavellir\Trading\Abstracts\AbstractApiJob;
 use Illuminate\Support\Facades\Log;
+use Nidavellir\Trading\Abstracts\AbstractApiJob;
 use Throwable;
 
 abstract class CoinmarketCapApiJob extends AbstractApiJob
@@ -14,18 +14,18 @@ abstract class CoinmarketCapApiJob extends AbstractApiJob
         $this->applyRateLimitConfig();
     }
 
-    // Override the handleExchangeLogic method to include preparation logic
-    protected function handleExchangeLogic()
+    // Change access level to public to match the parent class
+    public function handleApiTransactionLogic()
     {
         // Ensure the rate limit configuration is applied
         $this->prepareJob();
 
-        // Let child classes handle the actual API logic
-        $this->executeCoinmarketCapLogic();
+        // Call the generalized method that all child classes will implement
+        $this->executeApiLogic();
     }
 
     // Abstract method to be implemented by child classes for their specific logic
-    abstract protected function executeCoinmarketCapLogic();
+    abstract protected function executeApiLogic();
 
     // Apply rate limit configuration based on CoinMarketCap plan
     protected function applyRateLimitConfig(): void

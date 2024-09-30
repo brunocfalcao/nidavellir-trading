@@ -4,6 +4,7 @@ namespace Nidavellir\Trading\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\File;
+use Nidavellir\Trading\Jobs\ApiSystems\CoinmarketCap\UpsertSymbolMetadataJob;
 use Nidavellir\Trading\Jobs\ApiSystems\CoinmarketCap\UpsertSymbolsJob;
 use Nidavellir\Trading\Models\ApiSystem;
 use Nidavellir\Trading\Models\Trader;
@@ -65,5 +66,6 @@ class TradingGenesisSeeder extends Seeder
     {
         // Dispatch the UpsertSymbolsJob to the queue
         UpsertSymbolsJob::dispatchSync(20);
+        UpsertSymbolMetadataJob::dispatchSync();
     }
 }

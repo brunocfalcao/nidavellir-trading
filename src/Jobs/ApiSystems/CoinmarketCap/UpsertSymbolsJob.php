@@ -2,11 +2,11 @@
 
 namespace Nidavellir\Trading\Jobs\ApiSystems\CoinmarketCap;
 
-use Nidavellir\Trading\Jobs\ApiJobFoundations\CoinmarketCapApiJob;
-use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\ApiSystems\ApiSystemRESTWrapper;
 use Nidavellir\Trading\ApiSystems\CoinmarketCap\CoinmarketCapRESTMapper;
 use Nidavellir\Trading\Exceptions\SymbolNotSyncedException;
+use Nidavellir\Trading\Jobs\ApiJobFoundations\CoinmarketCapApiJob;
+use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Nidavellir;
 
 class UpsertSymbolsJob extends CoinmarketCapApiJob
@@ -18,7 +18,8 @@ class UpsertSymbolsJob extends CoinmarketCapApiJob
         $this->limit = $limit;
     }
 
-    protected function executeCoinmarketCapLogic()
+    // Implement the generalized executeApiLogic method
+    protected function executeApiLogic()
     {
         // Initialize the CoinMarketCap API Wrapper
         $api = new ApiSystemRESTWrapper(
@@ -36,7 +37,7 @@ class UpsertSymbolsJob extends CoinmarketCapApiJob
         $data = $api->getSymbols()['data'];
 
         // Check if data was retrieved
-        if (!$data) {
+        if (! $data) {
             throw new SymbolNotSyncedException(
                 message: 'No symbols fetched from CoinMarketCap API'
             );
