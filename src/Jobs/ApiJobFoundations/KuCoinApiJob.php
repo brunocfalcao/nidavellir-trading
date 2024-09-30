@@ -2,7 +2,7 @@
 
 namespace Nidavellir\Trading\Jobs\ApiJobFoundations;
 
-use Nidavellir\Trading\Abstracts\AbstractApiJob;
+use Nidavellir\Trading\Abstracts\AbstractJob;
 use Throwable;
 
 /**
@@ -13,7 +13,7 @@ use Throwable;
  * - Configures rate limits based on VIP plan.
  * - Handles 429 and 403 HTTP errors for KuCoin.
  */
-abstract class KuCoinApiJob extends AbstractApiJob
+abstract class KuCoinApiJob extends AbstractJob
 {
     // Prepares the job by applying the KuCoin rate limit configuration.
     protected function prepareJob()

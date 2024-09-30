@@ -4,7 +4,6 @@ namespace Nidavellir\Trading\Listeners\Positions;
 
 use Nidavellir\Trading\Abstracts\AbstractListener;
 use Nidavellir\Trading\Events\Positions\PositionCreatedEvent;
-use Nidavellir\Trading\JobPollerManager;
 use Nidavellir\Trading\Jobs\Positions\DispatchPositionJob;
 use Nidavellir\Trading\Models\Order;
 use Nidavellir\Trading\Nidavellir;
@@ -63,12 +62,7 @@ class PositionCreatedListener extends AbstractListener
             }
         }
 
-        // After creating all orders, dispatch the position job to prepare
-        // the remaining trade data and sync it with the exchange.
-        $jobPoller = new JobPollerManager;
-        $jobPoller->newBlockUUID();
-        $jobPoller->withRelatable($position)->addJob(DispatchPositionJob::class, $position->id);
-        $jobPoller->release();
+        DispatchPositionJob::dispatch($position->id);
     }
 
     // Creates an order associated with the given position, using the

@@ -85,9 +85,7 @@ class CancelOrderJob extends AbstractJob
 
             // Update the order status to 'cancelled'.
             $this->order->update(['status' => 'cancelled']);
-            $this->jobPollerInstance->markAsComplete();
         } catch (\Throwable $e) {
-            $this->jobPollerInstance->markAsError($e);
             // Throw a TryCatchException if an error occurs during cancellation.
             throw new TryCatchException(
                 throwable: $e,

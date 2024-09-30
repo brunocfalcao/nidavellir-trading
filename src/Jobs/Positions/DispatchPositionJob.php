@@ -2,16 +2,15 @@
 
 namespace Nidavellir\Trading\Jobs\Positions;
 
+use Nidavellir\Trading\Nidavellir;
+use Illuminate\Support\Facades\Bus;
+use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Abstracts\AbstractJob;
+use Nidavellir\Trading\Models\ExchangeSymbol;
+use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
 use Nidavellir\Trading\ApiSystems\ApiSystemRESTWrapper;
 use Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exceptions\DispatchPositionException;
-use Nidavellir\Trading\Exceptions\TryCatchException;
-use Nidavellir\Trading\JobPollerManager;
-use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
-use Nidavellir\Trading\Models\ExchangeSymbol;
-use Nidavellir\Trading\Models\Position;
-use Nidavellir\Trading\Nidavellir;
 
 /**
  * Class: DispatchPositionJob
@@ -40,67 +39,28 @@ class DispatchPositionJob extends AbstractJob
         $this->position = Position::find($positionId);
     }
 
-    // Main handle method to process the job and dispatch the position's orders.
-    public function handle()
+    // Main method that processes the job's logic inherited from AbstractJob.
+    protected function executeApiLogic()
     {
-        try {
-            // Perform mandatory field validation for the position.
-            $this->validateMandatoryFields();
+        // Attach the position model to jobQueueEntry for better tracking.
+        $this->attachRelatedModel($this->position);
 
-            // Compute the total trade amount if not already set.
-            $this->computeTotalTradeAmount();
+        // Perform all necessary steps for processing the position.
+        $this->validateMandatoryFields();
+        $this->computeTotalTradeAmount();
+        $this->selectEligibleSymbol();
+        $this->updatePositionSideAndProfitRatio();
+        $this->updateMarginTypeToCrossed();
+        $this->setLeverage();
+        $this->setLeverageOnToken();
 
-            // Select a symbol eligible for trading.
-            $this->selectEligibleSymbol();
-
-            // Update the side and profit ratio of the position.
-            $this->updatePositionSideAndProfitRatio();
-
-            // Set the margin type to 'CROSSED' for the position.
-            $this->updateMarginTypeToCrossed();
-
-            // Set the leverage for the position.
-            $this->setLeverage();
-
-            // Apply the leverage setting to the token.
-            $this->setLeverageOnToken();
-
-            // Fetch and set the initial mark price if not set.
-            if (blank($this->position->initial_mark_price)) {
-                $this->fetchAndSetMarkPrice();
-            }
-
-            // Log key information about the position.
-            /*
-            info_multiple(
-                '=== POSITION ID ' . $this->position->id,
-                'Side: ' . $this->position->side,
-                'Initial Mark Price: ' . $this->position->initial_mark_price,
-                'Leverage: ' . $this->position->leverage,
-                'Symbol: ' . $this->position->exchangeSymbol->symbol->token,
-                'Trader: ' . $this->position->trader->name,
-                'Total Trade Amount: ' . $this->position->total_trade_amount,
-                '===',
-                ' '
-            );
-            */
-
-            // Dispatch the related orders for this position.
-            $this->dispatchOrders($this->position);
-            $this->jobPollerInstance->markAsComplete();
-        } catch (\Throwable $e) {
-            $this->jobPollerInstance->markAsError($e);
-            // If an error occurs, mark the position's status as 'error'.
-            if ($this->position) {
-                $this->position->update(['status' => 'error']);
-            }
-
-            // Throw a TryCatchException with additional data.
-            throw new TryCatchException(
-                throwable: $e,
-                additionalData: ['position_id' => $this->positionId]
-            );
+        // Fetch and set the initial mark price if not set.
+        if (blank($this->position->initial_mark_price)) {
+            $this->fetchAndSetMarkPrice();
         }
+
+        // Dispatch the related orders for this position.
+        $this->dispatchOrders($this->position);
     }
 
     // Sets the margin type for the position to 'CROSSED'.
@@ -108,7 +68,6 @@ class DispatchPositionJob extends AbstractJob
     {
         $exchangeSymbol = $this->position->exchangeSymbol;
 
-        // Update the margin type using the trader's REST API.
         $this->position
             ->trader
             ->withRESTApi()
@@ -123,7 +82,6 @@ class DispatchPositionJob extends AbstractJob
     // Validates that all mandatory fields for the position are present.
     protected function validateMandatoryFields()
     {
-        // Check if mandatory fields are blank and throw an exception if so.
         if (blank($this->position->trader_id) ||
             blank($this->position->status) ||
             blank($this->position->trade_configuration)) {
@@ -139,9 +97,7 @@ class DispatchPositionJob extends AbstractJob
     {
         $configuration = $this->position->trade_configuration;
 
-        // Check if total trade amount is not set.
         if (blank($this->position->total_trade_amount)) {
-            // Fetch the trader's available USDT balance using REST API.
             $availableBalance = $this->position->trader
                 ->withRESTApi()
                 ->withLoggable($this->position)
@@ -149,24 +105,18 @@ class DispatchPositionJob extends AbstractJob
 
             $minimumTradeAmount = config('nidavellir.positions.minimum_trade_amount');
 
-            // If balance is zero, mark the position as error.
             if ($availableBalance == 0) {
                 $this->updatePositionError('No USDT on Futures available balance.');
-
                 return;
             }
 
-            // If balance is below the minimum, mark the position as error.
             if ($availableBalance < $minimumTradeAmount) {
                 $this->updatePositionError("Less than {$minimumTradeAmount} USDT on Futures available balance (current: {$availableBalance}).");
-
                 return;
             }
 
-            // Calculate and set the total trade amount based on available balance.
             $maxPercentageTradeAmount = $configuration['positions']['amount_percentage_per_trade'];
             $totalTradeAmount = round(floor($availableBalance * $maxPercentageTradeAmount / 100));
-
             $this->position->update(['total_trade_amount' => $totalTradeAmount]);
         }
     }
@@ -174,7 +124,6 @@ class DispatchPositionJob extends AbstractJob
     // Selects an eligible trading symbol for the position.
     protected function selectEligibleSymbol()
     {
-        // Check if the exchange symbol is not already set.
         if (blank($this->position->exchange_symbol_id)) {
             $eligibleSymbols = ExchangeSymbol::where(
                 'api_system_id',
@@ -188,17 +137,14 @@ class DispatchPositionJob extends AbstractJob
                 })
                 ->get();
 
-            // Get all symbols currently being traded by the trader.
             $beingTradedSymbols = $this->position->trader->positions()
                 ->whereNotIn('status', ['error', 'closed'])
                 ->pluck('exchange_symbol_id')
                 ->toArray();
 
-            // Filter eligible symbols that are not currently being traded.
             $eligibleSymbols = $eligibleSymbols->reject(fn ($symbol) => in_array($symbol->id, $beingTradedSymbols));
             $exchangeSymbol = $eligibleSymbols->random();
 
-            // Update the position with the selected eligible symbol.
             $this->position->update(['exchange_symbol_id' => $exchangeSymbol->id]);
         }
     }
@@ -209,7 +155,6 @@ class DispatchPositionJob extends AbstractJob
         $ratiosConfiguration = config('nidavellir.positions.current_order_ratio_group');
         $profitRatio = config("nidavellir.orders.{$ratiosConfiguration}.ratios.PROFIT")[0];
 
-        // Update the position's side and initial profit percentage ratio.
         $this->position->update([
             'side' => $this->position->exchangeSymbol->side,
             'initial_profit_percentage_ratio' => $profitRatio,
@@ -219,15 +164,12 @@ class DispatchPositionJob extends AbstractJob
     // Sets the leverage for the position based on configuration and limits.
     protected function setLeverage()
     {
-        // Check if leverage is not already set.
         if (blank($this->position->leverage)) {
             $wrapper = new ApiSystemRESTWrapper(
                 new BinanceRESTMapper(credentials: Nidavellir::getSystemCredentials('binance'))
             );
 
             $leverageData = $this->position->exchangeSymbol->api_notional_and_leverage_symbol_information;
-
-            // Calculate the maximum leverage based on available data.
             $possibleLeverage = Nidavellir::getMaximumLeverage(
                 $leverageData,
                 $this->position->exchangeSymbol->symbol->token.'USDT',
@@ -268,25 +210,22 @@ class DispatchPositionJob extends AbstractJob
         $limitOrders = $this->position->orders->where('type', 'LIMIT');
         $profitOrder = $this->position->orders->firstWhere('type', 'PROFIT');
 
-        // Initialize the job poller manager to dispatch jobs.
-        $jobPoller = new JobPollerManager;
-        $jobPoller->newBlockUUID();
+        $profitOrderJobs = [];
 
-        // Prepare dispatch jobs for limit orders.
         foreach ($limitOrders as $limitOrder) {
-            // Add each job using the $jobPoller method
-            $jobPoller->withRelatable($limitOrder)->addJob(DispatchOrderJob::class, $limitOrder->id);
+            $profitOrderJobs[] = new DispatchOrderJob($limitOrder->id);
         }
 
-        $jobPoller->withRelatable($marketOrder)->addJob(DispatchOrderJob::class, $marketOrder->id);
-        $jobPoller->withRelatable($profitOrder)->addJob(DispatchOrderJob::class, $profitOrder->id);
-        $jobPoller->withRelatable($this->position)->addJob(ValidatePositionJob::class, $this->position->id);
+        $marketOrderJob = new DispatchOrderJob($marketOrder->id);
+        $profitOrderJob = new DispatchOrderJob($profitOrder->id);
 
-        // Update position status to 'syncing'.
         $this->position->update(['status' => 'syncing']);
 
-        // Release jobs for later processing.
-        $jobPoller->release();
+        Bus::chain([
+            Bus::batch($profitOrderJobs),
+            $marketOrderJob,
+            $profitOrderJob
+        ])->dispatch();
     }
 
     // Updates the position status to 'error' with a specified message.

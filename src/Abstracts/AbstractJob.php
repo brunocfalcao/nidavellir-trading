@@ -8,10 +8,11 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Nidavellir\Trading\Models\JobQueue;
+use Illuminate\Bus\Batchable;
 use Throwable;
 
 /**
- * AbstractApiJob defines the base structure for all API jobs that interact
+ * AbstractJob defines the base structure for all API jobs that interact
  * with third-party systems. It manages logging, exception handling,
  * job completion, and failure tracking, providing a template for
  * executing and managing API-related tasks.
@@ -20,9 +21,9 @@ use Throwable;
  * - Logs job details to the JobQueue model.
  * - Provides structured handling for API logic and exceptions.
  */
-abstract class AbstractApiJob implements ShouldQueue
+abstract class AbstractJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     // Maximum number of attempts to run the job.
     protected int $maxAttempts = 3;

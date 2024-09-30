@@ -2,7 +2,7 @@
 
 namespace Nidavellir\Trading\Jobs\ApiJobFoundations;
 
-use Nidavellir\Trading\Abstracts\AbstractApiJob;
+use Nidavellir\Trading\Abstracts\AbstractJob;
 use Throwable;
 
 /**
@@ -14,7 +14,7 @@ use Throwable;
  * - Implements rate limit headers for Binance's API.
  * - Handles 429 (rate limit) and 418 (IP ban) errors gracefully.
  */
-abstract class BinanceApiJob extends AbstractApiJob
+abstract class BinanceApiJob extends AbstractJob
 {
     // Prepares the job by applying rate limit configuration.
     protected function prepareJob()

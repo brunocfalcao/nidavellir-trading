@@ -70,9 +70,7 @@ class ValidatePositionJob extends AbstractJob
                 // If no errors in orders, mark the position as 'synced'.
                 $this->position->update(['status' => 'synced']);
             }
-            $this->jobPollerInstance->markAsComplete();
         } catch (\Throwable $e) {
-            $this->jobPollerInstance->markAsError($e);
             // If an exception occurs, update the position status to 'error'.
             $this->position->update(['status' => 'error']);
 

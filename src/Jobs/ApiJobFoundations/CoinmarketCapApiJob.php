@@ -2,7 +2,7 @@
 
 namespace Nidavellir\Trading\Jobs\ApiJobFoundations;
 
-use Nidavellir\Trading\Abstracts\AbstractApiJob;
+use Nidavellir\Trading\Abstracts\AbstractJob;
 use Throwable;
 
 /**
@@ -14,7 +14,7 @@ use Throwable;
  * - Configures rate limits based on API subscription plans.
  * - Manages 1008, 1009, 1010, and 1011 error codes specific to CoinMarketCap.
  */
-abstract class CoinmarketCapApiJob extends AbstractApiJob
+abstract class CoinmarketCapApiJob extends AbstractJob
 {
     // Prepares the job by applying the CoinMarketCap rate limit configuration.
     protected function prepareJob()

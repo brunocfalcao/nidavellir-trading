@@ -2,7 +2,7 @@
 
 namespace Nidavellir\Trading\Jobs\ApiJobFoundations;
 
-use Nidavellir\Trading\Abstracts\AbstractApiJob;
+use Nidavellir\Trading\Abstracts\AbstractJob;
 use Throwable;
 
 /**
@@ -14,7 +14,7 @@ use Throwable;
  * - Configures rate limits based on the user's Taapi.io plan.
  * - Handles HTTP 429 errors specific to Taapi.io.
  */
-abstract class TaapiApiJob extends AbstractApiJob
+abstract class TaapiApiJob extends AbstractJob
 {
     // Prepares the job by applying the Taapi.io rate limit configuration.
     protected function prepareJob()

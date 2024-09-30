@@ -2,7 +2,7 @@
 
 namespace Nidavellir\Trading\Jobs\ApiJobFoundations;
 
-use Nidavellir\Trading\Abstracts\AbstractApiJob;
+use Nidavellir\Trading\Abstracts\AbstractJob;
 use Throwable;
 
 /**
@@ -13,7 +13,7 @@ use Throwable;
  * - Configures rate limits based on API plan.
  * - Handles 429 and 403 HTTP errors gracefully.
  */
-abstract class CoinbaseApiJob extends AbstractApiJob
+abstract class CoinbaseApiJob extends AbstractJob
 {
     // Prepares the job by applying the Coinbase rate limit configuration.
     protected function prepareJob()
