@@ -51,7 +51,7 @@ abstract class CoinbaseApiJob extends AbstractApiJob
             '/loans' => [
                 'requests_per_second' => 10,    // 10 requests per second.
                 'retry_delay' => 1,            // Delay of 1 second for retries.
-            ]
+            ],
         ];
 
         // Apply the rate limit configuration if the plan exists.
