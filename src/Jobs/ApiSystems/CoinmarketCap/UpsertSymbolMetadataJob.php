@@ -8,32 +8,44 @@ use Nidavellir\Trading\Jobs\ApiJobFoundations\CoinmarketCapApiJob;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Nidavellir;
 
+/**
+ * UpsertSymbolMetadataJob is responsible for updating symbol metadata
+ * such as image URL, description, and website from the CoinMarketCap
+ * API. This job handles symbols missing this information and processes
+ * them in chunks for efficient API calls.
+ *
+ * Important points:
+ * - Retrieves symbols missing metadata from the database.
+ * - Fetches metadata from CoinMarketCap in batches.
+ * - Updates symbol data with the fetched metadata.
+ */
 class UpsertSymbolMetadataJob extends CoinmarketCapApiJob
 {
-    // Implement the generalized executeApiLogic method
+    // Implement the generalized executeApiLogic method.
     protected function executeApiLogic()
     {
-        // Initialize the CoinMarketCap API Wrapper
+        // Initialize the CoinMarketCap API Wrapper.
         $api = new ApiSystemRESTWrapper(
             new CoinmarketCapRESTMapper(
                 credentials: Nidavellir::getSystemCredentials('coinmarketcap')
             )
         );
 
-        // Fetch symbols with missing metadata
+        // Fetch symbols with missing metadata.
         $symbols = Symbol::whereNull('image_url')
             ->orWhereNull('description')
             ->pluck('coinmarketcap_id')
             ->toArray();
 
-        // Process symbols in chunks of 100
+        // Process symbols in chunks of 100.
         foreach (array_chunk($symbols, 100) as $chunk) {
             $symbolList = implode(',', $chunk);
 
-            // Fetch metadata from CoinMarketCap
+            // Fetch metadata from CoinMarketCap.
             $cryptoDataList = (array) $api->withOptions(['id' => $symbolList])
                 ->getSymbolsMetadata()['data'];
 
+            // Check if data was retrieved successfully.
             if (! empty($cryptoDataList)) {
                 foreach ($cryptoDataList as $cryptoId => $cryptoData) {
                     $imageUrl = $cryptoData['logo'] ?? null;
@@ -41,7 +53,7 @@ class UpsertSymbolMetadataJob extends CoinmarketCapApiJob
                     $website = $cryptoData['urls']['website'][0] ?? null;
                     $description = $cryptoData['description'] ?? null;
 
-                    // Update the symbol record
+                    // Update the symbol record if missing metadata.
                     Symbol::where('coinmarketcap_id', $cryptoId)
                         ->where(function ($query) {
                             $query->whereNull('image_url')
