@@ -69,10 +69,10 @@ class TradingGenesisSeeder extends Seeder
 
     private function queueJobs()
     {
-        UpsertSymbolsJob::dispatchSync(500);
-        UpsertSymbolMetadataJob::dispatchSync();
-        UpsertExchangeAvailableSymbolsJob::dispatchSync();
-        UpsertNotionalAndLeverageJob::dispatchSync();
-        UpsertSymbolTradeDirectionJob::dispatchSync();
+        UpsertSymbolsJob::dispatch(500);
+        UpsertSymbolMetadataJob::dispatch();
+        UpsertExchangeAvailableSymbolsJob::dispatch();
+        UpsertNotionalAndLeverageJob::dispatch();
+        UpsertSymbolTradeDirectionJob::dispatch();
     }
 }
