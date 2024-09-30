@@ -2,6 +2,9 @@
 
 namespace Nidavellir\Trading\Jobs\ApiJobFoundations;
 
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Nidavellir\Trading\Abstracts\AbstractJob;
 use Throwable;
 
@@ -15,11 +18,30 @@ use Throwable;
  */
 abstract class CoinbaseApiJob extends AbstractJob
 {
+    protected string $apiCanonical = 'coinbase'; // Define API canonical
+
     // Prepares the job by applying the Coinbase rate limit configuration.
     protected function prepareJob()
     {
-        // Apply the rate limit configuration as part of job preparation.
         $this->applyRateLimitConfig();
+
+        // Get the worker's IP address
+        $ipAddress = gethostbyname(gethostname());
+
+        // Check the rate limit table for this IP and API
+        $rateLimit = DB::table('rate_limits')
+            ->where('ip_address', $ipAddress)
+            ->where('api_canonical', $this->apiCanonical)
+            ->first();
+
+        // If rate limit exists and the retry_after is in the future, stop processing
+        if ($rateLimit && Carbon::now()->timestamp < $rateLimit->retry_after) {
+            $retryIn = $rateLimit->retry_after - Carbon::now()->timestamp;
+            Log::info("Rate limit active for IP {$ipAddress} on {$this->apiCanonical}. Releasing job to retry after {$retryIn} seconds.");
+            $this->release($retryIn); // Re-queue the job after the retry period
+
+            return;
+        }
     }
 
     // Abstract method for executing API logic, to be implemented by subclasses.
@@ -78,6 +100,13 @@ abstract class CoinbaseApiJob extends AbstractJob
             $headers = $response->getHeaders();
             $this->logRateLimitHeaders($headers);
 
+            // Reset the rate limit entry for this IP after a successful request
+            $ipAddress = gethostbyname(gethostname());
+            DB::table('rate_limits')
+                ->where('ip_address', $ipAddress)
+                ->where('api_canonical', $this->apiCanonical)
+                ->delete();
+
             // Return the decoded response body.
             return json_decode($response->getBody()->getContents(), true);
         } catch (Throwable $e) {
@@ -95,12 +124,24 @@ abstract class CoinbaseApiJob extends AbstractJob
     // Handles Coinbase-specific error handling, focusing on rate limit issues.
     protected function checkForSpecificErrors(Throwable $e): void
     {
+        $ipAddress = gethostbyname(gethostname());
+
         if ($e->getCode() === 429) {
-            // Handle the 429 Too Many Requests error for Coinbase.
+            $retryDelay = $this->rateLimitConfig['retry_delay'];
+
+            // Update or insert the rate limit record for this IP
+            DB::table('rate_limits')->updateOrInsert(
+                ['ip_address' => $ipAddress, 'api_canonical' => $this->apiCanonical],
+                ['retry_after' => Carbon::now()->timestamp + $retryDelay]
+            );
+
+            Log::info("Rate limit exceeded for IP {$ipAddress} on {$this->apiCanonical}, backing off for {$retryDelay} seconds.");
+            $this->release($retryDelay); // Re-queue job to retry after the delay
         }
 
         if ($e->getCode() === 403) {
-            // Handle the 403 Forbidden error for API key restrictions or rate limit exceeded.
+            // Handle 403 Forbidden errors and update the rate limit entry.
+            Log::error("IP {$ipAddress} encountered a 403 error for {$this->apiCanonical}. Check API key restrictions or rate limits.");
         }
     }
 

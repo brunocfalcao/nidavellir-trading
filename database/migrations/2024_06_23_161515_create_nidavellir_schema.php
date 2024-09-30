@@ -12,6 +12,16 @@ return new class extends Migration
      */
     public function up(): void
     {
+        Schema::create('rate_limits', function (Blueprint $table) {
+            $table->id();
+            $table->string('ip_address'); // Worker server IP address
+            $table->string('api_canonical'); // API canonical name, e.g., 'binance', 'coinmarketcap'
+            $table->integer('retry_after')->nullable(); // Unix timestamp when this IP can resume
+            $table->timestamps();
+
+            $table->unique(['ip_address', 'api_canonical']); // Ensuring unique tracking per IP and API
+        });
+
         Schema::create('job_queue', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('related_id')->nullable(); // Reference to the related model's ID

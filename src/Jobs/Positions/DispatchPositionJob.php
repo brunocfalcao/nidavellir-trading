@@ -2,15 +2,15 @@
 
 namespace Nidavellir\Trading\Jobs\Positions;
 
-use Nidavellir\Trading\Nidavellir;
 use Illuminate\Support\Facades\Bus;
-use Nidavellir\Trading\Models\Position;
 use Nidavellir\Trading\Abstracts\AbstractJob;
-use Nidavellir\Trading\Models\ExchangeSymbol;
-use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
 use Nidavellir\Trading\ApiSystems\ApiSystemRESTWrapper;
 use Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper;
 use Nidavellir\Trading\Exceptions\DispatchPositionException;
+use Nidavellir\Trading\Jobs\Orders\DispatchOrderJob;
+use Nidavellir\Trading\Models\ExchangeSymbol;
+use Nidavellir\Trading\Models\Position;
+use Nidavellir\Trading\Nidavellir;
 
 /**
  * Class: DispatchPositionJob
@@ -107,11 +107,13 @@ class DispatchPositionJob extends AbstractJob
 
             if ($availableBalance == 0) {
                 $this->updatePositionError('No USDT on Futures available balance.');
+
                 return;
             }
 
             if ($availableBalance < $minimumTradeAmount) {
                 $this->updatePositionError("Less than {$minimumTradeAmount} USDT on Futures available balance (current: {$availableBalance}).");
+
                 return;
             }
 
@@ -224,7 +226,7 @@ class DispatchPositionJob extends AbstractJob
         Bus::chain([
             Bus::batch($profitOrderJobs),
             $marketOrderJob,
-            $profitOrderJob
+            $profitOrderJob,
         ])->dispatch();
     }
 

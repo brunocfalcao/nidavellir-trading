@@ -2,6 +2,9 @@
 
 namespace Nidavellir\Trading\Jobs\ApiJobFoundations;
 
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Nidavellir\Trading\Abstracts\AbstractJob;
 use Throwable;
 
@@ -16,11 +19,30 @@ use Throwable;
  */
 abstract class CoinmarketCapApiJob extends AbstractJob
 {
+    protected string $apiCanonical = 'coinmarketcap'; // Define API canonical
+
     // Prepares the job by applying the CoinMarketCap rate limit configuration.
     protected function prepareJob()
     {
-        // Apply the rate limit configuration as part of job preparation.
         $this->applyRateLimitConfig();
+
+        // Get the worker's IP address
+        $ipAddress = gethostbyname(gethostname());
+
+        // Check the rate limit table for this IP and API
+        $rateLimit = DB::table('rate_limits')
+            ->where('ip_address', $ipAddress)
+            ->where('api_canonical', $this->apiCanonical)
+            ->first();
+
+        // If rate limit exists and the retry_after is in the future, stop processing
+        if ($rateLimit && Carbon::now()->timestamp < $rateLimit->retry_after) {
+            $retryIn = $rateLimit->retry_after - Carbon::now()->timestamp;
+            Log::info("Rate limit active for IP {$ipAddress} on {$this->apiCanonical}. Releasing job to retry after {$retryIn} seconds.");
+            $this->release($retryIn); // Re-queue the job after the retry period
+
+            return;
+        }
     }
 
     // Abstract method for executing API logic, to be implemented by subclasses.
@@ -69,9 +91,43 @@ abstract class CoinmarketCapApiJob extends AbstractJob
         }
     }
 
+    // Makes an API call while handling rate limit errors and CoinMarketCap-specific checks.
+    protected function makeApiCall(callable $apiCall)
+    {
+        try {
+            /** @var ResponseInterface $response */
+            $response = $apiCall();
+
+            // Extract rate limit headers.
+            $headers = $response->getHeaders();
+            $this->logRateLimitHeaders($headers);
+
+            // Reset the rate limit entry for this IP after a successful request
+            $ipAddress = gethostbyname(gethostname());
+            DB::table('rate_limits')
+                ->where('ip_address', $ipAddress)
+                ->where('api_canonical', $this->apiCanonical)
+                ->delete();
+
+            // Return the decoded response body.
+            return json_decode($response->getBody()->getContents(), true);
+        } catch (Throwable $e) {
+            // Handle exceptions using parent error handling logic.
+            $this->handleException($e);
+
+            // Check for CoinMarketCap-specific error handling.
+            $this->checkForSpecificErrors($e);
+
+            // Re-throw the exception for further handling.
+            throw $e;
+        }
+    }
+
     // Handles additional error handling for CoinMarketCap-specific error codes.
     protected function checkForSpecificErrors(Throwable $e): void
     {
+        $ipAddress = gethostbyname(gethostname());
+
         // Define error messages for specific CoinMarketCap error codes.
         $errorCodes = [
             1008 => 'Minute rate limit reached.',
@@ -81,11 +137,30 @@ abstract class CoinmarketCapApiJob extends AbstractJob
         ];
 
         // Check if the exception has a valid error code that matches CoinMarketCap errors.
-        if (method_exists($e, 'getCode') && isset($errorCodes[$e->getCode()])) {
-            // Handle the error based on the specific code, without logging.
-            $errorCode = $e->getCode();
-            $errorMessage = $e->getMessage();
-            // The extracted errorCode and errorMessage can be utilized here as needed.
+        if (isset($errorCodes[$e->getCode()])) {
+            $retryDelay = $this->rateLimitConfig['retry_delay'];
+
+            // Update or insert the rate limit record for this IP
+            DB::table('rate_limits')->updateOrInsert(
+                ['ip_address' => $ipAddress, 'api_canonical' => $this->apiCanonical],
+                ['retry_after' => Carbon::now()->timestamp + $retryDelay]
+            );
+
+            Log::info("CoinMarketCap error {$e->getCode()} for IP {$ipAddress} on {$this->apiCanonical}: {$errorCodes[$e->getCode()]}. Retrying after {$retryDelay} seconds.");
+            $this->release($retryDelay); // Re-queue job to retry after the delay
+        }
+    }
+
+    // Extracts CoinMarketCap-specific rate limit headers without logging them.
+    protected function logRateLimitHeaders(array $headers): void
+    {
+        // Loop through rate limit headers defined in the configuration.
+        foreach ($this->rateLimitConfig['rate_limit_headers'] as $headerKey => $description) {
+            if (isset($headers[$headerKey])) {
+                // Extract the header value without logging.
+                $headerValue = $headers[$headerKey][0];
+                // The extracted value can be used if needed.
+            }
         }
     }
 }

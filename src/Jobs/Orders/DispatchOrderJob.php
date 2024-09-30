@@ -5,7 +5,6 @@ namespace Nidavellir\Trading\Jobs\Orders;
 use Illuminate\Support\Str;
 use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\Exceptions\DispatchOrderException;
-use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Models\ApiSystem;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Order;
@@ -28,16 +27,25 @@ use Nidavellir\Trading\Models\Trader;
 class DispatchOrderJob extends AbstractJob
 {
     public const ORDER_TYPE_MARKET = 'MARKET';
+
     public const ORDER_TYPE_LIMIT = 'LIMIT';
+
     public const ORDER_TYPE_PROFIT = 'PROFIT';
+
     public const ORDER_TYPE_POSITION_CANCELLATION = 'POSITION-CANCELLATION';
 
     public Order $order;
+
     public $orderId;
+
     public Trader $trader;
+
     public Position $position;
+
     public ExchangeSymbol $exchangeSymbol;
+
     public ApiSystem $apiSystem;
+
     public Symbol $symbol;
 
     public function __construct(int $orderId)
@@ -72,6 +80,7 @@ class DispatchOrderJob extends AbstractJob
 
         if ($this->order->type == self::ORDER_TYPE_POSITION_CANCELLATION) {
             $this->syncPositionCancellationOrder();
+
             return;
         }
 
@@ -110,8 +119,10 @@ class DispatchOrderJob extends AbstractJob
         if ($this->order->type === self::ORDER_TYPE_MARKET &&
             $siblingsLimitOnly->contains('status', 'new')) {
             $this->release(5);
+
             return true;
         }
+
         return false;
     }
 
@@ -120,8 +131,10 @@ class DispatchOrderJob extends AbstractJob
         if ($this->order->type === self::ORDER_TYPE_PROFIT &&
             $siblings->contains('status', 'new')) {
             $this->release(5);
+
             return true;
         }
+
         return false;
     }
 
