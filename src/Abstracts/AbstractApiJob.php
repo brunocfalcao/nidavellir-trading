@@ -7,7 +7,6 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Log;
 use Throwable;
 
 abstract class AbstractApiJob implements ShouldQueue
@@ -15,9 +14,7 @@ abstract class AbstractApiJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     protected int $maxAttempts = 3;
-
     protected int $retryDelay = 5;
-
     protected bool $failOnHttpError = false;
 
     // The main entry point for the job
@@ -46,12 +43,14 @@ abstract class AbstractApiJob implements ShouldQueue
 
     protected function handleException(Throwable $e): void
     {
-        Log::error('API job encountered an error.', [
-            'exception' => $e->getMessage(),
-            'trace' => $e->getTraceAsString(),
-            'job_class' => get_class($this),
-            'attempts' => $this->attempts(),
-        ]);
+        // Use the info_multiple() helper method for logging
+        info_multiple(
+            'API job encountered an error.',
+            'Exception: ' . $e->getMessage(),
+            'Trace: ' . $e->getTraceAsString(),
+            'Job Class: ' . get_class($this),
+            'Attempts: ' . $this->attempts()
+        );
 
         if ($this->failOnHttpError && $this->isHttpError($e)) {
             $this->fail($e);
@@ -65,11 +64,13 @@ abstract class AbstractApiJob implements ShouldQueue
 
     public function failed(Throwable $e)
     {
-        Log::critical('Job permanently failed after max attempts', [
-            'job_class' => get_class($this),
-            'exception' => $e->getMessage(),
-            'trace' => $e->getTraceAsString(),
-            'attempts' => $this->attempts(),
-        ]);
+        // Use the info_multiple() helper method for logging
+        info_multiple(
+            'Job permanently failed after max attempts',
+            'Job Class: ' . get_class($this),
+            'Exception: ' . $e->getMessage(),
+            'Trace: ' . $e->getTraceAsString(),
+            'Attempts: ' . $this->attempts()
+        );
     }
 }

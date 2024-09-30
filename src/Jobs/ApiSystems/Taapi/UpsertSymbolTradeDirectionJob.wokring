@@ -3,15 +3,16 @@
 namespace Nidavellir\Trading\Jobs\ApiSystems\Taapi;
 
 use Carbon\Carbon;
-use Nidavellir\Trading\Jobs\ApiJobFoundations\TaapiApiJob;
+use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\ApiSystems\ApiSystemRESTWrapper;
 use Nidavellir\Trading\ApiSystems\Taapi\TaapiRESTMapper;
+use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Models\ApiSystem;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Symbol;
 use Nidavellir\Trading\Nidavellir;
 
-class UpsertSymbolTradeDirectionJob extends TaapiApiJob
+class UpsertSymbolTradeDirectionJob extends AbstractJob
 {
     public $interval;
 
@@ -31,25 +32,28 @@ class UpsertSymbolTradeDirectionJob extends TaapiApiJob
         $this->exchangeIds = $exchangeId ? [$exchangeId] : ApiSystem::where('is_exchange', true)->pluck('id')->toArray();
     }
 
-    // Implement the generalized executeApiLogic method
-    protected function executeApiLogic()
+    public function handle()
     {
-        // Initialize the Taapi.io API Wrapper
-        $this->api = new ApiSystemRESTWrapper(
-            new TaapiRESTMapper(
-                credentials: Nidavellir::getSystemCredentials('taapi')
-            )
-        );
+        try {
+            $this->api = new ApiSystemRESTWrapper(
+                new TaapiRESTMapper(
+                    credentials: Nidavellir::getSystemCredentials('taapi')
+                )
+            );
 
-        // Process each exchange ID
-        foreach ($this->exchangeIds as $exchangeId) {
-            if ($this->symbolToken) {
-                $this->processSymbol($this->symbolToken, $exchangeId);
-            } else {
-                foreach (config('nidavellir.symbols.included') as $token) {
-                    $this->processSymbol($token, $exchangeId);
+            foreach ($this->exchangeIds as $exchangeId) {
+                if ($this->symbolToken) {
+                    $this->processSymbol($this->symbolToken, $exchangeId);
+                } else {
+                    foreach (config('nidavellir.symbols.included') as $token) {
+                        $this->processSymbol($token, $exchangeId);
+                    }
                 }
             }
+            $this->jobPollerInstance->markAsComplete();
+        } catch (\Throwable $e) {
+            $this->jobPollerInstance->markAsError($e);
+            throw new TryCatchException(throwable: $e);
         }
     }
 
