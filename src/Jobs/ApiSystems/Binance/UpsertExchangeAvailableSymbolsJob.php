@@ -2,14 +2,14 @@
 
 namespace Nidavellir\Trading\Jobs\ApiSystems\Binance;
 
-use Nidavellir\Trading\Nidavellir;
-use Nidavellir\Trading\Models\Symbol;
-use Nidavellir\Trading\Models\ApiSystem;
-use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\ApiSystems\ApiSystemRESTWrapper;
 use Nidavellir\Trading\ApiSystems\Binance\BinanceRESTMapper;
-use Nidavellir\Trading\Jobs\ApiJobFoundations\BinanceApiJob;
 use Nidavellir\Trading\Exceptions\ExchangeSymbolNotSyncedException;
+use Nidavellir\Trading\Jobs\ApiJobFoundations\BinanceApiJob;
+use Nidavellir\Trading\Models\ApiSystem;
+use Nidavellir\Trading\Models\ExchangeSymbol;
+use Nidavellir\Trading\Models\Symbol;
+use Nidavellir\Trading\Nidavellir;
 
 /**
  * UpsertExchangeAvailableSymbolsJob fetches and synchronizes Binance symbols
@@ -73,7 +73,7 @@ class UpsertExchangeAvailableSymbolsJob extends BinanceApiJob
         $exchange = ApiSystem::firstWhere('canonical', 'binance');
 
         // Throw an exception if the Binance exchange record is not found
-        if (!$exchange) {
+        if (! $exchange) {
             throw new ExchangeSymbolNotSyncedException(
                 message: 'Binance exchange record not found',
                 additionalData: ['exchange' => 'binance']
