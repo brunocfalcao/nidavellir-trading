@@ -76,6 +76,6 @@ class TradingGenesisSeeder extends Seeder
             new UpsertExchangeAvailableSymbolsJob,
             new UpsertNotionalAndLeverageJob,
             new UpsertSymbolTradeDirectionJob,
-        ]);
+        ])->dispatch();
     }
 }
