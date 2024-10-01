@@ -10,7 +10,6 @@ use Nidavellir\Trading\Commands\Debug\DebugCommand;
 use Nidavellir\Trading\Commands\Debug\QueryOpenOrders;
 use Nidavellir\Trading\Commands\Debug\QueryOrder;
 use Nidavellir\Trading\Commands\Debug\TestOrder;
-use Nidavellir\Trading\Commands\System\REST\UpsertSymbolsTradeDirectionCommand;
 use Nidavellir\Trading\Commands\System\UpsertBinanceMarkPricesCommand;
 use Nidavellir\Trading\Events\Orders\OrderCreatedEvent;
 use Nidavellir\Trading\Events\Positions\PositionCreatedEvent;
@@ -104,7 +103,7 @@ class TradingServiceProvider extends ServiceProvider
             TestOrder::class,
             QueryOrder::class,
             QueryOpenOrders::class,
-            UpsertBinanceMarkPricesCommand::class
+            UpsertBinanceMarkPricesCommand::class,
         ]);
     }
 }

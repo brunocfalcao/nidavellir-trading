@@ -85,7 +85,8 @@ class UpsertSymbolTradeDirectionJob extends TaapiApiJob
             ->first();
 
         if (! $exchangeSymbol) {
-            throw new \Exception("ExchangeSymbol not found for token: {$symbolToken}");
+            // For now we don't to anything. Later we record on the app log.
+            return;
         }
 
         $exchangeCanonical = ApiSystem::find($exchangeId)->taapi_canonical;

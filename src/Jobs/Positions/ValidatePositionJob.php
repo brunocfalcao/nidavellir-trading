@@ -41,7 +41,7 @@ class ValidatePositionJob extends AbstractJob
         $this->attachRelatedModel($this->position);
 
         // Check if the position exists; throw an exception if not found.
-        if (!$this->position) {
+        if (! $this->position) {
             throw new PositionValidationException(
                 message: 'Position ID for validation not found',
                 additionalData: ['position_id' => $this->positionId]
