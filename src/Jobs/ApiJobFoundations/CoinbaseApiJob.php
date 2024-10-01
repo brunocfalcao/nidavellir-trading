@@ -45,7 +45,7 @@ abstract class CoinbaseApiJob extends AbstractJob
     }
 
     // Abstract method for executing API logic, to be implemented by subclasses.
-    abstract protected function executeApiLogic();
+    abstract protected function compute();
 
     // Applies rate limit configuration based on Coinbase rate limits.
     protected function applyRateLimitConfig(): void

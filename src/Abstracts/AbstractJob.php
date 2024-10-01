@@ -41,14 +41,14 @@ abstract class AbstractJob implements ShouldQueue
     public function handle()
     {
         $this->startJobLogging();
-        $this->handleApiTransactionLogic();
+        $this->handleTransactionLogic();
     }
 
     // Executes the core API transaction logic within a try-catch block.
-    public function handleApiTransactionLogic()
+    public function handleTransactionLogic()
     {
         try {
-            $this->executeApiLogic();
+            $this->compute();
             $this->markJobAsComplete();
         } catch (Throwable $e) {
             $this->markJobAsFailed($e);
@@ -57,7 +57,7 @@ abstract class AbstractJob implements ShouldQueue
     }
 
     // Abstract method to be implemented by subclasses for API logic execution.
-    abstract protected function executeApiLogic();
+    abstract protected function compute();
 
     // Initiates logging for the job when it starts.
     protected function startJobLogging(): void

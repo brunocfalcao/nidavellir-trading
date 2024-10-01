@@ -4,6 +4,7 @@ namespace Nidavellir\Trading\Jobs\Orders;
 
 use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\Exceptions\CancelOrderException;
+use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Order;
 use Nidavellir\Trading\Models\Symbol;
@@ -56,36 +57,41 @@ class CancelOrderJob extends AbstractJob
         $this->symbol = $this->exchangeSymbol->symbol;
     }
 
-    // Main method that processes the job's logic inherited from AbstractJob.
-    protected function compute()
+    // Main handle method to process the cancellation of the order.
+    public function handle()
     {
-        // Attach the order model to jobQueueEntry for better tracking.
-        $this->attachRelatedModel($this->order);
+        try {
+            // If the order does not have an exchange system ID, return early.
+            if (blank($this->order->order_exchange_system_id)) {
+                return;
+            }
 
-        // If the order does not have an exchange system ID, return early.
-        if (blank($this->order->order_exchange_system_id)) {
-            return;
+            // Fetch the current status of the order from the exchange.
+            $result = $this->trader->withRESTApi()
+                ->withLoggable($this->order)
+                ->withOptions([
+                    'symbol' => $this->symbol->token.'USDT',
+                    'orderId' => $this->order->order_exchange_system_id,
+                ])->getOrder();
+
+            // Check if the order has been partially or fully executed.
+            if ($result['executedQty'] > 0) {
+                // Cancel the entire position if any part of the order was executed.
+                $this->cancelPosition();
+            } else {
+                // Cancel the limit order if it hasn't been executed.
+                $this->cancelLimitOrder();
+            }
+
+            // Update the order status to 'cancelled'.
+            $this->order->update(['status' => 'cancelled']);
+        } catch (\Throwable $e) {
+            // Throw a TryCatchException if an error occurs during cancellation.
+            throw new TryCatchException(
+                throwable: $e,
+                additionalData: ['order_id' => $this->orderId]
+            );
         }
-
-        // Fetch the current status of the order from the exchange.
-        $result = $this->trader->withRESTApi()
-            ->withLoggable($this->order)
-            ->withOptions([
-                'symbol' => $this->symbol->token.'USDT',
-                'orderId' => $this->order->order_exchange_system_id,
-            ])->getOrder();
-
-        // Check if the order has been partially or fully executed.
-        if ($result['executedQty'] > 0) {
-            // Cancel the entire position if any part of the order was executed.
-            $this->cancelPosition();
-        } else {
-            // Cancel the limit order if it hasn't been executed.
-            $this->cancelLimitOrder();
-        }
-
-        // Update the order status to 'cancelled'.
-        $this->order->update(['status' => 'cancelled']);
     }
 
     // Cancels the entire position by creating a cancellation order.

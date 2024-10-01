@@ -23,8 +23,8 @@ use Nidavellir\Trading\Nidavellir;
  */
 class UpsertNotionalAndLeverageJob extends BinanceApiJob
 {
-    // Implement the generalized executeApiLogic method.
-    protected function executeApiLogic()
+    // Implement the generalized compute method.
+    protected function compute()
     {
         // Initialize the Binance API Wrapper.
         $api = new ApiSystemRESTWrapper(

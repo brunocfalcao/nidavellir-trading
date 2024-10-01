@@ -3,13 +3,15 @@
 namespace Nidavellir\Trading\Commands\System;
 
 use Illuminate\Console\Command;
-use Nidavellir\Trading\ApiSystems\Binance\BinanceWebsocketMapper;
-use Nidavellir\Trading\Models\ApiSystem;
 use Nidavellir\Trading\Models\Symbol;
+use Nidavellir\Trading\Models\ApiSystem;
+use Nidavellir\Trading\Models\ExchangeSymbol;
+use Nidavellir\Trading\ApiSystems\ApiSystemWebsocketWrapper;
+use Nidavellir\Trading\ApiSystems\Binance\BinanceWebsocketMapper;
 
 class UpsertBinanceMarkPricesCommand extends Command
 {
-    protected $signature = 'nidavellir:upsert-binance-mark-prices';
+    protected $signature = 'nidavellir:prices';
 
     protected $description = 'Updates all Binance market mark prices (websocket)';
 
@@ -17,7 +19,7 @@ class UpsertBinanceMarkPricesCommand extends Command
     {
         $exchange = ApiSystem::firstWhere('canonical', 'binance');
 
-        $client = new ApiSystemWebsocketMapper(
+        $client = new ApiSystemWebsocketWrapper(
             new BinanceWebsocketMapper(
                 credentials: config('nidavellir.system.api.credentials.binance')
             ),
@@ -37,6 +39,8 @@ class UpsertBinanceMarkPricesCommand extends Command
 
                 foreach ($usdtTokens as $token) {
                     $symbol = Symbol::firstWhere('token', substr($token['s'], 0, -4));
+
+                    dd($token, $symbol->token);
 
                     if ($symbol) {
                         ExchangeSymbol::updateOrCreate(

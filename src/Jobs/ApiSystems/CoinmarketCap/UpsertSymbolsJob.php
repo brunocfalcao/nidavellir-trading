@@ -33,8 +33,8 @@ class UpsertSymbolsJob extends CoinmarketCapApiJob
         $this->limit = $limit;
     }
 
-    // Implement the generalized executeApiLogic method.
-    protected function executeApiLogic()
+    // Implement the generalized compute method.
+    protected function compute()
     {
         // Initialize the CoinMarketCap API Wrapper.
         $api = new ApiSystemRESTWrapper(

@@ -45,7 +45,7 @@ abstract class KuCoinApiJob extends AbstractJob
     }
 
     // Abstract method for executing API logic, to be implemented by subclasses.
-    abstract protected function executeApiLogic();
+    abstract protected function compute();
 
     // Applies rate limit configuration based on KuCoin rate limits.
     protected function applyRateLimitConfig(): void

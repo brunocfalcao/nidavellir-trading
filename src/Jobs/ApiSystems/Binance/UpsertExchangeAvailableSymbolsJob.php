@@ -28,7 +28,7 @@ class UpsertExchangeAvailableSymbolsJob extends BinanceApiJob
     /**
      * Execute the main logic to fetch and synchronize Binance symbols.
      */
-    protected function executeApiLogic()
+    protected function compute()
     {
         // Initialize the Binance API Wrapper.
         $api = new ApiSystemRESTWrapper(

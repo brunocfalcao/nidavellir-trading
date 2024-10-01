@@ -5,7 +5,6 @@ namespace Nidavellir\Trading\Jobs\Positions;
 use Illuminate\Support\Facades\Bus;
 use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\Exceptions\PositionValidationException;
-use Nidavellir\Trading\Exceptions\TryCatchException;
 use Nidavellir\Trading\Jobs\Orders\CancelOrderJob;
 use Nidavellir\Trading\Models\Position;
 
@@ -35,50 +34,42 @@ class ValidatePositionJob extends AbstractJob
         $this->position = Position::find($positionId);
     }
 
-    // Main handle method to validate the position's status and orders.
-    public function handle()
+    // Main method that processes the job's logic inherited from AbstractJob.
+    protected function compute()
     {
-        try {
-            // Check if the position exists; throw an exception if not found.
-            if (! $this->position) {
-                throw new PositionValidationException(
-                    message: 'Position ID for validation not found',
-                    additionalData: ['position_id' => $this->positionId]
-                );
-            }
+        // Attach the position model to jobQueueEntry for better tracking.
+        $this->attachRelatedModel($this->position);
 
-            // If the position is already synced or closed, exit the method.
-            if (in_array($this->position->status, ['synced', 'closed'])) {
-                return;
-            }
-
-            // Check if any orders associated with the position have errors.
-            if ($this->position->orders->contains('status', 'error')) {
-                $syncedJobsToCancel = [];
-
-                // Collect all orders with 'synced' status to be canceled.
-                foreach ($this->position->orders->where('status', 'synced') as $order) {
-                    $syncedJobsToCancel[] = new CancelOrderJob($order->id);
-                }
-
-                // Dispatch a batch job to cancel all synced orders.
-                Bus::batch($syncedJobsToCancel)->dispatch();
-
-                // Update the position status to 'complete-error'.
-                $this->position->update(['status' => 'complete-error']);
-            } else {
-                // If no errors in orders, mark the position as 'synced'.
-                $this->position->update(['status' => 'synced']);
-            }
-        } catch (\Throwable $e) {
-            // If an exception occurs, update the position status to 'error'.
-            $this->position->update(['status' => 'error']);
-
-            // Throw a TryCatchException with additional data.
-            throw new TryCatchException(
-                throwable: $e,
+        // Check if the position exists; throw an exception if not found.
+        if (!$this->position) {
+            throw new PositionValidationException(
+                message: 'Position ID for validation not found',
                 additionalData: ['position_id' => $this->positionId]
             );
+        }
+
+        // If the position is already synced or closed, exit the method.
+        if (in_array($this->position->status, ['synced', 'closed'])) {
+            return;
+        }
+
+        // Check if any orders associated with the position have errors.
+        if ($this->position->orders->contains('status', 'error')) {
+            $syncedJobsToCancel = [];
+
+            // Collect all orders with 'synced' status to be canceled.
+            foreach ($this->position->orders->where('status', 'synced') as $order) {
+                $syncedJobsToCancel[] = new CancelOrderJob($order->id);
+            }
+
+            // Dispatch a batch job to cancel all synced orders.
+            Bus::batch($syncedJobsToCancel)->dispatch();
+
+            // Update the position status to 'complete-error'.
+            $this->position->update(['status' => 'complete-error']);
+        } else {
+            // If no errors in orders, mark the position as 'synced'.
+            $this->position->update(['status' => 'synced']);
         }
     }
 }

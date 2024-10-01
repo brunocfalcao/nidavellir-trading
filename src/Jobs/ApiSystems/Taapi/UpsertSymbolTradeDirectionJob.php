@@ -52,8 +52,8 @@ class UpsertSymbolTradeDirectionJob extends TaapiApiJob
         $this->exchangeIds = $exchangeId ? [$exchangeId] : ApiSystem::where('is_exchange', true)->pluck('id')->toArray();
     }
 
-    // Implement the generalized executeApiLogic method.
-    protected function executeApiLogic()
+    // Implement the generalized compute method.
+    protected function compute()
     {
         // Initialize the Taapi.io API Wrapper.
         $this->api = new ApiSystemRESTWrapper(

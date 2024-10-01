@@ -21,8 +21,8 @@ use Nidavellir\Trading\Nidavellir;
  */
 class UpsertSymbolMetadataJob extends CoinmarketCapApiJob
 {
-    // Implement the generalized executeApiLogic method.
-    protected function executeApiLogic()
+    // Implement the generalized compute method.
+    protected function compute()
     {
         // Initialize the CoinMarketCap API Wrapper.
         $api = new ApiSystemRESTWrapper(

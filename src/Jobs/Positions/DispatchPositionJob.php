@@ -40,7 +40,7 @@ class DispatchPositionJob extends AbstractJob
     }
 
     // Main method that processes the job's logic inherited from AbstractJob.
-    protected function executeApiLogic()
+    protected function compute()
     {
         // Attach the position model to jobQueueEntry for better tracking.
         $this->attachRelatedModel($this->position);

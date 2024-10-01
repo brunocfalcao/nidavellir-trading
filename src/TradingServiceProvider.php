@@ -104,8 +104,7 @@ class TradingServiceProvider extends ServiceProvider
             TestOrder::class,
             QueryOrder::class,
             QueryOpenOrders::class,
-            //UpsertSymbolsTradeDirectionCommand::class,
-            //UpsertBinanceMarkPricesCommand::class,
+            UpsertBinanceMarkPricesCommand::class
         ]);
     }
 }

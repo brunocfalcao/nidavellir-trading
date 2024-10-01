@@ -59,7 +59,7 @@ class DispatchOrderJob extends AbstractJob
         $this->exchange = $this->order->position->trader->exchange;
     }
 
-    protected function executeApiLogic()
+    protected function compute()
     {
         $this->attachRelatedModel($this->order);
 
