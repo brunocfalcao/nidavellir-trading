@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Nidavellir\Trading\ApiSystems\ApiSystemWebsocketWrapper;
 use Nidavellir\Trading\ApiSystems\Binance\BinanceWebsocketMapper;
+use Nidavellir\Trading\Jobs\System\AdjustAverageWeightPricingProfitOrders;
 
 /**
  * UpsertBinanceMarkPricesCommand is a console command that updates
@@ -89,6 +90,9 @@ class UpsertBinanceMarkPricesCommand extends Command
                         }
                     }
                 }
+
+                // Trigger the AdjustAverageWeightPricingProfitOrders job after mark prices are updated
+                AdjustAverageWeightPricingProfitOrders::dispatch();
             },
             // Handles ping messages from the WebSocket server.
             'ping' => function ($conn, $msg) {

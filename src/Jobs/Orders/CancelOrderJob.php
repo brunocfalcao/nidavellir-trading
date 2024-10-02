@@ -75,8 +75,6 @@ class CancelOrderJob extends AbstractJob
                 'orderId' => $this->order->order_exchange_system_id,
             ])->getOrder();
 
-        \Log::info($orderToCancel);
-
         if (array_key_exists('origQty', $orderToCancel) &&
             $orderToCancel['origQty'] != 0 &&
             $orderToCancel['status'] == 'NEW') {

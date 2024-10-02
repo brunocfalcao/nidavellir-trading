@@ -33,7 +33,7 @@ trait Trade
     public function modifyOrder(array $properties)
     {
         $validator = Validator::make($properties, [
-            'options.order_id' => 'required',
+            'options.orderId' => 'required',
         ]);
 
         if ($validator->fails()) {

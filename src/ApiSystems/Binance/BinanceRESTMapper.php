@@ -36,6 +36,11 @@ class BinanceRESTMapper extends AbstractMapper
         ];
     }
 
+    public function modifyOrder()
+    {
+        return (new ModifyOrder($this))->result;
+    }
+
     public function cancelOpenOrders()
     {
         return (new CancelOpenOrders($this))->result;

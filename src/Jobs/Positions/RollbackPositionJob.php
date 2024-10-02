@@ -46,7 +46,6 @@ class RollbackPositionJob extends AbstractJob
                 ])
                 ->getOpenOrders())
                 ->each(function ($order) {
-                    \Log::info('Canceling order '.$order['orderId']);
                     CancelOrderJob::dispatch($order['orderId']);
                 });
 
