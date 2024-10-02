@@ -10,6 +10,11 @@ class ApiSystemRESTWrapper extends AbstractRESTWrapper
 {
     use HasCoinmarketCapOperations, HasTaapiOperations;
 
+    public function cancelOpenOrders()
+    {
+        return $this->mapper->cancelOpenOrders($this);
+    }
+
     public function cancelOrder()
     {
         return $this->mapper->cancelOrder($this);

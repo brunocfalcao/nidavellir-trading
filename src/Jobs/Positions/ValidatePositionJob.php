@@ -2,10 +2,8 @@
 
 namespace Nidavellir\Trading\Jobs\Positions;
 
-use Illuminate\Support\Facades\Bus;
 use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\Exceptions\PositionValidationException;
-use Nidavellir\Trading\Jobs\Orders\CancelOrderJob;
 use Nidavellir\Trading\Models\Position;
 
 /**
@@ -55,21 +53,13 @@ class ValidatePositionJob extends AbstractJob
 
         // Check if any orders associated with the position have errors.
         if ($this->position->orders->contains('status', 'error')) {
-            $syncedJobsToCancel = [];
-
-            // Collect all orders with 'synced' status to be canceled.
-            foreach ($this->position->orders->where('status', 'synced') as $order) {
-                $syncedJobsToCancel[] = new CancelOrderJob($order->id);
-            }
-
-            // Dispatch a batch job to cancel all synced orders.
-            Bus::batch($syncedJobsToCancel)->dispatch();
-
-            // Update the position status to 'complete-error'.
-            $this->position->update(['status' => 'complete-error']);
+            // Rollback position.
+            RollbackPositionJob::dispatch($this->position->id);
         } else {
-            // If no errors in orders, mark the position as 'synced'.
-            $this->position->update(['status' => 'synced']);
+            $this->position->update([
+                'status' => 'synced',
+                'started_at' => now(),
+            ]);
         }
     }
 }

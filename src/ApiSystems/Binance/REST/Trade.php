@@ -72,6 +72,19 @@ trait Trade
         return $this->signRequest('DELETE', '/fapi/v1/order', $properties);
     }
 
+    public function cancelOpenOrders(array $properties = [])
+    {
+        $validator = Validator::make($properties['options'], [
+            'symbol' => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            throw new ValidationException($validator);
+        }
+
+        return $this->signRequest('DELETE', '/fapi/v1/allOpenOrders', $properties);
+    }
+
     public function cancelMultipleOrders(array $properties = [])
     {
         $validator = Validator::make($properties['options'], [
@@ -84,19 +97,6 @@ trait Trade
         }
 
         return $this->signRequest('DELETE', '/fapi/v1/batchOrders', $properties);
-    }
-
-    public function cancelOpenOrders(array $properties = [])
-    {
-        $validator = Validator::make($properties, [
-            'options.symbol' => 'required|string',
-        ]);
-
-        if ($validator->fails()) {
-            throw new ValidationException($validator);
-        }
-
-        return $this->signRequest('DELETE', '/fapi/v1/openOrders', $properties);
     }
 
     public function getOrder(array $properties = [])

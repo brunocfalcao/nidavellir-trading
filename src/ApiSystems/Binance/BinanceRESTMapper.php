@@ -3,6 +3,7 @@
 namespace Nidavellir\Trading\ApiSystems\Binance;
 
 use Nidavellir\Trading\Abstracts\AbstractMapper;
+use Nidavellir\Trading\ApiSystems\Binance\Callers\CancelOpenOrders;
 use Nidavellir\Trading\ApiSystems\Binance\Callers\CancelOrder;
 use Nidavellir\Trading\ApiSystems\Binance\Callers\GetAccountBalance;
 use Nidavellir\Trading\ApiSystems\Binance\Callers\GetAccountInformation;
@@ -33,6 +34,11 @@ class BinanceRESTMapper extends AbstractMapper
             'key' => $this->credentials['api_key'],
             'exchange' => $this->apiSystem(),
         ];
+    }
+
+    public function cancelOpenOrders()
+    {
+        return (new CancelOpenOrders($this))->result;
     }
 
     public function cancelOrder()

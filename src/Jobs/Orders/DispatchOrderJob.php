@@ -5,6 +5,7 @@ namespace Nidavellir\Trading\Jobs\Orders;
 use Illuminate\Support\Str;
 use Nidavellir\Trading\Abstracts\AbstractJob;
 use Nidavellir\Trading\Exceptions\DispatchOrderException;
+use Nidavellir\Trading\Jobs\Positions\RollbackPositionJob;
 use Nidavellir\Trading\Models\ApiSystem;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Order;
@@ -89,7 +90,6 @@ class DispatchOrderJob extends AbstractJob
             ! $this->shouldWaitForAllOrdersExceptProfit($siblings)) {
             $this->processOrder();
         }
-        info('Marking Job Order '.$this->order->id.' as completed.');
     }
 
     protected function syncPositionCancellationOrder()
@@ -143,7 +143,21 @@ class DispatchOrderJob extends AbstractJob
         $sideDetails = $this->getOrderSideDetails($this->exchangeSymbol->side);
         $orderPrice = $this->getPriceByRatio();
         $orderQuantity = $this->computeOrderQuantity($orderPrice);
-        $this->dispatchOrder($orderPrice, $orderQuantity, $sideDetails);
+
+        try {
+            $this->dispatchOrder($orderPrice, $orderQuantity, $sideDetails);
+        } catch (\Throwable $e) {
+            \Log::error('on the catch');
+
+            // Mark order as error, and run validate position job.
+            $this->order->update([
+                'status' => 'error',
+                'error_message' => $e->getMessage(),
+            ]);
+
+            // Rollback position.
+            RollbackPositionJob::dispatch($this->position->id);
+        }
     }
 
     protected function computeOrderQuantity($price)
@@ -299,6 +313,8 @@ class DispatchOrderJob extends AbstractJob
 
     protected function placeProfitOrder($orderPrice, $orderQuantity, $sideDetails)
     {
+        //throw new DispatchOrderException('voluntary exception on the profit order');
+
         $this->order->update([
             'entry_average_price' => $orderPrice,
         ]);

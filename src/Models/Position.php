@@ -20,6 +20,8 @@ class Position extends AbstractModel
 {
     protected $casts = [
         'trade_configuration' => 'array',
+        'started_at' => 'datetime',
+        'closed_at' => 'datetime',
     ];
 
     public function apiRequestLogs()

@@ -3,13 +3,15 @@
 namespace Nidavellir\Trading\Commands\Debug;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\File;
 use Nidavellir\Trading\Models\Trader;
 
-class QueryOpenOrders extends Command
+class CancelOpenOrders extends Command
 {
-    protected $signature = 'position:get-open-orders';
+    protected $signature = 'test:cancel-orders
+                            {--token= : The token symbol to trade}';
 
-    protected $description = 'Queries open orders for a specific position id';
+    protected $description = 'Cancels all open orders from a token';
 
     public function __construct()
     {
@@ -18,16 +20,15 @@ class QueryOpenOrders extends Command
 
     public function handle()
     {
+        File::put(storage_path('logs/laravel.log'), '');
+
         $trader = Trader::find(1);
 
-        dd(collect($trader
+        return $trader
             ->withRESTApi()
             ->withOptions([
                 'symbol' => 'ADAUSDT',
             ])
-            ->getOpenOrders())
-            ->toArray());
-
-        $this->info('All good.');
+            ->cancelOpenOrders();
     }
 }

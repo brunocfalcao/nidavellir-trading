@@ -6,9 +6,12 @@ use Brunocfalcao\LaravelHelpers\Traits\ForServiceProviders\HasAutoLoaders;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+use Nidavellir\Trading\Commands\Debug\CancelOpenOrders;
 use Nidavellir\Trading\Commands\Debug\DebugCommand;
+use Nidavellir\Trading\Commands\Debug\PositionInformation;
 use Nidavellir\Trading\Commands\Debug\QueryOpenOrders;
 use Nidavellir\Trading\Commands\Debug\QueryOrder;
+use Nidavellir\Trading\Commands\Debug\RollbackPosition;
 use Nidavellir\Trading\Commands\Debug\TestOrder;
 use Nidavellir\Trading\Commands\System\UpsertBinanceMarkPricesCommand;
 use Nidavellir\Trading\Events\Orders\OrderCreatedEvent;
@@ -104,6 +107,9 @@ class TradingServiceProvider extends ServiceProvider
             QueryOrder::class,
             QueryOpenOrders::class,
             UpsertBinanceMarkPricesCommand::class,
+            CancelOpenOrders::class,
+            PositionInformation::class,
+            RollbackPosition::class,
         ]);
     }
 }

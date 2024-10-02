@@ -182,7 +182,7 @@ return new class extends Migration
 
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('position_id')->nullable();
+            $table->foreignId('position_id');
             $table->string('status')->default('new');
             $table->uuid()->comment('Auto generated UUID, for query reasons');
             $table->string('type');
@@ -194,6 +194,7 @@ return new class extends Migration
             $table->decimal('filled_quantity', 20, 8)->nullable();
             $table->string('order_exchange_system_id')->nullable();
             $table->longText('api_result')->nullable();
+            $table->longText('error_message')->nullable();
             $table->timestamps();
 
             $table->index(['position_id', 'status']);
@@ -204,12 +205,15 @@ return new class extends Migration
             $table->foreignId('trader_id');
             $table->foreignId('exchange_symbol_id')->nullable();
             $table->string('status')->default('new');
+            $table->timestamp('started_at')->nullable();
+            $table->timestamp('closed_at')->nullable();
             $table->string('side')->nullable();
             $table->decimal('initial_mark_price', 20, 8)->nullable();
             $table->longText('trade_configuration')->nullable();
             $table->unsignedInteger('total_trade_amount')->nullable();
             $table->unsignedTinyInteger('leverage')->nullable();
             $table->decimal('initial_profit_percentage_ratio', 20, 8)->nullable();
+            $table->decimal('unrealized_pnl', 20, 8)->nullable();
             $table->text('comments')->nullable();
             $table->timestamps();
 

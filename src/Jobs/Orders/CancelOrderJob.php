@@ -34,19 +34,19 @@ class CancelOrderJob extends AbstractJob
     // The symbol representing the asset being traded.
     private Symbol $symbol;
 
-    // The ID of the order being processed.
-    private $orderId;
+    // The exchange order id, NOT the orders.id!
+    private $exchangeSystemOrderId;
 
-    public function __construct(int $orderId)
+    public function __construct(int $exchangeSystemOrderId)
     {
-        $this->orderId = $orderId;
-        $this->order = Order::find($orderId);
+        $this->exchangeSystemOrderId = $exchangeSystemOrderId;
+        $this->order = Order::firstWhere('order_exchange_system_id', $exchangeSystemOrderId);
 
         // Check if the order exists; throw an exception if not found.
         if (! $this->order) {
             throw new CancelOrderException(
-                message: 'Cancel Order error - Order not found',
-                additionalData: ['order_id' => $orderId]
+                message: 'Cancel Order error - Order not found or not part of Nidavellir',
+                additionalData: ['order_id' => $exchangeSystemOrderId]
             );
         }
 
@@ -68,41 +68,23 @@ class CancelOrderJob extends AbstractJob
         }
 
         // Fetch the current status of the order from the exchange.
-        $result = $this->trader->withRESTApi()
+        $orderToCancel = $this->trader->withRESTApi()
             ->withLoggable($this->order)
             ->withOptions([
                 'symbol' => $this->symbol->token.'USDT',
                 'orderId' => $this->order->order_exchange_system_id,
             ])->getOrder();
 
-        // Check if the order has been partially or fully executed.
-        if ($result['executedQty'] > 0) {
-            // Cancel the entire position if any part of the order was executed.
-            $this->cancelPosition();
-        } else {
-            // Cancel the limit order if it hasn't been executed.
+        \Log::info($orderToCancel);
+
+        if (array_key_exists('origQty', $orderToCancel) &&
+            $orderToCancel['origQty'] != 0 &&
+            $orderToCancel['status'] == 'NEW') {
             $this->cancelLimitOrder();
         }
 
         // Update the order status to 'cancelled'.
         $this->order->update(['status' => 'cancelled']);
-    }
-
-    // Cancels the entire position by creating a cancellation order.
-    protected function cancelPosition()
-    {
-        // Create a new order with type 'POSITION-CANCELLATION'.
-        $cancellationOrder = Order::create([
-            'position_id' => $this->order->position->id,
-            'status' => 'new',
-            'type' => 'POSITION-CANCELLATION',
-            'price_ratio_percentage' => 0,
-            'amount_divider' => 1,
-            'entry_quantity' => 0,
-        ]);
-
-        // Dispatch the cancellation order job for execution.
-        DispatchOrderJob::dispatch($cancellationOrder->id);
     }
 
     // Cancels the limit order on the exchange using the trader's API.

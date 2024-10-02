@@ -227,6 +227,7 @@ class DispatchPositionJob extends AbstractJob
             Bus::batch($profitOrderJobs),
             $marketOrderJob,
             $profitOrderJob,
+            new ValidatePositionJob($this->position->id),
         ])->dispatch();
     }
 
