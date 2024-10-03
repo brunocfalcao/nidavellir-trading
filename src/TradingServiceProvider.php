@@ -11,6 +11,7 @@ use Nidavellir\Trading\Commands\Debug\DebugCommand;
 use Nidavellir\Trading\Commands\Debug\PositionInformation;
 use Nidavellir\Trading\Commands\Debug\QueryOpenOrders;
 use Nidavellir\Trading\Commands\Debug\QueryOrder;
+use Nidavellir\Trading\Commands\Debug\RecalculateWeightPrice;
 use Nidavellir\Trading\Commands\Debug\RollbackPosition;
 use Nidavellir\Trading\Commands\Debug\TestOrder;
 use Nidavellir\Trading\Commands\System\UpsertBinanceMarkPricesCommand;
@@ -110,6 +111,7 @@ class TradingServiceProvider extends ServiceProvider
             CancelOpenOrders::class,
             PositionInformation::class,
             RollbackPosition::class,
+            RecalculateWeightPrice::class,
         ]);
     }
 }

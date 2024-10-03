@@ -29,7 +29,6 @@ return new class extends Migration
             $table->string('class'); // Job class name
             $table->json('arguments'); // Job arguments
             $table->string('status')->default('pending'); // Job status: pending, running, completed, failed
-            $table->uuid('block_uuid')->nullable(); // Block UUID to group jobs
             $table->bigInteger('started_at')->nullable(); // Store as numerical timestamp
             $table->bigInteger('completed_at')->nullable(); // Sto
             $table->unsignedBigInteger('duration')->nullable();

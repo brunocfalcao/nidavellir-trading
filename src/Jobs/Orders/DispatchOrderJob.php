@@ -140,7 +140,7 @@ class DispatchOrderJob extends AbstractJob
 
     protected function processOrder()
     {
-        $sideDetails = $this->getOrderSideDetails($this->exchangeSymbol->side);
+        $sideDetails = $this->getOrderSideDetails($this->position->side);
         $orderPrice = $this->getPriceByRatio();
         $orderQuantity = $this->computeOrderQuantity($orderPrice);
 

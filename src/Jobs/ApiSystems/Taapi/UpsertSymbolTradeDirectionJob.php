@@ -80,6 +80,14 @@ class UpsertSymbolTradeDirectionJob extends TaapiApiJob
     public function processSymbol(string $symbolToken, $exchangeId)
     {
         $symbol = Symbol::firstWhere('token', $symbolToken);
+
+        if (! $symbol) {
+            // We need to deactivate this symbol since we don't have data for it.
+            \Log::error('Symbol '.$symbolToken.' not found on the symbols table, for taapi to get its indicator');
+
+            return;
+        }
+
         $exchangeSymbol = ExchangeSymbol::where('exchange_id', $exchangeId)
             ->where('symbol_id', $symbol->id)
             ->first();

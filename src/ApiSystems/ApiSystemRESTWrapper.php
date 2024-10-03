@@ -75,6 +75,11 @@ class ApiSystemRESTWrapper extends AbstractRESTWrapper
         return $this->mapper->getAccountBalance($this);
     }
 
+    public function modifyOrder()
+    {
+        return $this->mapper->modifyOrder($this);
+    }
+
     public function getMarkPrice()
     {
         return $this->mapper->getMarkPrice($this);

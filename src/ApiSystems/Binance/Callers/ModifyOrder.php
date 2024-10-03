@@ -5,7 +5,7 @@ namespace Nidavellir\Trading\ApiSystems\Binance\Callers;
 use Nidavellir\Trading\Abstracts\AbstractCaller;
 use Nidavellir\Trading\ApiSystems\Binance\REST\Futures;
 
-class CancelOrder extends AbstractCaller
+class ModifyOrder extends AbstractCaller
 {
     protected string $callerName = 'Modify Order';
 

@@ -14,6 +14,7 @@ use Nidavellir\Trading\ApiSystems\Binance\Callers\GetMarkPrice;
 use Nidavellir\Trading\ApiSystems\Binance\Callers\GetOpenOrders;
 use Nidavellir\Trading\ApiSystems\Binance\Callers\GetOrder;
 use Nidavellir\Trading\ApiSystems\Binance\Callers\GetPositions;
+use Nidavellir\Trading\ApiSystems\Binance\Callers\ModifyOrder;
 use Nidavellir\Trading\ApiSystems\Binance\Callers\PlaceOrder;
 use Nidavellir\Trading\ApiSystems\Binance\Callers\SetDefaultLeverage;
 use Nidavellir\Trading\ApiSystems\Binance\Callers\UpdateMarginType;

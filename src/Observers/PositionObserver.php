@@ -9,7 +9,9 @@ class PositionObserver
 {
     public function saving(Position $model)
     {
-        //
+        if (! blank($model->side)) {
+            $model->side = strtoupper($model->side);
+        }
     }
 
     public function updated(Position $model)

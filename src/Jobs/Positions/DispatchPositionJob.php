@@ -158,7 +158,8 @@ class DispatchPositionJob extends AbstractJob
         $profitRatio = config("nidavellir.orders.{$ratiosConfiguration}.ratios.PROFIT")[0];
 
         $this->position->update([
-            'side' => $this->position->exchangeSymbol->side,
+            // If the position side is already saved, we don't change it.
+            'side' => $this->position->side ?? $this->position->exchangeSymbol->side,
             'initial_profit_percentage_ratio' => $profitRatio,
         ]);
     }

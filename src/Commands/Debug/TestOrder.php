@@ -15,6 +15,7 @@ class TestOrder extends Command
     protected $signature = 'test:order
                             {--amount= : The amount to be traded}
                             {--token= : The token symbol to trade}
+                            {--side= : Order side, LONG, SHORT}
                             {--mark-price= : The initial mark price}';
 
     protected $description = 'Places a test order';
@@ -44,9 +45,12 @@ class TestOrder extends Command
             ->where('exchange_id', 1)
             ->first();
 
+        // Compute side.
+        $side = $this->option('side') ?? $exchangeSymbol->side;
+
         // Info message including mark price if provided
         $infoMessage = 'Placing '.
-                       $exchangeSymbol->side.
+                       $side.
                        " order with amount: $amount and token: $token";
         if ($markPrice) {
             $infoMessage .= " at mark price: $markPrice";
@@ -56,6 +60,7 @@ class TestOrder extends Command
 
         $positionData = [
             'trader_id' => Trader::find(1)->id,
+            'side' => $side,
             'exchange_symbol_id' => $exchangeSymbol->id,
             'total_trade_amount' => $amount,
         ];
