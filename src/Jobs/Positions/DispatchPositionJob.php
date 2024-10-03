@@ -128,7 +128,7 @@ class DispatchPositionJob extends AbstractJob
     {
         if (blank($this->position->exchange_symbol_id)) {
             $eligibleSymbols = ExchangeSymbol::where(
-                'api_system_id',
+                'exchange_id',
                 $this->position->trader->api_system_id
             )
                 ->whereHas('symbol', function ($query) {

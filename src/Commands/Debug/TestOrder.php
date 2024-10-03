@@ -61,7 +61,7 @@ class TestOrder extends Command
         DB::table('exceptions_log')->truncate();
         DB::table('job_queue')->truncate();
 
-        $amount = $this->option('amount') ?? 75;
+        $amount = $this->option('amount') ?? 20;
         $token = $this->option('token') ?? collect(config('nidavellir.symbols.included'))->random();
         $markPrice = $this->option('mark-price');
 

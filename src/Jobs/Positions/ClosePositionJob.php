@@ -85,6 +85,14 @@ class ClosePositionJob extends AbstractJob
                 'status' => 'closed',
                 'unrealized_pnl' => $positionData['unRealizedProfit'] ?? 0,
             ]);
+
+            // Dispatch a new position.
+            $positionData = [
+                'trader_id' => $position->trader->id,
+                'total_trade_amount' => 20
+            ];
+
+            Position::create($positionData);
         });
     }
 }
