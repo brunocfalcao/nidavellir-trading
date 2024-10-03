@@ -69,7 +69,7 @@ class TradingServiceProvider extends ServiceProvider
 
     protected function scheduleJobs()
     {
-        Schedule::job(new UpsertSymbolTradeDirectionJob)->everyHour();
+        Schedule::job(new UpsertSymbolTradeDirectionJob)->hourly();
     }
 
     /**
