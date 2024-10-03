@@ -2,24 +2,26 @@
 
 namespace Nidavellir\Trading;
 
-use Brunocfalcao\LaravelHelpers\Traits\ForServiceProviders\HasAutoLoaders;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
-use Nidavellir\Trading\Commands\Debug\CancelOpenOrders;
-use Nidavellir\Trading\Commands\Debug\DebugCommand;
-use Nidavellir\Trading\Commands\Debug\PositionInformation;
-use Nidavellir\Trading\Commands\Debug\QueryOpenOrders;
-use Nidavellir\Trading\Commands\Debug\QueryOrder;
-use Nidavellir\Trading\Commands\Debug\RecalculateWeightPrice;
-use Nidavellir\Trading\Commands\Debug\RollbackPosition;
+use Illuminate\Support\Facades\Schedule;
 use Nidavellir\Trading\Commands\Debug\TestOrder;
-use Nidavellir\Trading\Commands\System\UpsertBinanceMarkPricesCommand;
+use Nidavellir\Trading\Commands\Debug\QueryOrder;
+use Nidavellir\Trading\Commands\Debug\DebugCommand;
+use Nidavellir\Trading\Commands\Debug\QueryOpenOrders;
+use Nidavellir\Trading\Commands\Debug\CancelOpenOrders;
+use Nidavellir\Trading\Commands\Debug\RollbackPosition;
 use Nidavellir\Trading\Events\Orders\OrderCreatedEvent;
+use Nidavellir\Trading\Commands\Debug\PositionInformation;
+use Nidavellir\Trading\Listeners\Traders\LoggedInListener;
+use Nidavellir\Trading\Commands\Debug\RecalculateWeightPrice;
 use Nidavellir\Trading\Events\Positions\PositionCreatedEvent;
 use Nidavellir\Trading\Listeners\Orders\OrderCreatedListener;
 use Nidavellir\Trading\Listeners\Positions\PositionCreatedListener;
-use Nidavellir\Trading\Listeners\Traders\LoggedInListener;
+use Nidavellir\Trading\Commands\System\UpsertBinanceMarkPricesCommand;
+use Brunocfalcao\LaravelHelpers\Traits\ForServiceProviders\HasAutoLoaders;
+use Nidavellir\Trading\Jobs\ApiSystems\Taapi\UpsertSymbolTradeDirectionJob;
 
 /**
  * TradingServiceProvider
@@ -62,6 +64,12 @@ class TradingServiceProvider extends ServiceProvider
         $this->autoLoadGlobalScopes(__DIR__);
         $this->loadCommands();
         $this->registerEvents();
+        $this->scheduleJobs();
+    }
+
+    protected function scheduleJobs()
+    {
+        Schedule::job(new UpsertSymbolTradeDirectionJob)->everyHour();
     }
 
     /**
