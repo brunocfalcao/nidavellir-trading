@@ -2,12 +2,20 @@
 
 namespace Nidavellir\Trading\Observers;
 
+use Illuminate\Support\Facades\DB;
+use Nidavellir\Trading\Jobs\Positions\ClosePositionJob;
+use Nidavellir\Trading\Jobs\System\RecalculateAvgWeightPriceJob;
 use Nidavellir\Trading\Models\ExchangeSymbol;
 use Nidavellir\Trading\Models\Position;
-use Nidavellir\Trading\Jobs\System\RecalculateAvgWeightPrice;
 
+/**
+ * ExchangeSymbolObserver handles various events on the
+ * ExchangeSymbol model, including recalculating weighted
+ * average prices and detecting profit achievement.
+ */
 class ExchangeSymbolObserver
 {
+    // Update price_last_synced_at timestamp when last_mark_price changes.
     public function saving(ExchangeSymbol $model)
     {
         if ($model->isDirty('last_mark_price')) {
@@ -15,43 +23,59 @@ class ExchangeSymbolObserver
         }
     }
 
+    // Triggered when an ExchangeSymbol is updated, handles recalculation of orders.
     public function updated(ExchangeSymbol $model)
     {
         // Check if the last_mark_price was updated.
         if ($model->isDirty('last_mark_price')) {
-            // Fetch eligible positions that belong to this ExchangeSymbol.
-            $eligiblePositionIds = Position::query()
-                ->where('exchange_symbol_id', $model->id) // Positions tied to this ExchangeSymbol
-                ->where('status', 'synced') // Only positions with status 'synced'
-                ->where(function ($query) use ($model) {
-                    // For SHORT positions: entry_average_price <= last_mark_price.
-                    $query->where(function ($query) use ($model) {
-                        $query->where('side', 'SHORT')
-                              ->whereColumn('entry_average_price', '<=', $model->getAttribute('last_mark_price'));
-                    })
-                    // For LONG positions: entry_average_price >= last_mark_price.
-                    ->orWhere(function ($query) use ($model) {
-                        $query->where('side', 'LONG')
-                              ->whereColumn('entry_average_price', '>=', $model->getAttribute('last_mark_price'));
-                    });
-                })
-                ->distinct('id') // Ensure only unique position IDs are returned.
-                ->pluck('id'); // Get only the position IDs.
+            $lastMarkPrice = $model->getAttribute('last_mark_price');
 
-            // Dispatch the RecalculateAvgWeightPrice job for each eligible position.
+            // Fetch eligible positions tied to this ExchangeSymbol.
+            $eligiblePositionIds =
+            DB::table('positions')
+                ->select('positions.id')
+                ->distinct()
+                ->join('orders', 'positions.id', '=', 'orders.position_id')
+                ->where('positions.exchange_symbol_id', $model->id) // Positions tied to this ExchangeSymbol.
+                ->where('positions.status', 'synced') // Only synced positions.
+                ->where('orders.status', 'synced') // Only synced orders.
+                ->where('orders.type', 'LIMIT') // Limit orders only.
+                ->whereRaw("
+            IF(
+                positions.side = 'SHORT',
+                orders.entry_average_price <= ?,
+                orders.entry_average_price >= ?
+            )", [$lastMarkPrice, $lastMarkPrice]) // Apply condition based on position's side
+                ->pluck('positions.id');
+
+            // Dispatch RecalculateAvgWeightPriceJob for eligible positions.
             foreach ($eligiblePositionIds as $positionId) {
-                RecalculateAvgWeightPrice::dispatch($positionId);
+                RecalculateAvgWeightPriceJob::dispatch($positionId);
+            }
+
+            // Additional logic for detecting profit orders being achieved.
+            $profitPositionIds =
+            DB::table('positions')
+                ->select('positions.id')
+                ->distinct()
+                ->join('orders', 'positions.id', '=', 'orders.position_id')
+                ->where('positions.exchange_symbol_id', $model->id) // Positions tied to this ExchangeSymbol.
+                ->where('positions.status', 'synced') // Only synced positions.
+                ->where('orders.status', 'synced') // Only synced orders.
+                ->where('orders.type', 'PROFIT') // Only profit orders.
+                ->whereRaw("
+            IF(
+                positions.side = 'LONG',
+                orders.entry_average_price <= ?,
+                orders.entry_average_price >= ?
+            )", [$lastMarkPrice, $lastMarkPrice]) // Apply condition based on position's side
+                ->pluck('positions.id'); // Get only the position IDs
+
+            // Dispatch ClosePositionJob for each position where profit was achieved.
+            foreach ($profitPositionIds as $positionId) {
+                \Log::info('Calling ClosePosition for position Id '.$positionId);
+                ClosePositionJob::dispatch($positionId);
             }
         }
-    }
-
-    public function deleted(ExchangeSymbol $model)
-    {
-        //
-    }
-
-    public function created(ExchangeSymbol $model)
-    {
-        //
     }
 }

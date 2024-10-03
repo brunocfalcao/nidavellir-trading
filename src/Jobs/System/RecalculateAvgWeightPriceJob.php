@@ -9,10 +9,10 @@ use Nidavellir\Trading\Models\Order;
 use Nidavellir\Trading\Models\Position;
 
 /**
- * RecalculateAvgWeightPrice recalculates the average weighted price for
+ * RecalculateAvgWeightPriceJob recalculates the average weighted price for
  * a position's filled limit orders and updates the profit order accordingly.
  */
-class RecalculateAvgWeightPrice extends AbstractJob
+class RecalculateAvgWeightPriceJob extends AbstractJob
 {
     protected $positionId;
 
@@ -41,8 +41,14 @@ class RecalculateAvgWeightPrice extends AbstractJob
             if ($position) {
                 Log::info('Locked position: '.$position->id);
 
+                // Update position status temporary to 'recalculating'.
+                $position->update(['status' => 'locked']);
+
                 // Recalculate weighted average price and update the profit order.
                 $this->recalculateAvgWeightPrice($position);
+
+                // Re-update position status to synced.
+                $position->update(['status' => 'synced']);
             } else {
                 Log::warning('Position not found or already locked: '.$this->positionId);
             }
@@ -89,11 +95,17 @@ class RecalculateAvgWeightPrice extends AbstractJob
                 $executedQty = (float) $orderStatus['executedQty'];
                 $executedPrice = (float) $orderStatus['avgPrice'];
 
-                Log::info('Filled order: '.$filledOrder->id.' with executed quantity: '.$executedQty.' and price: '.$executedPrice);
+                // Update the order status to 'filled'.
+                $filledOrder->update(['status' => 'filled']);
+                Log::info('Order '.$filledOrder->id.' updated to FILLED (average price: '.$orderStatus['avgPrice'].' quantity: '.$orderStatus['executedQty'].')');
 
                 // Accumulate total quantity and weighted price sum.
                 $totalQuantity += $executedQty;
                 $weightedSum += $executedQty * $executedPrice;
+
+                // Log the cumulative quantities and weighted sums after each iteration
+                Log::info('Accumulated total quantity: '.$totalQuantity);
+                Log::info('Accumulated weighted sum: '.$weightedSum);
             }
         }
 
@@ -101,6 +113,14 @@ class RecalculateAvgWeightPrice extends AbstractJob
         if ($totalQuantity > 0) {
             $averageWeightedPrice = $weightedSum / $totalQuantity;
             Log::info('New average weighted price for position '.$position->id.': '.$averageWeightedPrice);
+
+            // Retrieve the profit percentage from the position.
+            $profitPercentage = $position->initial_profit_percentage_ratio / 100; // Convert to decimal form.
+            Log::info('Profit percentage retrieved: '.$profitPercentage);
+
+            // Calculate the new profit price based on the position side and profit percentage.
+            $newProfitPrice = $this->calculateProfitPrice($averageWeightedPrice, $profitPercentage, $position->side);
+            Log::info('New profit price for position '.$position->id.': '.$newProfitPrice);
 
             // Get the profit order for this position.
             $profitOrder = $position->orders()
@@ -123,7 +143,7 @@ class RecalculateAvgWeightPrice extends AbstractJob
                 $precisionPrice = $position->exchangeSymbol->precision_price;
                 $precisionQuantity = $position->exchangeSymbol->precision_quantity;
 
-                $sanitizedPrice = round($averageWeightedPrice, $precisionPrice);
+                $sanitizedPrice = round($newProfitPrice, $precisionPrice);
                 $sanitizedQuantity = round($totalQuantity, $precisionQuantity);
 
                 Log::info('Sanitized price: '.$sanitizedPrice.', Sanitized quantity: '.$sanitizedQuantity);
@@ -143,23 +163,55 @@ class RecalculateAvgWeightPrice extends AbstractJob
     }
 
     /**
+     * Calculates the new profit price based on the weighted average price, profit percentage, and position side.
+     */
+    protected function calculateProfitPrice(float $averageWeightedPrice, float $profitPercentage, string $side): float
+    {
+        Log::info('Calculating profit price for side: '.$side.' with profit percentage: '.$profitPercentage);
+
+        if ($side === 'LONG') {
+            $newPrice = $averageWeightedPrice * (1 + $profitPercentage);
+            Log::info('New price for LONG position: '.$newPrice);
+
+            return $newPrice;
+        } else {
+            $newPrice = $averageWeightedPrice * (1 - $profitPercentage);
+            Log::info('New price for SHORT position: '.$newPrice);
+
+            return $newPrice;
+        }
+    }
+
+    /**
      * Modifies the profit order via API with the new price, quantity, and side.
      */
     protected function modifyProfitOrder(Order $profitOrder, float $newPrice, float $newQuantity, string $side)
     {
-        Log::info('Modifying profit order: '.$profitOrder->id.' with new price: '.$newPrice.', quantity: '.$newQuantity.', and side: '.$side);
+        // Retrieve the tick size from the exchange symbol
+        $tickSize = $profitOrder->position->exchangeSymbol->tick_size;
 
+        // Adjust the new price based on the tick size
+        $adjustedPrice = $this->adjustPriceToTickSize($newPrice, $tickSize);
+
+        Log::info('Modifying profit order: '.$profitOrder->id.' with new price: '.$adjustedPrice.', quantity: '.$newQuantity.', and side: '.$side);
+
+        // Send the adjusted price to the API
         $profitOrderStatus = $profitOrder->position->trader->withRESTApi()
             ->withLoggable($profitOrder)
             ->withOptions([
                 'symbol' => $profitOrder->position->exchangeSymbol->symbol->token.'USDT',
                 'orderId' => $profitOrder->order_exchange_system_id,
-                'price' => $newPrice,
+                'price' => $adjustedPrice, // Use the adjusted price
                 'quantity' => $newQuantity,
-                'side' => $side, // Pass the correct side
+                'side' => $side,
             ])
             ->modifyOrder();
 
         Log::info('Profit order modified via API for order: '.$profitOrder->id, ['response' => $profitOrderStatus]);
+    }
+
+    protected function adjustPriceToTickSize($price, $tickSize)
+    {
+        return floor($price / $tickSize) * $tickSize;
     }
 }

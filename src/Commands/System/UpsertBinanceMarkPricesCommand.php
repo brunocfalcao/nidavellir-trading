@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Nidavellir\Trading\ApiSystems\ApiSystemWebsocketWrapper;
 use Nidavellir\Trading\ApiSystems\Binance\BinanceWebsocketMapper;
+use Nidavellir\Trading\Models\ExchangeSymbol; // Import the ExchangeSymbol model
 
 /**
  * UpsertBinanceMarkPricesCommand is a console command that updates
@@ -73,19 +74,15 @@ class UpsertBinanceMarkPricesCommand extends Command
                     // Only update if the token is included or part of ongoing positions.
                     if ($symbol && (in_array($symbol->token, $includedTokens) || in_array($symbol->id, $ongoingPositionSymbolIds))) {
                         // Check if the ExchangeSymbol entry exists.
-                        $existingExchangeSymbol = DB::table('exchange_symbols')
-                            ->where('symbol_id', $symbol->id)
+                        $existingExchangeSymbol = ExchangeSymbol::where('symbol_id', $symbol->id)
                             ->where('exchange_id', $binanceExchangeId)
                             ->first();
 
-                        // Update the mark price and the synced timestamp if it exists.
+                        // Update the mark price using the Eloquent model so the observer is triggered.
                         if ($existingExchangeSymbol) {
-                            DB::table('exchange_symbols')
-                                ->where('id', $existingExchangeSymbol->id)
-                                ->update([
-                                    'last_mark_price' => $token['p'],
-                                    'price_last_synced_at' => now(),
-                                ]);
+                            $existingExchangeSymbol->update([
+                                'last_mark_price' => $token['p'], // This will trigger the observer
+                            ]);
                         }
                     }
                 }

@@ -244,6 +244,9 @@ class DispatchOrderJob extends AbstractJob
 
         $this->updateOrderWithExchangeResult($result);
         $this->updateOrderWithQueryOnOrderId($this->order->id);
+
+        // Update market order to filled status.
+        $this->order->update(['status' => 'filled']);
     }
 
     protected function updateOrderWithQueryOnOrderId($orderId)

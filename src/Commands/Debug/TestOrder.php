@@ -27,6 +27,32 @@ class TestOrder extends Command
 
     public function handle()
     {
+        /*
+        $model = ExchangeSymbol::find(7);
+
+        $lastMarkPrice = 0.15740000;
+
+        $profitPositionIds =
+            DB::table('positions')
+            ->select('positions.id')
+            ->distinct()
+            ->join('orders', 'positions.id', '=', 'orders.position_id')
+            ->where('positions.exchange_symbol_id', $model->id) // Positions tied to this ExchangeSymbol.
+            ->where('positions.status', 'synced') // Only synced positions.
+            ->where('orders.status', 'synced') // Only synced orders.
+            ->where('orders.type', 'PROFIT') // Only profit orders.
+            ->whereRaw("
+            IF(
+                positions.side = 'LONG',
+                orders.entry_average_price <= ?,
+                orders.entry_average_price >= ?
+            )", [$lastMarkPrice, $lastMarkPrice]) // Apply condition based on position's side
+            ->pluck('positions.id'); // Get only the position IDs
+
+        dd($profitPositionIds);
+
+        return;
+        */
         File::put(storage_path('logs/laravel.log'), '');
         DB::table('positions')->truncate();
         DB::table('orders')->truncate();

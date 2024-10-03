@@ -4,7 +4,7 @@ namespace Nidavellir\Trading\Commands\Debug;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
-use Nidavellir\Trading\Jobs\System\RecalculateAvgWeightPrice;
+use Nidavellir\Trading\Jobs\System\RecalculateAvgWeightPriceJob;
 use Nidavellir\Trading\Jobs\System\ScanLimitOrdersForPossibleFills;
 
 class RecalculateWeightPrice extends Command
@@ -22,7 +22,7 @@ class RecalculateWeightPrice extends Command
     {
         File::put(storage_path('logs/laravel.log'), '');
 
-        RecalculateAvgWeightPrice::dispatchSync(1);
+        RecalculateAvgWeightPriceJob::dispatchSync(1);
 
         //ScanLimitOrdersForPossibleFills::dispatchSync();
     }
