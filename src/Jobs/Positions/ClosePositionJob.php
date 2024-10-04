@@ -89,7 +89,7 @@ class ClosePositionJob extends AbstractJob
             // Dispatch a new position.
             $positionData = [
                 'trader_id' => $position->trader->id,
-                'total_trade_amount' => 20
+                'total_trade_amount' => 20,
             ];
 
             Position::create($positionData);

@@ -62,46 +62,73 @@ class TestOrder extends Command
         DB::table('job_queue')->truncate();
 
         $amount = $this->option('amount') ?? null;
-        $token = $this->option('token') ?? collect(config('nidavellir.symbols.included'))->random();
+        $token = $this->option('token') ?? null;
         $markPrice = $this->option('mark-price') ?? null;
+        $side = $this->option('side') ?? null;
+        $symbol = null;
+        $exchangeSymbol = null;
 
-        $symbol = Symbol::firstWhere('token', $token);
+        if ($token) {
+            $symbol = Symbol::firstWhere('token', $token);
+            $exchangeSymbol =
+            ExchangeSymbol::where('symbol_id', $symbol->id)
+                ->where('exchange_id', 1)
+                ->first();
 
-        $exchangeSymbol = ExchangeSymbol::where('symbol_id', $symbol->id)
-            ->where('exchange_id', 1)
-            ->first();
-
-        // Compute side.
-        $side = $this->option('side') ?? $exchangeSymbol->side;
-
-        if (!$amount) {
-            $labelAmount = 'MIN_NOTIONAL';
-        } else {
-            $labelAmount = $amount;
+            if (! $side) {
+                $side = $exchangeSymbol->side;
+            }
         }
 
         // Info message including mark price if provided
-        $infoMessage = 'Placing '.
-                       $side.
-                       " order with amount: $labelAmount and token: $token";
-        if ($markPrice) {
-            $infoMessage .= " at mark price: $markPrice";
+        $this->info('Trading configuration:');
+
+        if ($symbol) {
+            $this->info("Token: {$symbol->token}");
+        } else {
+            $this->info('Token: N/D');
         }
 
-        $this->info($infoMessage);
+        if ($amount) {
+            $this->info("Amount: {$amount}");
+        } else {
+            $this->info('Amount: N/D');
+        }
+
+        if ($side) {
+            $this->info("Side: {$side}");
+        } else {
+            $this->info('Side: N/D');
+        }
+
+        if ($markPrice) {
+            $this->info("Price: {$markPrice}");
+        } else {
+            $this->info('Price: N/A');
+        }
 
         $positionData = [
             'trader_id' => Trader::find(1)->id,
-            'side' => $side,
-            'exchange_symbol_id' => $exchangeSymbol->id,
-            'total_trade_amount' => $amount,
         ];
 
-        // Include initial_mark_price if provided
+        if ($side) {
+            $positionData['side'] = $side;
+        }
+
+        if ($exchangeSymbol) {
+            $positionData['exchange_symbol_id'] = $exchangeSymbol->id;
+        }
+
+        if ($amount) {
+            $positionData['total_trade_amount'] = $amount;
+        }
+
         if ($markPrice) {
             $positionData['initial_mark_price'] = $markPrice;
         }
 
         $position = Position::create($positionData);
+
+        $this->info('Positon opened with id ' . $position->id);
     }
 }

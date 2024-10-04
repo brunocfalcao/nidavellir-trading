@@ -133,7 +133,7 @@ class UpsertExchangeAvailableSymbolsJob extends BinanceApiJob
             'precision_quantity' => $item['quantityPrecision'], // Quantity precision
             'precision_quote' => $item['quotePrecision'], // Quote precision
             'tick_size' => $tickSize, // Tick size for the symbol
-            'min_notional' => $minNotional // Min trade notional
+            'min_notional' => $minNotional, // Min trade notional
         ];
     }
 
