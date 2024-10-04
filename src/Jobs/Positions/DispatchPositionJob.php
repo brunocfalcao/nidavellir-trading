@@ -47,8 +47,8 @@ class DispatchPositionJob extends AbstractJob
 
         // Perform all necessary steps for processing the position.
         $this->validateMandatoryFields();
-        $this->computeTotalTradeAmount();
         $this->selectEligibleSymbol();
+        $this->computeTotalTradeAmount();
         $this->updatePositionSideAndProfitRatio();
         $this->updateMarginTypeToCrossed();
         $this->setLeverage();
@@ -160,6 +160,7 @@ class DispatchPositionJob extends AbstractJob
             $exchangeSymbol = $eligibleSymbols->random();
 
             $this->position->update(['exchange_symbol_id' => $exchangeSymbol->id]);
+            $this->position->refresh();
         }
     }
 
