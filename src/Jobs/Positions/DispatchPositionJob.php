@@ -97,8 +97,15 @@ class DispatchPositionJob extends AbstractJob
     {
         $configuration = $this->position->trade_configuration;
 
-        if (config('nidavellir.debug.force_min_notional') == true) {
-            $this->position->total_trade_amount = $this->position->exchangeSymbol->min_notional * 1.005;
+        $minNotional = $this->position->exchangeSymbol->min_notional * 1.005;
+        $forceMinTradeAmount = config('nidavellir.debug.force_min_trade_amount');
+        $forceMinNotional = config('nidavellir.debug.force_min_notional');
+
+        // If `force_min_trade_amount` is set, use it, then compare with `min_notional`
+        if ($forceMinTradeAmount != 0) {
+            $this->position->total_trade_amount = $forceMinTradeAmount;
+            $this->position->save();
+            $this->position->refresh();
         }
 
         if (blank($this->position->total_trade_amount)) {
