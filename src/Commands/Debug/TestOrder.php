@@ -61,9 +61,9 @@ class TestOrder extends Command
         DB::table('exceptions_log')->truncate();
         DB::table('job_queue')->truncate();
 
-        $amount = $this->option('amount') ?? 20;
+        $amount = $this->option('amount') ?? null;
         $token = $this->option('token') ?? collect(config('nidavellir.symbols.included'))->random();
-        $markPrice = $this->option('mark-price');
+        $markPrice = $this->option('mark-price') ?? null;
 
         $symbol = Symbol::firstWhere('token', $token);
 
@@ -74,10 +74,16 @@ class TestOrder extends Command
         // Compute side.
         $side = $this->option('side') ?? $exchangeSymbol->side;
 
+        if (!$amount) {
+            $labelAmount = 'MIN_NOTIONAL';
+        } else {
+            $labelAmount = $amount;
+        }
+
         // Info message including mark price if provided
         $infoMessage = 'Placing '.
                        $side.
-                       " order with amount: $amount and token: $token";
+                       " order with amount: $labelAmount and token: $token";
         if ($markPrice) {
             $infoMessage .= " at mark price: $markPrice";
         }

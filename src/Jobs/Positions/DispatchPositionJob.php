@@ -97,6 +97,10 @@ class DispatchPositionJob extends AbstractJob
     {
         $configuration = $this->position->trade_configuration;
 
+        if (config('nidavellir.debug.force_min_notional') == true) {
+            $this->position->total_trade_amount = $this->position->exchangeSymbol->min_notional * 1.005;
+        }
+
         if (blank($this->position->total_trade_amount)) {
             $availableBalance = $this->position->trader
                 ->withRESTApi()
