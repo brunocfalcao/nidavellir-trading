@@ -135,6 +135,7 @@ return new class extends Migration
             $table->unsignedInteger('precision_price');
             $table->unsignedInteger('precision_quantity');
             $table->unsignedInteger('precision_quote');
+            $table->decimal('min_notional', 20, 8)->nullable();
             $table->decimal('tick_size', 20, 8);
             $table->longText('api_symbol_information')->nullable();
             $table->longText('api_notional_and_leverage_symbol_information')->nullable();

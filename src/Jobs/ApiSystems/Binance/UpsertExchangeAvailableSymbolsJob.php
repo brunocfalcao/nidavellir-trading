@@ -97,6 +97,7 @@ class UpsertExchangeAvailableSymbolsJob extends BinanceApiJob
                     'precision_price' => $tokenData['precision_price'],
                     'precision_quantity' => $tokenData['precision_quantity'],
                     'precision_quote' => $tokenData['precision_quote'],
+                    'min_notional' => $tokenData['min_notional'],
                     'tick_size' => $tokenData['tick_size'],
                     'api_symbol_information' => $data,
                 ];
@@ -123,12 +124,16 @@ class UpsertExchangeAvailableSymbolsJob extends BinanceApiJob
         $tickSize = collect($item['filters'])
             ->firstWhere('filterType', 'PRICE_FILTER')['tickSize'] ?? null;
 
+        $minNotional = collect($item['filters'])
+            ->firstWhere('filterType', 'MIN_NOTIONAL')['notional'] ?? null;
+
         return [
             'symbol' => $item['baseAsset'], // Base asset of the symbol
             'precision_price' => $item['pricePrecision'], // Price precision
             'precision_quantity' => $item['quantityPrecision'], // Quantity precision
             'precision_quote' => $item['quotePrecision'], // Quote precision
             'tick_size' => $tickSize, // Tick size for the symbol
+            'min_notional' => $minNotional // Min trade notional
         ];
     }
 

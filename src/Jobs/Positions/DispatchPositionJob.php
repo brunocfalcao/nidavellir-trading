@@ -103,7 +103,8 @@ class DispatchPositionJob extends AbstractJob
                 ->withLoggable($this->position)
                 ->getAccountBalance();
 
-            $minimumTradeAmount = config('nidavellir.positions.minimum_trade_amount');
+            // Retrive minimum notional from the exchange symbol (+0.5%);
+            $minimumTradeAmount = $this->position->exchangeSymbol->min_notional * 1.005;
 
             if ($availableBalance == 0) {
                 $this->updatePositionError('No USDT on Futures available balance.');

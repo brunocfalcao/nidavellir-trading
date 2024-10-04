@@ -228,6 +228,7 @@ class DispatchOrderJob extends AbstractJob
             'newClientOrderId' => $this->generateClientOrderId(),
             'side' => strtoupper($sideDetails['orderMarketSide']),
             'type' => 'MARKET',
+            'reduceOnly' => 'true',
             'quantity' => $orderQuantity,
             'symbol' => $this->symbol->token.'USDT',
         ];
